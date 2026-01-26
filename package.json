@@ -1,0 +1,19 @@
+{
+  "name": "agregateurdepaiement",
+  "version": "1.0.0",
+  "description": "PSP Studies holding",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StudiesHolding/agregateurdepaiement.git"
+  },
+  "author": "studies holding",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/StudiesHolding/agregateurdepaiement/issues"
+  },
+  "homepage": "https://github.com/StudiesHolding/agregateurdepaiement#readme"
+}
