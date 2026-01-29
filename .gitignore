@@ -26,3 +26,6 @@ dist-ssr
 
 .nx/cache
 .nx/workspace-data
+/generated/prisma
+
+/generated/prisma

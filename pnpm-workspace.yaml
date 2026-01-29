@@ -6,3 +6,8 @@ ignoredBuiltDependencies:
   - bcrypt
   - esbuild
   - puppeteer
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
