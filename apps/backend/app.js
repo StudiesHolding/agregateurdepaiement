@@ -21,3 +21,4 @@ await PaymentProvider.sync();
 await PaymentIntent.sync();
 await ProviderRoute.sync();
 await PaymentAttempt.sync();
+await Event.sync();

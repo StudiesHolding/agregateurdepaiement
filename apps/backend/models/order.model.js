@@ -31,9 +31,11 @@ Order.init({
     total_amount: {
         type: DataTypes.DECIMAL(26, 8),
     },
-    product: {
-        type: DataTypes.STRING(100),
-        allowNull: false
+    formation: {
+        type: DataTypes.BIGINT.UNSIGNED,
+    },
+    package: {
+        type: DataTypes.BIGINT.UNSIGNED,
     }
 
 }, {

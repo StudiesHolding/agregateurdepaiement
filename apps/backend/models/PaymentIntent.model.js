@@ -31,20 +31,10 @@ PaymentIntent.init({
             defaultValue: PaymentStatus.pending,
             allowNull: false,
         },
-        emailBuyer: {
-            type: DataTypes.STRING,
-        },
         idempotencyKey: {
             type: DataTypes.STRING,
         },
-        formation: {
-            type: DataTypes.BIGINT.UNSIGNED,
-            allowNull: false,
-        },
-        package: {
-            type: DataTypes.BIGINT.UNSIGNED,
-            allowNull: false,
-        }
+
 
     },
 
@@ -55,4 +45,4 @@ PaymentIntent.init({
 )
 
 PaymentIntent.Provider = PaymentIntent.belongsTo(PaymentProvider)
-    //PaymentIntent.Order = PaymentIntent.belongsTo(Order)
+PaymentIntent.Order = PaymentIntent.belongsTo(Order)

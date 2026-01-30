@@ -4,6 +4,7 @@ import { PaymentIntent } from '../models/PaymentIntent.model.js';
 import { PaymentAttempt, PaymentStatus } from '../models/Paymentattempt.model.js';
 import { ProviderRoute } from '../models/PaymentRouter.model.js';
 import { PaymentProvider } from '../models/PaymentProvider.model.js';
+import { Order } from "../models/order.model.js"
 import axios from 'axios';
 
 // A recuperer -montant
@@ -31,21 +32,36 @@ export const pinVerification = (req, res) => {
 export const InitPaymentMobileMoney = async(req, res) => {
     data = req.body;
     const intent = new PaymentIntent();
+    const order = new Order();
+    const attempt = new PaymentAttempt()
     if (data.formation !== "") {
-        intent = await PaymentIntent.create({
-            amount: data.amount,
+        order = await Order.create({
+            reference: "fsdfdsff",
             currency: data.currency,
-            emailBuyer: data.emailBuyer,
+            custumer_email: data.emailBuyer,
+            total_amount: data.amount,
             formation: data.formation,
-            package: null
+
+        })
+        intent = await PaymentIntent.create({
+            amount: order.amount,
+            currency: order.currency,
+            orderId: order.id,
         })
     } else {
-        intent = await PaymentIntent.create({
-            amount: data.amount,
+        order = await Order.create({
+            reference: "fsdfdsff",
             currency: data.currency,
-            emailBuyer: data.emailBuyer,
-            formation: null,
+            custumer_email: data.emailBuyer,
+            total_amount: data.amount,
             package: data.package,
+
+        })
+        intent = await PaymentIntent.create({
+            amount: order.amount,
+            currency: order.currency,
+            orderId: order.id,
+
         })
     }
 
@@ -72,23 +88,26 @@ export const InitPaymentMobileMoney = async(req, res) => {
         //Call provider API to init payment
         switch (item.paymentProvider.name) {
             case "CinetPay":
+                //Call CinetPay API
+                let transaction_id = ""
                 const requestPayload = {
                     apikey: process.env.CINETPAY_API_KEY,
                     site_id: process.env.CINETPAY_SITE_ID,
-                    transaction_id: "",
-                    amount: "",
-                    currency: "",
-                    description: "",
-                    notify_url: "",
-                    return_url: "",
-                    channels: "",
+                    transaction_id: transaction_id,
+                    amount: order.total_amount,
+                    currency: order.currency,
+                    description: "PAIEMENT DE SERVICE EDUCATIF",
+                    notify_url: process.env.CINETPAY_WEEBHOOK_NOTIFY_URL,
+                    return_url: process.env.CINETPAY_URL_AFTER_PAY,
+                    channels: "MOBILE_MONEY",
                 };
-                //Call CinetPay API
-                await PaymentAttempt.create({
-                    attemptNumber: Math.floor(Math.random() * 1000),
+
+                attempt = await PaymentAttempt.create({
+                    transactionNumber: transaction_id,
                     requestPayload: JSON.stringify(requestPayload),
                     paymentIntentId: intent.id
                 })
+
                 let initCall = await axios.post(process.env.CINETPAY_API_LINK, requestPayload)
                 if (initCall.status === 200) {
                     //Exit the loop
