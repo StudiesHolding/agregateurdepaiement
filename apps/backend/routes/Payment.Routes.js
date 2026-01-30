@@ -1,6 +1,6 @@
 import express from 'express';
-import { linkPayment, InitPaymentMobileMoney, CardPayment, pinVerification } from '../controllers/payments.Controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { linkPayment, InitPaymentMobileMoney, CardPayment, pinVerification } from '../controllers/payments.Controller.js';
+import { authMiddleware } from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 router.post('/link-payment', [authMiddleware], linkPayment);

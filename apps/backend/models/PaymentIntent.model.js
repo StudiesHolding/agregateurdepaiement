@@ -1,6 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import { PaymentProvider } from "./PaymentProvider.model.js";
-//import { Order } from "./order.model.js";
+import { Order } from "./order.model.js";
 import { sequelize } from "../db/sequelise.js";
 
 export class PaymentIntent extends Model {}
