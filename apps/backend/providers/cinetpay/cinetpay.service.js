@@ -11,22 +11,40 @@ export class CinetPayService extends PaymentProviderInterface {
     }
 
     async createPayment(paymentData) {
+        // Sanitize description: CinetPay forbids #, /, $, _, &
+        const cleanDescription = (paymentData.description || `Payment for Order ${paymentData.orderReference}`)
+            .replace(/[#/$_&]/g, " ")
+            .substring(0, 100);
+
         const payload = {
             apikey: this.apiKey,
             site_id: this.siteId,
             transaction_id: paymentData.transactionNumber, // Use our internal TxId
-            amount: paymentData.amount,
+            amount: Math.round(paymentData.amount), // Ensure Integer
             currency: paymentData.currency,
-            description: `Payment for Order ${paymentData.orderReference}`,
-            customer_email: paymentData.customerEmail,
+            description: cleanDescription,
+            customer_id: paymentData.customerId || paymentData.customerEmail,
             customer_name: paymentData.customerName || "Customer",
+            customer_surname: paymentData.customerSurname || "User",
+            customer_phone_number: paymentData.customerPhoneNumber || "+22500000000",
+            customer_email: paymentData.customerEmail,
+            customer_address: paymentData.customerAddress || "N/A",
+            customer_city: paymentData.customerCity || "N/A",
+            customer_country: paymentData.countryCode || "CI",
+            customer_state: paymentData.customerState || paymentData.countryCode || "CI",
+            customer_zip_code: paymentData.customerZipCode || "00000",
             notify_url: paymentData.notifyUrl,
             return_url: paymentData.successUrl,
-            channels: "ALL", // Card, Mobile Money, etc.
+            channels: paymentData.channels || "ALL",
+            lock_phone_number: paymentData.lockPhoneNumber || false,
             metadata: JSON.stringify({
                 paymentIntentId: paymentData.paymentIntentId,
                 orderId: paymentData.orderId
-            })
+            }),
+            lang: paymentData.lang || "fr",
+            invoice_data: paymentData.invoiceData || {
+                "Order": paymentData.orderReference
+            }
         };
 
         try {

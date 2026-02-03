@@ -15,7 +15,23 @@ const seedProviders = async () => {
         await sequelize.sync({ alter: true });
         console.log("✅ Database synced.");
 
-        // 1. Define Providers
+        // --- CLEANUP STEP ---
+        console.log("🧹 Cleaning up existing data...");
+
+        // Disable foreign key checks to allow truncation of parent tables
+        await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+
+        // Clear all relevant tables
+        await ProviderRoute.destroy({ where: {}, truncate: true });
+        await PaymentProvider.destroy({ where: {}, truncate: true });
+
+        // Re-enable foreign key checks
+        await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+
+        console.log("   - Existing providers and routes cleared safely.");
+
+        // 1. Define Providers (WITHOUT credentialsEncrypted for security)
+        // Credentials will be loaded from .env at runtime by the adapters
         const providers = [
             {
                 code: "STRIPE",
@@ -23,10 +39,7 @@ const seedProviders = async () => {
                 isActive: true,
                 supportCard: true,
                 supportMobileMoney: false,
-                credentialsEncrypted: {
-                    secretKey: process.env.STRIPE_SECRET_KEY,
-                    publishableKey: process.env.STRIPE_Publishable_Key
-                }
+                credentialsEncrypted: null // Keep it null, managed by .env
             },
             {
                 code: "CINETPAY",
@@ -34,10 +47,7 @@ const seedProviders = async () => {
                 isActive: true,
                 supportCard: true,
                 supportMobileMoney: true,
-                credentialsEncrypted: {
-                    apiKey: process.env.CINETPAY_API_KEY,
-                    siteId: process.env.CINETPAY_SITE_ID
-                }
+                credentialsEncrypted: null // Keep it null, managed by .env
             }
         ];
 
@@ -45,9 +55,9 @@ const seedProviders = async () => {
         const createdProviders = {};
 
         for (const p of providers) {
-            const [provider] = await PaymentProvider.upsert(p);
+            const provider = await PaymentProvider.create(p);
             createdProviders[p.code] = provider;
-            console.log(`   - Provider ${p.name} [${p.code}] synchronized.`);
+            console.log(`   - Provider ${p.name} [${p.code}] created.`);
         }
 
         // 2. Define Routing Rules
@@ -92,16 +102,16 @@ const seedProviders = async () => {
             }
         ];
 
-        console.log(" Seeding Routing Rules...");
+        console.log("🌍 Seeding Routing Rules...");
         for (const r of routes) {
-            await ProviderRoute.upsert(r);
+            await ProviderRoute.create(r);
             console.log(`   - Route for ${r.countryCode} / ${r.currency} added.`);
         }
 
-        console.log("\n Seeding completed successfully!");
+        console.log("\n✨ Database initialization completed successfully!");
         process.exit(0);
     } catch (error) {
-        console.error(" Seeding failed:", error);
+        console.error("❌ Seeding failed:", error);
         process.exit(1);
     }
 };
