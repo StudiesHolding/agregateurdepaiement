@@ -9,7 +9,7 @@ const router = Router();
 // Protect all routes in this router
 router.use(protect);
 
-router.post("/init", emailVerificationMiddleware, catchAsync(PaymentController.initialize));
+router.post("/init", catchAsync(PaymentController.initialize));
 router.post("/verify-email", catchAsync(PaymentController.verifyEmail));
 router.post("/request-code", catchAsync(PaymentController.requestVerificationCode));
 router.get("/:id/status", catchAsync(PaymentController.getStatus));

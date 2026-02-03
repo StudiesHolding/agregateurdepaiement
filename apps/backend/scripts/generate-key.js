@@ -12,7 +12,7 @@ async function generate() {
         const apiKey = await ApiKeyService.generate(owner);
 
         console.log("--------------------------------------------------");
-        console.log("✅ API Key generated successfully!");
+        console.log("API Key generated successfully!");
         console.log(`Owner: ${apiKey.owner}`);
         console.log(`Key:   ${apiKey.key}`);
         console.log("--------------------------------------------------");
@@ -22,7 +22,7 @@ async function generate() {
         console.log("--------------------------------------------------");
 
     } catch (error) {
-        console.error("❌ Failed to generate API key:", error);
+        console.error(" Failed to generate API key:", error);
     } finally {
         await sequelize.close();
     }
