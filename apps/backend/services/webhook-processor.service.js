@@ -27,7 +27,10 @@ export class WebhookProcessor {
             if (providerCode === 'cinetpay') {
                 transactionNumber = payload.cpm_trans_id || payload.client_transaction_id;
             } else if (providerCode === 'stripe') {
-                transactionNumber = payload.data?.object?.id;
+                const stripeObj = payload.data?.object;
+                transactionNumber = stripeObj?.metadata?.transactionNumber ||
+                    stripeObj?.client_reference_id ||
+                    stripeObj?.id;
             }
 
             if (transactionNumber) {

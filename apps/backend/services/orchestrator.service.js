@@ -25,6 +25,9 @@ export class OrchestratorService {
             metadata
         } = data;
 
+        // Fallback for notifyUrl from environment variables
+        const finalNotifyUrl = notifyUrl || process.env.CINETPAY_WEEBHOOK_NOTIFY_URL || process.env.WEBHOOK_NOTIFY_URL;
+
         // 1. Create or Find Order (simplified here to create new)
         const order = await OrderService.create({
             customerEmail,
@@ -70,7 +73,7 @@ export class OrchestratorService {
                 customerName,
                 successUrl,
                 cancelUrl,
-                notifyUrl
+                notifyUrl: finalNotifyUrl
             });
         };
 

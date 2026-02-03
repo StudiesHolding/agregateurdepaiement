@@ -35,11 +35,13 @@ export class StripeService extends PaymentProviderInterface {
                     },
                 ],
                 mode: 'payment',
+                client_reference_id: paymentData.transactionNumber,
                 success_url: paymentData.successUrl,
                 cancel_url: paymentData.cancelUrl,
                 metadata: {
                     orderId: paymentData.orderId,
                     paymentIntentId: paymentData.paymentIntentId,
+                    transactionNumber: paymentData.transactionNumber
                 },
             });
 
