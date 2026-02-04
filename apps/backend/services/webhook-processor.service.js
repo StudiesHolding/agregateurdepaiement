@@ -44,10 +44,28 @@ export class WebhookProcessor {
           stripeObj?.id;
       } else if (providerCode === "kkiapay") {
         // KKiaPay webhook payload structure
+        // Format: { transactionId, isPaymentSucces, event, ... }
         transactionNumber =
           payload.reference ||
+          payload.transactionId ||
           payload.transaction_id ||
           payload.metadata?.transactionNumber;
+
+        // Debug log for KKiaPay
+        console.log(
+          `[WebhookProcessor] KKiaPay payload: isPaymentSucces=${payload.isPaymentSucces}, event=${payload.event}, transactionId=${payload.transactionId}`,
+        );
+
+        // Also check event field directly
+        if (payload.event === "transaction.success") {
+          console.log(
+            `[WebhookProcessor] KKiaPay SUCCESS detected from event field`,
+          );
+        } else if (payload.event === "transaction.failed") {
+          console.log(
+            `[WebhookProcessor] KKiaPay FAILURE detected from event field`,
+          );
+        }
       }
 
       if (transactionNumber) {
@@ -203,9 +221,12 @@ export class WebhookProcessor {
     if (provider === "stripe")
       return payload.type === "checkout.session.completed";
     if (provider === "kkiapay") {
-      // KKiaPay success status: success, completed, successful
-      const status = payload.status || payload.state;
-      return status === "success" || status === "completed";
+      // KKiaPay success: isPaymentSucces = true OR event = "transaction.success"
+      return (
+        payload.isPaymentSucces === true ||
+        payload.event === "transaction.success" ||
+        payload.event?.includes("success")
+      );
     }
     return false;
   }
@@ -219,10 +240,11 @@ export class WebhookProcessor {
         payload.type === "checkout.session.async_payment_failed"
       );
     if (provider === "kkiapay") {
-      // KKiaPay failure status: failed, expired, cancelled
-      const status = payload.status || payload.state;
+      // KKiaPay failure: isPaymentSucces = false OR event = "transaction.failed"
       return (
-        status === "failed" || status === "expired" || status === "cancelled"
+        payload.isPaymentSucces === false ||
+        payload.event === "transaction.failed" ||
+        payload.event?.includes("failed")
       );
     }
     return false;
