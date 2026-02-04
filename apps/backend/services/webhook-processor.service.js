@@ -102,12 +102,33 @@ export class WebhookProcessor {
               );
             }
           } else {
-            // For other providers, we map from the validated payload
+            // For other providers (Stripe, KKiaPay), we map from the validated payload
+            let signatureValid = true;
+
+            // Validate KKiaPay signature if provided
+            if (providerCode === "kkiapay" && signature) {
+              const kkiapay = ProviderFactory.getProvider("kkiapay");
+              signatureValid = kkiapay.validateWebhookSignature(
+                payload,
+                signature,
+              );
+              console.log(
+                `[WebhookProcessor] KKiaPay signature validation: ${signatureValid}`,
+              );
+            }
+
+            if (!signatureValid) {
+              console.warn(
+                `[WebhookProcessor] Invalid signature for ${providerCode} webhook`,
+              );
+              event.signatureValid = false;
+            }
+
             const eventType = payload.type;
             const isSuccess = this.isSuccessEvent(providerCode, payload);
             const isFailure = this.isFailureEvent(providerCode, payload);
             console.log(
-              `[WebhookProcessor] Stripe event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
+              `[WebhookProcessor] ${providerCode} event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
             );
             if (isSuccess) finalStatus = PaymentStatus.SUCCEEDED;
             else if (isFailure) finalStatus = PaymentStatus.FAILED;
@@ -138,7 +159,7 @@ export class WebhookProcessor {
             `[WebhookProcessor] No payment attempt found for ID: ${transactionNumber}`,
           );
           console.log(
-            "💡 Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
+            " Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
           );
         }
       }
