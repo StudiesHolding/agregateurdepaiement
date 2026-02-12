@@ -72,8 +72,8 @@ export class InvoiceService {
                           <table>
                               <tr>
                                   <td>
-                                      Studies Holding SAS<br>
-                                      75000 Paris, France<br>
+                                      Studies Holding <br>
+                                      Douala, Cameroun<br>
                                       contact@studieslearning.com
                                   </td>
                                   <td>
