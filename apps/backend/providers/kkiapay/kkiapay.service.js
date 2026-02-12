@@ -8,6 +8,8 @@ export class KkiapayService extends PaymentProviderInterface {
     this.secretKey = config.secretKey || process.env.KKIAPAY_SECRET_KEY;
     this.privateKey = config.privateKey || process.env.KKIAPAY_PRIVATE_KEY;
     this.publicKey = config.publicKey || process.env.KKIAPAY_PUBLIC_KEY;
+    this.webhookSecret =
+      config.webhookSecret || process.env.KKIAPAY_WEBHOOK_SECRET;
     this.sandbox =
       config.sandbox !== undefined
         ? config.sandbox
@@ -155,25 +157,49 @@ export class KkiapayService extends PaymentProviderInterface {
 
   /**
    * Validate webhook signature
+   * KKiaPay sends signature in x-kkiapay-secret header
+   * The signature is an HMAC SHA256 of the payload using the webhook secret
    */
   validateWebhookSignature(payload, signature) {
-    if (!signature || !this.privateKey) {
+    if (!signature) {
+      console.warn("[KkiapayService] No signature provided in webhook");
+      return false;
+    }
+
+    if (!this.webhookSecret) {
+      console.warn(
+        "[KkiapayService] No webhook secret configured for signature validation",
+      );
       return false;
     }
 
     try {
-      // KKiaPay webhook signature verification
+      // KKiaPay webhook signature verification using webhook secret
       const expectedSignature = crypto
-        .createHmac("sha256", this.privateKey)
+        .createHmac("sha256", this.webhookSecret)
         .update(JSON.stringify(payload))
         .digest("hex");
 
-      return crypto.timingSafeEqual(
+      console.log(`[KkiapayService] Validating signature...`);
+      console.log(`[KkiapayService] Received: ${signature}`);
+      console.log(`[KkiapayService] Expected: ${expectedSignature}`);
+
+      // Use timingSafeEqual to prevent timing attacks
+      const isValid = crypto.timingSafeEqual(
         Buffer.from(signature),
         Buffer.from(expectedSignature),
       );
+
+      if (!isValid) {
+        console.warn("[KkiapayService] Invalid webhook signature");
+      }
+
+      return isValid;
     } catch (error) {
-      console.error("[KkiapayService] Signature validation error:", error);
+      console.error(
+        "[KkiapayService] Signature validation error:",
+        error.message,
+      );
       return false;
     }
   }

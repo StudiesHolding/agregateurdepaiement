@@ -125,21 +125,45 @@ export class WebhookProcessor {
           (a) => a.paymentIntent?.amount === payload.amount,
         );
 
-        if (attempt) {
-          console.log(
-            `[WebhookProcessor] KKiaPay: Found attempt via amount matching! Order=${attempt.paymentIntent?.order?.reference}`,
-          );
-          // Store the KKiaPay transactionId for future webhooks
-          if (
-            payload.transactionId &&
-            attempt.transactionNumber !== payload.transactionId
-          ) {
+            if (verification.success) {
+              console.log(
+                `[WebhookProcessor] CinetPay verification: ${verification.status}`,
+              );
+              finalStatus = verification.status;
+              providerResponse = verification.response;
+            } else {
+              console.warn(
+                `[WebhookProcessor] CinetPay verification FAILED for ${transactionNumber}: ${verification.errorMessage || "Unknown error"}`,
+              );
+            }
+          } else {
+            // For other providers (Stripe, KKiaPay), we map from the validated payload
+            let signatureValid = true;
+
+            // Validate KKiaPay signature if provided
+            if (providerCode === "kkiapay" && signature) {
+              const kkiapay = ProviderFactory.getProvider("kkiapay");
+              signatureValid = kkiapay.validateWebhookSignature(
+                payload,
+                signature,
+              );
+              console.log(
+                `[WebhookProcessor] KKiaPay signature validation: ${signatureValid}`,
+              );
+            }
+
+            if (!signatureValid) {
+              console.warn(
+                `[WebhookProcessor] Invalid signature for ${providerCode} webhook`,
+              );
+              event.signatureValid = false;
+            }
+
+            const eventType = payload.type;
+            const isSuccess = this.isSuccessEvent(providerCode, payload);
+            const isFailure = this.isFailureEvent(providerCode, payload);
             console.log(
-              `[WebhookProcessor] KKiaPay: Storing transactionId=${payload.transactionId} for future webhooks`,
-            );
-            await attempt.update(
-              { transactionNumber: payload.transactionId },
-              { transaction },
+              `[WebhookProcessor] ${providerCode} event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
             );
           }
           transactionNumber = payload.transactionId;
@@ -203,7 +227,7 @@ export class WebhookProcessor {
         } else if (finalStatus === PaymentStatus.PROCESSING) {
           await this.markAsProcessing(attempt, providerResponse, transaction);
           console.log(
-            `[WebhookProcessor] Payment is still processing/waiting for: ${transactionNumber}`,
+            " Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
           );
         }
 
