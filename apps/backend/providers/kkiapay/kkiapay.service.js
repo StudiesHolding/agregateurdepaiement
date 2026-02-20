@@ -40,6 +40,7 @@ export class KkiapayService extends PaymentProviderInterface {
         name: paymentData.customerName || "Customer",
         surname: paymentData.customerSurname || "User",
         reference: reference,
+        partnerId: reference, // Explicitement pour qu'il soit renvoyé dans les webhooks
         callback_url: paymentData.successUrl,
         return_url: paymentData.successUrl,
         cancel_url: paymentData.cancelUrl,

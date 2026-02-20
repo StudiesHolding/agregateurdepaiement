@@ -1,6 +1,6 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-import { InvoiceService } from './invoice.service.js';
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+import { InvoiceService } from "./invoice.service.js";
 
 dotenv.config();
 
@@ -15,10 +15,12 @@ export class MailService {
    */
   static getTransporter() {
     if (!this._transporter) {
-      console.log(`[MailService] Initializing SMTP with host: ${process.env.MAIL_HOST}`);
+      console.log(
+        `[MailService] Initializing SMTP with host: ${process.env.MAIL_HOST}`,
+      );
       this._transporter = nodemailer.createTransport({
         host: process.env.MAIL_HOST,
-        port: parseInt(process.env.MAIL_PORT || '465'),
+        port: parseInt(process.env.MAIL_PORT || "465"),
         secure: true,
         auth: {
           user: process.env.MAIL_USER,
@@ -40,7 +42,7 @@ export class MailService {
         to,
         subject,
         html,
-        attachments
+        attachments,
       });
       console.log(`[MailService] Email sent to ${to}: ${info.messageId}`);
       return info;
@@ -52,53 +54,73 @@ export class MailService {
 
   /**
    * Send payment confirmation email with Invoice PDF
+   * Falls back to email without PDF if Puppeteer is not available
    */
   static async sendPaymentSuccessNotification(intent, order) {
+    let attachments = [];
+
+    // Try to generate PDF invoice
     try {
-      const pdfBuffer = await InvoiceService.generateInvoiceBuffer(intent, order);
-
-      const html = `
-        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-          <h2 style="color: #2c3e50; text-align: center; border-bottom: 2px solid #2c3e50; padding-bottom: 10px;">Confirmation de Paiement</h2>
-          <p>Bonjour <strong>${order.customerName}</strong>,</p>
-          <p>Nous avons le plaisir de vous confirmer la réception de votre paiement.</p>
-          <div style="background-color: #f4f7f6; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
-            <p style="margin: 0;"><strong>Montant :</strong> ${intent.amount} ${intent.currency}</p>
-            <p style="margin: 0;"><strong>Commande :</strong> ${order.reference}</p>
-            <p style="margin: 0;"><strong>Référence de paiement :</strong> ${intent.id}</p>
-            <p style="margin: 0;"><strong>Statut :</strong> Payé</p>
-          </div>
-          <p>Vous trouverez ci-joint la facture correspondant à cette transaction.</p>
-          <p>Si vous avez des questions, n'hésitez pas à nous contacter à <a href="mailto:support@studieslearning.com" style="color: #2980b9;">support@studieslearning.com</a>.</p>
-          <p>Cordialement,<br>L'équipe Studies Learning</p>
-        </div>
-      `;
-
-      return await this.sendEmail({
-        to: order.customerEmail,
-        subject: `[Studies Learning] Facture & Confirmation - Commande ${order.reference}`,
-        html,
-        attachments: [
+      const pdfBuffer = await InvoiceService.generateInvoiceBuffer(
+        intent,
+        order,
+      );
+      if (pdfBuffer) {
+        attachments = [
           {
             filename: `facture_${order.reference}.pdf`,
             content: pdfBuffer,
-            contentType: 'application/pdf'
-          }
-        ]
-      });
-    } catch (error) {
-      console.error("[MailService] Error in sendPaymentSuccessNotification:", error);
+            contentType: "application/pdf",
+          },
+        ];
+      }
+    } catch (pdfError) {
+      console.warn(
+        "[MailService] PDF generation failed (Puppeteer not available), sending email without attachment",
+      );
     }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
+        <h2 style="color: #2c3e50; text-align: center; border-bottom: 2px solid #2c3e50; padding-bottom: 10px;">Confirmation de Paiement</h2>
+        <p>Bonjour <strong>${order.customerName}</strong>,</p>
+        <p>Nous avons le plaisir de vous confirmer la réception de votre paiement.</p>
+        <div style="background-color: #f4f7f6; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Montant :</strong> ${intent.amount} ${intent.currency}</p>
+          <p style="margin: 0;"><strong>Commande :</strong> ${order.reference}</p>
+          <p style="margin: 0;"><strong>Référence de paiement :</strong> ${intent.id}</p>
+          <p style="margin: 0;"><strong>Statut :</strong> Payé</p>
+        </div>
+        ${
+          attachments.length > 0
+            ? "<p>Vous trouverez ci-joint la facture correspondant à cette transaction.</p>"
+            : "<p>Votre facture sera disponible sous peu dans votre espace membre.</p>"
+        }
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter à <a href="mailto:support@studieslearning.com" style="color: #2980b9;">support@studieslearning.com</a>.</p>
+        <p>Cordialement,<br>L'équipe Studies Learning</p>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to: order.customerEmail,
+      subject: `[Studies Learning] Confirmation de Paiement - ${order.reference}`,
+      html,
+      attachments,
+    });
   }
 
   /**
    * Send payment failure notification
    */
-  static async sendPaymentFailureNotification(intent, order, reason = "Échec de la transaction") {
+  static async sendPaymentFailureNotification(
+    intent,
+    order,
+    reason = "Échec de la transaction",
+  ) {
     const html = `
       <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
         <h2 style="color: #e74c3c; text-align: center; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;">Problème de Paiement</h2>
-        <p>Bonjour <strong>${order.customerName || 'client'}</strong>,</p>
+        <p>Bonjour <strong>${order.customerName || "client"}</strong>,</p>
         <p>Nous n'avons pas pu valider votre paiement de <strong>${intent.amount} ${intent.currency}</strong> pour la commande <strong>${order.reference}</strong>.</p>
         <div style="background-color: #fdf2f2; padding: 20px; border-left: 4px solid #e74c3c; margin: 20px 0;">
           <p style="margin: 0;"><strong>Motif :</strong> ${reason}</p>
@@ -111,7 +133,7 @@ export class MailService {
     return await this.sendEmail({
       to: order.customerEmail,
       subject: `[Important] Problème de Paiement - Commande ${order.reference}`,
-      html
+      html,
     });
   }
 
@@ -135,13 +157,17 @@ export class MailService {
             </tr>
           </thead>
           <tbody>
-            ${payments.map(p => `
+            ${payments
+              .map(
+                (p) => `
               <tr>
                 <td style="padding: 10px; border: 1px solid #eee;">N°${p.installmentNumber}</td>
-                <td style="padding: 10px; border: 1px solid #eee;">${new Date(p.dueDate).toLocaleDateString('fr-FR')}</td>
+                <td style="padding: 10px; border: 1px solid #eee;">${new Date(p.dueDate).toLocaleDateString("fr-FR")}</td>
                 <td style="padding: 10px; border: 1px solid #eee; text-align: right;">${p.amount} ${plan.currency}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
 
@@ -157,13 +183,13 @@ export class MailService {
     return await this.sendEmail({
       to: order.customerEmail,
       subject: `[Studies Learning] Activation de votre plan de paiement - ${order.reference}`,
-      html
+      html,
     });
   }
 
   /**
- * Send a reminder for an upcoming installment payment
- */
+   * Send a reminder for an upcoming installment payment
+   */
   static async sendInstallmentReminder(order, installment, plan) {
     const html = `
       <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
@@ -172,7 +198,7 @@ export class MailService {
         <p>Ceci est un rappel concernant votre prochaine échéance de paiement pour la commande <strong>${order.reference}</strong>.</p>
         <div style="background-color: #fffaf0; padding: 20px; border-left: 4px solid #e67e22; margin: 20px 0;">
           <p style="margin: 0;"><strong>Échéance N° :</strong> ${installment.installmentNumber}</p>
-          <p style="margin: 0;"><strong>Date limite :</strong> ${new Date(installment.dueDate).toLocaleDateString('fr-FR')}</p>
+          <p style="margin: 0;"><strong>Date limite :</strong> ${new Date(installment.dueDate).toLocaleDateString("fr-FR")}</p>
           <p style="margin: 0;"><strong>Montant :</strong> ${installment.amount} ${plan.currency}</p>
         </div>
         <p>Le prélèvement sera tenté automatiquement ou vous pouvez procéder au règlement via votre espace client.</p>
@@ -183,7 +209,7 @@ export class MailService {
     return await this.sendEmail({
       to: order.customerEmail,
       subject: `[Rappel] Votre échéance de paiement Studies Learning - ${order.reference}`,
-      html
+      html,
     });
   }
 
@@ -207,13 +233,13 @@ export class MailService {
     return await this.sendEmail({
       to: email,
       subject: `[Studies Learning] Votre code de vérification : ${code}`,
-      html
+      html,
     });
   }
 
   /**
    * Send notification to administrative stakeholders
-     */
+   */
   static async sendAdminNotification(subject, message) {
     const adminEmail = process.env.ADMIN_EMAIL || "admin@studiesholding.com";
     const html = `
@@ -227,15 +253,24 @@ export class MailService {
           <p style="white-space: pre-wrap; margin: 0;">${message}</p>
         </div>
         <p style="font-size: 12px; color: #6a737d; margin-top: 20px; text-align: center;">
-          Généré par le module Orchestrator le ${new Date().toLocaleString('fr-FR')}
+          Généré par le module Orchestrator le ${new Date().toLocaleString("fr-FR")}
         </p>
       </div>
     `;
 
-    return await this.sendEmail({
-      to: adminEmail,
-      subject: `🚩 [PSP-ALERT] ${subject}`,
-      html
-    });
+    // Don't fail the main process if admin notification fails
+    try {
+      return await this.sendEmail({
+        to: adminEmail,
+        subject: `🚩 [PSP-ALERT] ${subject}`,
+        html,
+      });
+    } catch (error) {
+      console.warn(
+        "[MailService] Admin notification failed (non-critical):",
+        error.message,
+      );
+      return null;
+    }
   }
 }

@@ -6,17 +6,28 @@ import { catchAsync } from "./error.middleware.js";
  * Middleware to check for valid API Key
  */
 export const protect = catchAsync(async (req, res, next) => {
-    const apiKey = req.headers['x-api-key'] || req.headers['X-API-KEY'];
+  // Try multiple header formats for compatibility
+  const apiKey =
+    req.headers["x-api-key"] ||
+    req.headers["X-API-KEY"] ||
+    req.headers["x-api-key-value"] ||
+    req.headers["X-API-KEY-VALUE"];
 
-    if (!apiKey) {
-        throw new UnauthorizedError("App identification failed: Missing API Key");
-    }
+  console.log("[AUTH DEBUG] Headers received:", JSON.stringify(req.headers));
+  console.log(
+    "[AUTH DEBUG] API Key extracted:",
+    apiKey ? apiKey.substring(0, 10) + "..." : "MISSING",
+  );
 
-    const isValid = await ApiKeyService.validate(apiKey);
+  if (!apiKey) {
+    throw new UnauthorizedError("App identification failed: Missing API Key");
+  }
 
-    if (!isValid) {
-        throw new UnauthorizedError("App identification failed: Invalid API Key");
-    }
+  const isValid = await ApiKeyService.validate(apiKey);
 
-    next();
+  if (!isValid) {
+    throw new UnauthorizedError("App identification failed: Invalid API Key");
+  }
+
+  next();
 });
