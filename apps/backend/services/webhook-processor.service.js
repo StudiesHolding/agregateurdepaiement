@@ -44,16 +44,16 @@ export class WebhookProcessor {
           stripeObj?.id;
       } else if (providerCode === "kkiapay") {
         // KKiaPay webhook payload structure
-        // Format: { transactionId, isPaymentSucces, event, ... }
+        // Format: { transactionId, isPaymentSucces, event, partnerId, ... }
+        // partnerId is our reference that we passed to KKiaPay
         transactionNumber =
-          payload.reference ||
+          payload.partnerId || // Our reference passed as partnerId
           payload.transactionId ||
-          payload.transaction_id ||
-          payload.metadata?.transactionNumber;
+          payload.transaction_id;
 
         // Debug log for KKiaPay
         console.log(
-          `[WebhookProcessor] KKiaPay payload: isPaymentSucces=${payload.isPaymentSucces}, event=${payload.event}, transactionId=${payload.transactionId}`,
+          `[WebhookProcessor] KKiaPay payload: isPaymentSucces=${payload.isPaymentSucces}, event=${payload.event}, transactionId=${payload.transactionId}, partnerId=${payload.partnerId}`,
         );
 
         // Also check event field directly
@@ -68,13 +68,16 @@ export class WebhookProcessor {
         }
       }
 
+      // KKiaPay fallback: try to find via amount matching
+      let attempt = null;
+
       if (transactionNumber) {
         console.log(
           `[WebhookProcessor] Processing transaction: ${transactionNumber}`,
         );
 
         // Find the attempt with Intent and Order
-        const attempt = await PaymentAttempt.findOne(
+        attempt = await PaymentAttempt.findOne(
           {
             where: { transactionNumber },
             include: [
@@ -87,26 +90,40 @@ export class WebhookProcessor {
           },
           { transaction },
         );
+      }
 
-        if (attempt && attempt.paymentIntent && attempt.paymentIntent.order) {
-          console.log(
-            `[WebhookProcessor] Found attempt for Order: ${attempt.paymentIntent.order.reference}`,
-          );
-          event.providerId = attempt.providerId;
-          const intent = attempt.paymentIntent;
-          const order = intent.order;
+      // KKiaPay fallback: try to find via amount matching if not found
+      if (!attempt && providerCode === "kkiapay" && payload.amount) {
+        console.log(
+          `[WebhookProcessor] KKiaPay: Attempt not found by transactionNumber=${transactionNumber}, trying fallback via amount=${payload.amount}...`,
+        );
 
-          // Professional Verification Flow
-          let finalStatus = null;
-          let providerResponse = payload;
+        // Find recent attempts for KKiaPay with exact amount match
+        const recentAttempts = await PaymentAttempt.findAll(
+          {
+            where: {
+              providerId: 3, // KKiaPay provider ID
+              createdAt: {
+                [Symbol.for("gte")]: new Date(Date.now() - 2 * 60 * 60 * 1000),
+              }, // Last 2 hours
+            },
+            include: [
+              {
+                model: PaymentIntent,
+                as: "paymentIntent",
+                include: [{ model: Order, as: "order" }],
+              },
+            ],
+            order: [["createdAt", "DESC"]],
+            limit: 20,
+          },
+          { transaction },
+        );
 
-          if (providerCode === "cinetpay") {
-            // Anti-MitM: Call CinetPay API to verify the real status
-            console.log(
-              `[WebhookProcessor] Verifying CinetPay Tx: ${transactionNumber}`,
-            );
-            const cinetpay = ProviderFactory.getProvider("cinetpay");
-            const verification = await cinetpay.checkStatus(transactionNumber);
+        // Match by exact amount
+        attempt = recentAttempts.find(
+          (a) => a.paymentIntent?.amount === payload.amount,
+        );
 
             if (verification.success) {
               console.log(
@@ -148,38 +165,81 @@ export class WebhookProcessor {
             console.log(
               `[WebhookProcessor] ${providerCode} event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
             );
-            if (isSuccess) finalStatus = PaymentStatus.SUCCEEDED;
-            else if (isFailure) finalStatus = PaymentStatus.FAILED;
           }
+          transactionNumber = payload.transactionId;
+        }
+      }
 
-          if (finalStatus === PaymentStatus.SUCCEEDED) {
-            await this.markAsSucceeded(attempt, providerResponse, transaction);
-            notificationData = { type: "success", intent, order };
-          } else if (finalStatus === PaymentStatus.FAILED) {
-            await this.markAsFailed(attempt, providerResponse, transaction);
-            notificationData = {
-              type: "failure",
-              intent,
-              order,
-              reason: providerResponse.message || "Payment failed",
-            };
-          } else if (finalStatus === PaymentStatus.PROCESSING) {
-            await this.markAsProcessing(attempt, providerResponse, transaction);
+      if (attempt && attempt.paymentIntent && attempt.paymentIntent.order) {
+        console.log(
+          `[WebhookProcessor] Found attempt for Order: ${attempt.paymentIntent.order.reference}`,
+        );
+        event.providerId = attempt.providerId;
+        const intent = attempt.paymentIntent;
+        const order = intent.order;
+
+        // Professional Verification Flow
+        let finalStatus = null;
+        let providerResponse = payload;
+
+        if (providerCode === "cinetpay") {
+          // Anti-MitM: Call CinetPay API to verify the real status
+          console.log(
+            `[WebhookProcessor] Verifying CinetPay Tx: ${transactionNumber}`,
+          );
+          const cinetpay = ProviderFactory.getProvider("cinetpay");
+          const verification = await cinetpay.checkStatus(transactionNumber);
+
+          if (verification.success) {
             console.log(
-              `[WebhookProcessor] Payment is still processing/waiting for: ${transactionNumber}`,
+              `[WebhookProcessor] CinetPay verification: ${verification.status}`,
+            );
+            finalStatus = verification.status;
+            providerResponse = verification.response;
+          } else {
+            console.warn(
+              `[WebhookProcessor] CinetPay verification FAILED for ${transactionNumber}: ${verification.errorMessage || "Unknown error"}`,
             );
           }
-
-          event.processed = true;
-          event.processedAt = new Date();
         } else {
-          console.warn(
-            `[WebhookProcessor] No payment attempt found for ID: ${transactionNumber}`,
+          // For other providers, we map from the validated payload
+          const eventType = payload.type;
+          const isSuccess = this.isSuccessEvent(providerCode, payload);
+          const isFailure = this.isFailureEvent(providerCode, payload);
+          console.log(
+            `[WebhookProcessor] Stripe event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
           );
+          if (isSuccess) finalStatus = PaymentStatus.SUCCEEDED;
+          else if (isFailure) finalStatus = PaymentStatus.FAILED;
+        }
+
+        if (finalStatus === PaymentStatus.SUCCEEDED) {
+          await this.markAsSucceeded(attempt, providerResponse, transaction);
+          notificationData = { type: "success", intent, order };
+        } else if (finalStatus === PaymentStatus.FAILED) {
+          await this.markAsFailed(attempt, providerResponse, transaction);
+          notificationData = {
+            type: "failure",
+            intent,
+            order,
+            reason: providerResponse.message || "Payment failed",
+          };
+        } else if (finalStatus === PaymentStatus.PROCESSING) {
+          await this.markAsProcessing(attempt, providerResponse, transaction);
           console.log(
             " Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
           );
         }
+
+        event.processed = true;
+        event.processedAt = new Date();
+      } else {
+        console.warn(
+          `[WebhookProcessor] No payment attempt found for ID: ${transactionNumber}`,
+        );
+        console.log(
+          "💡 Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
+        );
       }
 
       await event.save({ transaction });
