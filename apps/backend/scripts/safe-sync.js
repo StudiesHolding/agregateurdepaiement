@@ -9,6 +9,9 @@
  * 3. Ignore les modifications d'index pour éviter l'erreur ER_TOO_MANY_KEYS
  */
 
+import dotenv from "dotenv";
+dotenv.config({ path: new URL("../.env", import.meta.url).pathname });
+
 import sequelize from "../config/database.js";
 
 const SKIP_INDEX_SYNC = true; // Toujours true pour éviter les erreurs
