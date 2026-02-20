@@ -9,6 +9,8 @@ import { InstallmentPlan } from "./installment-plan.model.js";
 import { InstallmentPayment } from "./installment-payment.model.js";
 import { ApiKey } from "./api-key.model.js";
 import { VerifiedEmail } from "./verified-email.model.js";
+import { AdminAuditLog } from "./admin-audit-log.model.js";
+import { ProviderStatsCache } from "./provider-stats-cache.model.js";
 
 // Associations
 
@@ -33,6 +35,10 @@ ProviderRoute.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provid
 // WebhookEvent <-> PaymentProvider
 WebhookEvent.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
 
+// ProviderStatsCache <-> PaymentProvider
+ProviderStatsCache.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
+PaymentProvider.hasMany(ProviderStatsCache, { foreignKey: "providerId", as: "statsCache" });
+
 // Order <-> InstallmentPlan (1:N)
 Order.hasMany(InstallmentPlan, { foreignKey: "orderId", as: "installmentPlans" });
 InstallmentPlan.belongsTo(Order, { foreignKey: "orderId", as: "order" });
@@ -55,5 +61,7 @@ export {
     InstallmentPlan,
     InstallmentPayment,
     ApiKey,
-    VerifiedEmail
+    VerifiedEmail,
+    AdminAuditLog,
+    ProviderStatsCache,
 };

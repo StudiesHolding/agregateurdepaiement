@@ -37,4 +37,25 @@ export class ApiKeyService {
 
         return false;
     }
+
+    /**
+     * Find a full ApiKey record by key string
+     * Used by admin middleware for RBAC owner check
+     * @param {string} key 
+     * @returns {Promise<ApiKey|null>}
+     */
+    static async findByKey(key) {
+        if (!key) return null;
+
+        const apiKey = await ApiKey.findOne({
+            where: { key, isActive: true }
+        });
+
+        if (apiKey) {
+            apiKey.lastUsedAt = new Date();
+            await apiKey.save();
+        }
+
+        return apiKey || null;
+    }
 }

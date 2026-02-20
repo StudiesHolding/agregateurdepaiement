@@ -28,3 +28,9 @@ export class UnauthorizedError extends AppError {
         super(message, HttpStatus.UNAUTHORIZED);
     }
 }
+
+export class ForbiddenError extends AppError {
+    constructor(message = "Forbidden: Insufficient privileges") {
+        super(message, HttpStatus.FORBIDDEN);
+    }
+}
