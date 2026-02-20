@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studies PSP | Interactive Documentation & Training</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            black: '#020617',
+                            card: 'rgba(15, 23, 42, 0.6)',
+                            primary: '#3b82f6',
+                            secondary: '#6366f1',
+                            accent: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-hover:hover {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-link.active {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            border-right: 4px solid #3b82f6;
+        }
+
+        pre {
+            background: #0f172a !important;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.875rem;
+        }
+
+        .blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(100px);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .step-active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="antialiased" x-data="{ 
+    activeTab: 'overview',
+    selectedModel: null,
+    trainingStep: 1,
+    totalSteps: 4,
+    models: [
+        { name: 'Order', fields: 'id, reference, amount, currency, status, customerName, metadata', description: 'Le coeur de la transaction commerciale.' },
+        { name: 'PaymentIntent', fields: 'id, orderId, amount, status, paymentMethod, selectedProviderId', description: 'Une intention de paiement liée à une commande.' },
+        { name: 'PaymentAttempt', fields: 'id, paymentIntentId, providerId, transactionNumber, status, errorCode', description: 'Un essai réel auprès d\'un processeur (Stripe, CinetPay, etc).' },
+        { name: 'PaymentProvider', fields: 'id, name, code, is_active, config', description: 'Un agrégateur de paiement configuré.' }
+    ],
+    apiEndpoints: [
+        { method: 'GET', path: '/kpis/overview', desc: 'KPI globaux en temps réel.', response: '{ status: \'success\', data: { revenue24h: 154000, txn: 42 } }' },
+        { method: 'GET', path: '/providers', desc: 'Liste des PSP avec santé opérationnelle.', response: '[{ name: \'CinetPay\', health: \'operational\' }]' },
+        { method: 'PUT', path: '/providers/:id/toggle', desc: 'Activation/Désactivation instantanée.', response: '{ success: true, active: false }' }
+    ]
+}">
+    <div class="blob top-[-10%] left-[-10%] animate-pulse"></div>
+    <div class="blob bottom-[-10%] right-[-10%] animate-pulse" style="animation-delay: 2s;"></div>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside
+            class="w-80 h-screen sticky top-0 hidden lg:block border-r border-white/5 bg-brand-black/80 backdrop-blur-xl p-8 overflow-y-auto z-50">
+            <div class="flex items-center gap-3 mb-12">
+                <div
+                    class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
+                    <i data-lucide="shield-check" class="text-white w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Studies <span class="text-blue-500">PSP</span></h1>
+                    <span
+                        class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Interactive
+                        Docs</span>
+                </div>
+            </div>
+
+            <nav class="space-y-8">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-4">Introduction</p>
+                    <div class="space-y-1">
+                        <a href="#overview"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            :class="{ 'active': activeTab === 'overview' }" @click="activeTab = 'overview'">
+                            <i data-lucide="layout" class="w-4 h-4"></i> Aperçu
+                        </a>
+                        <a href="#architecture"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            :class="{ 'active': activeTab === 'architecture' }" @click="activeTab = 'architecture'">
+                            <i data-lucide="cpu" class="w-4 h-4"></i> Architecture
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-4">Explorateur
+                        Technique</p>
+                    <div class="space-y-1">
+                        <a href="#database"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            :class="{ 'active': activeTab === 'database' }" @click="activeTab = 'database'">
+                            <i data-lucide="database" class="w-4 h-4"></i> Lab BDD Dynamique
+                        </a>
+                        <a href="#api"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            :class="{ 'active': activeTab === 'api' }" @click="activeTab = 'api'">
+                            <i data-lucide="terminal" class="w-4 h-4"></i> API Lab Interactif
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 ml-4">Intelligence &
+                        Apprentissage</p>
+                    <div class="space-y-1">
+                        <a href="#quest"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20"
+                            :class="{ 'active': activeTab === 'quest' }" @click="activeTab = 'quest'">
+                            <i data-lucide="swords" class="w-4 h-4"></i> Training Quest
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="mt-20 p-5 rounded-3xl bg-slate-900 border border-white/5 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <p class="text-[10px] text-slate-500 mb-2 relative z-10">Statut de la session</p>
+                <div class="flex items-center gap-2 relative z-10">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-xs font-bold text-emerald-400">Prêt pour l'apprentissage</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 lg:p-20 max-w-6xl mx-auto overflow-y-auto">
+
+            <!-- Hero -->
+            <section id="overview" class="mb-32 animate__animated animate__fadeIn">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold tracking-wider uppercase mb-8">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                    Mastermind Documentation v3.0
+                </div>
+                <h2 class="text-7xl font-extrabold tracking-tighter mb-8 leading-none">
+                    L'Art de <span class="gradient-text">Maîtriser</span> les Flux.
+                </h2>
+                <p class="text-2xl text-slate-400 leading-relaxed mb-16 max-w-3xl">
+                    Bienvenue dans votre centre de commande. Ici, nous transformons la complexité technique en
+                    intelligence opérationnelle. Une documentation conçue pour être explorée, pas seulement lue.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="glass p-8 rounded-[40px] glass-hover group"
+                        @click="activeTab = 'database'; document.getElementById('database').scrollIntoView()">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:text-white transition-all text-blue-400">
+                            <i data-lucide="database" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Données Vivantes</h3>
+                        <p class="text-sm text-slate-500 leading-relaxed">Explorez le cerveau du système. Cliquez,
+                            inspectez et comprenez le schéma SQL en temps réel.</p>
+                    </div>
+                    <div class="glass p-8 rounded-[40px] glass-hover group"
+                        @click="activeTab = 'api'; document.getElementById('api').scrollIntoView()">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:bg-purple-500 group-hover:text-white transition-all text-purple-400">
+                            <i data-lucide="zap" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">API Lab</h3>
+                        <p class="text-sm text-slate-500 leading-relaxed">Simulez des appels, visualisez les payloads et
+                            comprenez chaque endpoint en un clic.</p>
+                    </div>
+                    <div class="glass p-8 rounded-[40px] glass-hover group border border-blue-500/30"
+                        @click="activeTab = 'quest'; document.getElementById('quest').scrollIntoView()">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all text-indigo-400">
+                            <i data-lucide="swords" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Training Quest</h3>
+                        <p class="text-sm text-slate-500 leading-relaxed font-semibold text-blue-300">Devenez un
+                            administrateur PSP certifié en suivant notre parcours ludique.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Database Lab -->
+            <section id="database" class="mb-32 scroll-mt-24" x-show="true">
+                <div class="flex items-center gap-6 mb-12">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                        <i data-lucide="database" class="text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold">Dynamic Schema Lab</h2>
+                        <p class="text-slate-500 text-sm">Exploration interactive du cerveau SQL de l'aggrégateur.</p>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-5 gap-8 items-start">
+                    <!-- Table List -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <template x-for="model in models" :key="model.name">
+                            <button
+                                class="w-full text-left p-6 rounded-[24px] border border-white/5 transition-all focus:outline-none"
+                                :class="selectedModel && selectedModel.name === model.name ? 'step-active bg-blue-500/5' : 'glass group hover:border-white/20'"
+                                @click="selectedModel = model">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-bold text-lg"
+                                        :class="selectedModel && selectedModel.name === model.name ? 'text-blue-400' : ''"
+                                        x-text="model.name"></span>
+                                    <i data-lucide="chevron-right"
+                                        class="w-4 h-4 text-slate-600 group-hover:text-white transition-colors"></i>
+                                </div>
+                                <p class="text-xs text-slate-500 line-clamp-1" x-text="model.description"></p>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Details Display -->
+                    <div class="lg:col-span-3 min-h-[400px]">
+                        <div x-show="!selectedModel"
+                            class="h-full flex flex-col items-center justify-center glass rounded-[40px] text-center p-12 border-dashed border-2 border-white/10">
+                            <i data-lucide="mouse-pointer-2" class="w-12 h-12 text-slate-700 mb-6 animate-bounce"></i>
+                            <h4 class="text-xl font-bold text-slate-600">Sélectionnez une table pour l'inspecter</h4>
+                            <p class="text-sm text-slate-700 mt-2">Découvrez les champs et les relations système.</p>
+                        </div>
+
+                        <div x-show="selectedModel" x-cloak
+                            class="glass rounded-[40px] p-10 animate__animated animate__fadeInRight animate__faster ring-1 ring-blue-500/20">
+                            <div class="flex items-center justify-between mb-8">
+                                <h4 class="text-3xl font-black text-blue-400" x-text="selectedModel?.name"></h4>
+                                <span
+                                    class="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-slate-500 tracking-widest uppercase">aggp_table</span>
+                            </div>
+
+                            <div class="space-y-8">
+                                <div>
+                                    <h5
+                                        class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <i data-lucide="info" class="w-3 h-3"></i> Définition
+                                    </h5>
+                                    <p class="text-slate-300 leading-relaxed" x-text="selectedModel?.description"></p>
+                                </div>
+
+                                <div>
+                                    <h5
+                                        class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <i data-lucide="list" class="w-3 h-3"></i> Colonnes Principales
+                                    </h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-if="selectedModel">
+                                            <template x-for="field in selectedModel.fields.split(', ')" :key="field">
+                                                <span
+                                                    class="px-3 py-2 bg-slate-900 border border-white/5 rounded-xl font-mono text-xs text-blue-300 flex items-center gap-2">
+                                                    <span class="w-1 h-1 rounded-full bg-blue-500"></span>
+                                                    <span x-text="field"></span>
+                                                </span>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Lab -->
+            <section id="api" class="mb-32 scroll-mt-24">
+                <div class="flex items-center gap-6 mb-12">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-600/30">
+                        <i data-lucide="zap" class="text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold">API Lab Interactif</h2>
+                        <p class="text-slate-500 text-sm">Testez les endpoints dans un bac à sable visuel.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6" x-data="{ openLab: null }">
+                    <template x-for="(ep, index) in apiEndpoints" :key="index">
+                        <div class="glass rounded-3xl overflow-hidden transition-all duration-300"
+                            :class="openLab === index ? 'ring-2 ring-purple-500/50' : 'hover:border-white/20'">
+                            <button @click="openLab = openLab === index ? null : index"
+                                class="w-full flex items-center justify-between p-6">
+                                <div class="flex items-center gap-6">
+                                    <span class="px-3 py-1 font-bold text-[10px] rounded-md"
+                                        :class="ep.method === 'GET' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'"
+                                        x-text="ep.method"></span>
+                                    <span class="font-mono text-sm text-slate-300" x-text="ep.path"></span>
+                                    <span class="text-xs text-slate-500 hidden md:block" x-text="ep.desc"></span>
+                                </div>
+                                <i data-lucide="chevron-down" class="w-5 h-5 text-slate-600 transition-transform"
+                                    :class="openLab === index ? 'rotate-180 text-white' : ''"></i>
+                            </button>
+
+                            <div x-show="openLab === index" x-collapse x-cloak
+                                class="p-8 border-t border-white/5 bg-black/20 animate__animated animate__fadeIn">
+                                <div class="grid md:grid-cols-2 gap-8">
+                                    <div>
+                                        <h5 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                                            Requête Simulateur</h5>
+                                        <div
+                                            class="bg-slate-950 p-6 rounded-2xl border border-white/5 font-mono text-xs text-slate-400">
+                                            curl -X <span x-text="ep.method"></span> "https://api.psp.com<span
+                                                x-text="ep.path"></span>" \<br />
+                                            &nbsp;&nbsp;-H "Authorization: Bearer <span
+                                                class="text-purple-400">SK_ADMIN_••••</span>"
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                                            Réponse Attendue</h5>
+                                        <div
+                                            class="bg-slate-950 p-6 rounded-2xl border border-white/5 font-mono text-xs text-emerald-400">
+                                            <pre x-text="ep.response"
+                                                class="!p-0 !bg-transparent !border-none !text-emerald-400"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- Training Quest -->
+            <section id="quest"
+                class="mb-32 scroll-mt-24 p-1 rounded-[50px] bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 relative">
+                <div class="glass rounded-[48px] p-12 lg:p-20 relative z-10">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20">
+                        <div class="space-y-4">
+                            <span
+                                class="px-4 py-1.5 rounded-full bg-blue-600 text-[10px] font-black uppercase tracking-widest animate-pulse">LUDIQUE
+                                & EDUCATIF</span>
+                            <h2 class="text-5xl font-black tracking-tight leading-none">The Academy <span
+                                    class="text-blue-500">Quest</span>.</h2>
+                            <p class="text-slate-400 max-w-lg">Suivez le guide interactif pour maîtriser votre dashboard
+                                en moins de 5 minutes.</p>
+                        </div>
+
+                        <div class="w-full md:w-64 space-y-3">
+                            <div
+                                class="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                <span>Progression</span>
+                                <span x-text="Math.round((trainingStep / totalSteps) * 100) + '%'"></span>
+                            </div>
+                            <div class="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                                <div class="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] progress-bar"
+                                    :style="'width: ' + (trainingStep / totalSteps) * 100 + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-2 gap-16 items-center">
+                        <div class="space-y-12 h-full flex flex-col justify-center">
+                            <!-- Step Contents -->
+                            <div x-show="trainingStep === 1" class="animate__animated animate__fadeIn">
+                                <h4 class="text-3xl font-bold mb-6 flex items-center gap-4">
+                                    <span
+                                        class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white text-lg">1</span>
+                                    Terminal d'Accès
+                                </h4>
+                                <p class="text-slate-400 leading-relaxed mb-8">Pour entrer dans le cockpit, vous avez
+                                    besoin d'une clé d'accès. La clé par défaut est <code
+                                        class="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">admin:studies:secret</code>.
+                                    Elle agit comme une empreinte digitale sécurisée.</p>
+                                <div
+                                    class="bg-blue-500/5 border border-blue-500/10 p-6 rounded-3xl flex items-center gap-4">
+                                    <div class="p-3 bg-blue-500/10 rounded-full text-blue-500"><i
+                                            data-lucide="lightbulb" class="w-5 h-5"></i></div>
+                                    <p class="text-xs text-slate-400 font-medium italic">Astuce: En production, chaque
+                                        administrateur doit générer sa propre clé via le script CLI.</p>
+                                </div>
+                            </div>
+
+                            <div x-show="trainingStep === 2" x-cloak class="animate__animated animate__fadeIn">
+                                <h4 class="text-3xl font-bold mb-6 flex items-center gap-4 text-purple-400">
+                                    <span
+                                        class="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center text-white text-lg">2</span>
+                                    Analytics Intelligence
+                                </h4>
+                                <p class="text-slate-400 leading-relaxed mb-8">Regardez les KPIs en haut du Dashboard.
+                                    Le "Success Rate" est votre pouls. S'il descend en dessous de 80%, c'est qu'un
+                                    processeur rencontre des difficultés.</p>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div
+                                        class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl text-[10px] uppercase font-bold text-center">
+                                        Operational: 80-100%</div>
+                                    <div
+                                        class="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl text-[10px] uppercase font-bold text-center">
+                                        Critical: < 50%</div>
+                                    </div>
+                                </div>
+
+                                <div x-show="trainingStep === 3" x-cloak class="animate__animated animate__fadeIn">
+                                    <h4 class="text-3xl font-bold mb-6 flex items-center gap-4 text-emerald-400">
+                                        <span
+                                            class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white text-lg">3</span>
+                                        Gestion des Agrégateurs
+                                    </h4>
+                                    <p class="text-slate-400 leading-relaxed mb-8">Un processeur (PSP) est en
+                                        maintenance ? Ne paniquez pas. Sur la page "Providers", vous pouvez "éteindre"
+                                        un prestataire d'un simple clic. Le trafic sera redirigé automatiquement.</p>
+                                    <div class="flex items-center gap-3 text-xs text-emerald-400 font-bold">
+                                        <i data-lucide="shield" class="w-4 h-4"></i> Commutation sans interruption de
+                                        service (Zero-downtime)
+                                    </div>
+                                </div>
+
+                                <div x-show="trainingStep === 4" x-cloak class="animate__animated animate__fadeIn">
+                                    <h4 class="text-3xl font-bold mb-6 flex items-center gap-4 text-amber-500">
+                                        <span
+                                            class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white text-lg">4</span>
+                                        Audit & Webhooks
+                                    </h4>
+                                    <p class="text-slate-400 leading-relaxed mb-8">Chaque clic utilisateur génère un
+                                        "Webhook". C'est un message que le PSP envoie à votre système. Si une
+                                        transaction semble bloquée, vérifiez les Webhooks pour voir si le PSP a bien
+                                        confirmé le paiement.</p>
+                                    <div class="p-4 bg-slate-900 rounded-2xl font-mono text-[10px] text-slate-500">
+                                        Event: payment_intent.succeeded
+                                    </div>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="flex items-center gap-4 pt-8 border-t border-white/5">
+                                    <button
+                                        class="px-8 py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold transition-all disabled:opacity-30 flex items-center gap-2"
+                                        @click="trainingStep--" :disabled="trainingStep === 1">
+                                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Précédent
+                                    </button>
+                                    <button
+                                        class="flex-1 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                                        @click="trainingStep === totalSteps ? trainingStep = 1 : trainingStep++">
+                                        <span
+                                            x-text="trainingStep === totalSteps ? 'Recommencer le tutoriel' : 'Module Suivant'"></span>
+                                        <i data-lucide="chevron-right" class="w-4 h-4"
+                                            x-show="trainingStep < totalSteps"></i>
+                                        <i data-lucide="rotate-ccw" class="w-4 h-4"
+                                            x-show="trainingStep === totalSteps"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Visual for steps -->
+                            <div class="relative flex items-center justify-center">
+                                <div class="absolute inset-0 bg-blue-500/10 blur-[100px] animate-pulse"></div>
+
+                                <!-- Dummy Dashboard UI -->
+                                <div
+                                    class="glass w-full aspect-video rounded-3xl p-6 border-2 border-white/10 relative overflow-hidden transform hover:scale-105 transition-transform duration-500">
+                                    <div class="flex items-center gap-4 mb-8">
+                                        <div class="w-24 h-2 bg-slate-800 rounded-full"></div>
+                                        <div class="w-12 h-2 bg-slate-800 rounded-full"></div>
+                                        <div class="flex-1"></div>
+                                        <div class="w-6 h-6 rounded-full bg-slate-800"></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-4 mb-8">
+                                        <div class="h-16 bg-slate-800/50 rounded-2xl overflow-hidden relative">
+                                            <div class="absolute bottom-0 left-0 h-1 bg-blue-500 w-2/3"
+                                                x-show="trainingStep >= 2"></div>
+                                        </div>
+                                        <div class="h-16 bg-slate-800/50 rounded-2xl overflow-hidden relative">
+                                            <div class="absolute bottom-0 left-0 h-1 bg-emerald-500 w-full"
+                                                x-show="trainingStep >= 2"></div>
+                                        </div>
+                                        <div class="h-16 bg-slate-800/50 rounded-2xl overflow-hidden relative">
+                                            <div class="absolute bottom-0 left-0 h-1 bg-purple-500 w-1/2"
+                                                x-show="trainingStep >= 2"></div>
+                                        </div>
+                                    </div>
+                                    <div class="h-32 bg-slate-800/30 rounded-3xl p-4 flex gap-2 items-end">
+                                        <div class="flex-1 bg-blue-500/20 h-[20%] rounded-t-md"></div>
+                                        <div class="flex-1 bg-blue-500/30 h-[40%] rounded-t-md"></div>
+                                        <div class="flex-1 bg-blue-500/40 h-[70%] rounded-t-md"></div>
+                                        <div class="flex-1 bg-blue-500/60 h-[50%] rounded-t-md animate-pulse"></div>
+                                        <div class="flex-1 bg-blue-500 h-[90%] rounded-t-md"></div>
+                                    </div>
+
+                                    <!-- Indicator overlay -->
+                                    <div class="absolute inset-0 flex items-center justify-center bg-blue-600/10 backdrop-blur-[2px]"
+                                        x-show="trainingStep === 1">
+                                        <div
+                                            class="bg-blue-600 p-3 rounded-2xl shadow-2xl animate__animated animate__bounceIn">
+                                            <i data-lucide="lock" class="text-white w-8 h-8"></i>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-8 right-8" x-show="trainingStep === 3">
+                                        <div
+                                            class="flex items-center gap-2 bg-slate-950 p-3 rounded-2xl border border-white/20 animate__animated animate__tada">
+                                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                                            <span class="text-[10px] font-bold text-white">PSP ACTIVE</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="mt-40 pb-20 pt-10 border-t border-white/5 flex flex-col items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                        <i data-lucide="shield-check" class="text-white w-5 h-5"></i>
+                    </div>
+                    <span class="text-sm font-bold tracking-tight">Studies PSP Academy</span>
+                </div>
+                <p class="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em]">
+                    &copy; 2026 Studies Learning Platform • Engineered for Premium FinOps
+                </p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Simple Intersection Observer to update active tab on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // This is handled by Alpine in a real SPA, 
+                    // but for this monolithic file we use simple visibility
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('section[id]').forEach(section => observer.observe(section));
+    </script>
+</body>
+
+</html>
