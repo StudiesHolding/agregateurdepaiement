@@ -105,4 +105,10 @@ export const adminApi = {
     // Audit
     getAuditLogs: (params: Record<string, string | number>) =>
         api.get("/audit-logs", { params }),
+
+    // Notifications
+    getNotifications: () => api.get("/notifications"),
+    searchLmsAdmins: (q: string) => api.get(`/notifications/search?q=${q}`),
+    updateNotificationSetting: (data: Record<string, unknown>) => api.post("/notifications", data),
+    deleteNotificationSetting: (id: number) => api.delete(`/notifications/${id}`),
 };

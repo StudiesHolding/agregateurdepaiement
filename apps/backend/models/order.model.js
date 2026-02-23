@@ -40,6 +40,16 @@ Order.init(
             type: DataTypes.JSON,
             allowNull: true,
         },
+        lmsItemId: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+            comment: "ID of the Course, Package, or Subscription in the LMS",
+        },
+        lmsItemType: {
+            type: DataTypes.ENUM("course", "package", "subscription"),
+            allowNull: true,
+            comment: "Type of item being purchased",
+        },
     },
     {
         sequelize,

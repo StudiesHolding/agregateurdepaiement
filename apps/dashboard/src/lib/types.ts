@@ -240,6 +240,18 @@ export interface AuditLog {
     createdAt: string;
 }
 
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export interface NotificationSetting {
+    id: number;
+    adminEmail: string;
+    notifyOnSuccess: boolean;
+    notifyOnFailure: boolean;
+    notifyOnSuspicious: boolean;
+    isActive: boolean;
+    createdAt?: string;
+}
+
 // ── API Response Wrapper ───────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

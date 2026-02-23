@@ -152,14 +152,14 @@ function RevenueChart({ formations }: { formations: TopFormation[] }) {
     }));
 
     return (
-        <div className="card p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-6">
+        <div className="card p-6">
+            <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <TrendingUp size={18} className="text-success" />
                     <h2 className="section-title">CA par Formation (Top 5)</h2>
                 </div>
             </div>
-            <div className="flex-1 min-h-[300px]">
+            <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={data}

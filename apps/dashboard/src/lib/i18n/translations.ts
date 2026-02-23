@@ -1,0 +1,45 @@
+export const translations = {
+    fr: {
+        "nav.overview": "Vue d'ensemble",
+        "nav.command_center": "Command Center",
+        "nav.providers": "Providers",
+        "nav.provider_health": "Provider Health",
+        "nav.route_builder": "Route Builder",
+        "nav.provider_studio": "Provider Studio",
+        "nav.data": "Données",
+        "nav.transactions": "Transactions",
+        "nav.analytics_lms": "Analytics LMS",
+        "nav.webhooks": "Webhooks",
+        "nav.administration": "Administration",
+        "nav.audit": "Journal d'Audit",
+        "nav.settings": "Paramètres",
+        "nav.notifications": "Notifications",
+        "header.alerts": "Alertes",
+        "header.theme.toggle": "Basculer le thème",
+        "header.lang.toggle": "Changer de langue",
+        "transactions.title": "Transaction Explorer",
+    },
+    en: {
+        "nav.overview": "Overview",
+        "nav.command_center": "Command Center",
+        "nav.providers": "Providers",
+        "nav.provider_health": "Provider Health",
+        "nav.route_builder": "Route Builder",
+        "nav.provider_studio": "Provider Studio",
+        "nav.data": "Data",
+        "nav.transactions": "Transactions",
+        "nav.analytics_lms": "LMS Analytics",
+        "nav.webhooks": "Webhooks",
+        "nav.administration": "Administration",
+        "nav.audit": "Audit Log",
+        "nav.settings": "Settings",
+        "nav.notifications": "Notifications",
+        "header.alerts": "Alerts",
+        "header.theme.toggle": "Toggle Theme",
+        "header.lang.toggle": "Switch Language",
+        "transactions.title": "Transaction Explorer",
+    }
+};
+
+export type Language = keyof typeof translations;
+export type TranslationKey = keyof typeof translations.fr;

@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, RefreshCw, Settings } from "lucide-react";
+import { Bell, RefreshCw, Moon, Sun, Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useTranslation } from "@/components/providers/I18nProvider";
 import { cn } from "@/lib/utils";
 
 const pageTitles: Record<string, string> = {
@@ -24,6 +25,8 @@ interface HeaderProps {
 
 export function Header({ onRefresh, isRefreshing }: HeaderProps) {
     const pathname = usePathname();
+    const { theme, setTheme } = useTheme();
+    const { language, setLanguage, t } = useTranslation();
     const title = pageTitles[pathname] ?? "Dashboard";
     const now = new Date();
 
@@ -58,8 +61,28 @@ export function Header({ onRefresh, isRefreshing }: HeaderProps) {
                     </button>
                 )}
 
+                {/* Theme Toggle */}
+                <button
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="btn-ghost p-2 rounded-xl"
+                    title={t("header.theme.toggle" as any)}
+                >
+                    <Sun size={16} className="hidden dark:block text-warning" />
+                    <Moon size={16} className="block dark:hidden" />
+                </button>
+
+                {/* Language Toggle */}
+                <button
+                    onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
+                    className="btn-ghost p-1.5 px-2 rounded-xl flex items-center gap-1.5 font-semibold text-xs transition-colors"
+                    title={t("header.lang.toggle" as any)}
+                >
+                    <Languages size={14} className="text-secondary" />
+                    {language.toUpperCase()}
+                </button>
+
                 {/* Alerts placeholder */}
-                <button className="btn-ghost p-2 rounded-xl relative" title="Alertes">
+                <button className="btn-ghost p-2 rounded-xl relative" title={t("header.alerts" as any)}>
                     <Bell size={16} />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger" />
                 </button>

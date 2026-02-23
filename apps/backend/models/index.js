@@ -11,6 +11,7 @@ import { ApiKey } from "./api-key.model.js";
 import { VerifiedEmail } from "./verified-email.model.js";
 import { AdminAuditLog } from "./admin-audit-log.model.js";
 import { ProviderStatsCache } from "./provider-stats-cache.model.js";
+import { NotificationSettings } from "./notification-settings.model.js";
 
 // Associations
 
@@ -64,4 +65,5 @@ export {
     VerifiedEmail,
     AdminAuditLog,
     ProviderStatsCache,
+    NotificationSettings,
 };
