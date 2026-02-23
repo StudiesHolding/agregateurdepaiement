@@ -35,6 +35,8 @@ export class OrchestratorService {
       notifyUrl,
       idempotencyKey,
       metadata,
+      lmsItemId,
+      lmsItemType,
     } = data;
 
     // Fallback for notifyUrl from environment variables
@@ -50,6 +52,8 @@ export class OrchestratorService {
       currency,
       totalAmount: amount,
       metadata: metadata || {},
+      lmsItemId,
+      lmsItemType,
     });
 
     // 2. Create Payment Intent

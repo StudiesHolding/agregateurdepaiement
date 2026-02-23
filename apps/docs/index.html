@@ -56,6 +56,7 @@
         .gradient-text {
             background: linear-gradient(135deg, #60a5fa 0%, #a855f7 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -104,7 +105,7 @@
     trainingStep: 1,
     totalSteps: 4,
     models: [
-        { name: 'Order', fields: 'id, reference, amount, currency, status, customerName, metadata', description: 'Le coeur de la transaction commerciale.' },
+        { name: 'Order', fields: 'id, reference, amount, currency, status, customerName, lmsItemId, lmsItemType, metadata', description: 'Le coeur de la transaction commerciale. Identifie maintenant formellement les items LMS.' },
         { name: 'PaymentIntent', fields: 'id, orderId, amount, status, paymentMethod, selectedProviderId', description: 'Une intention de paiement liée à une commande.' },
         { name: 'PaymentAttempt', fields: 'id, paymentIntentId, providerId, transactionNumber, status, errorCode', description: 'Un essai réel auprès d\'un processeur (Stripe, CinetPay, etc).' },
         { name: 'PaymentProvider', fields: 'id, name, code, is_active, config', description: 'Un agrégateur de paiement configuré.' }
@@ -165,6 +166,11 @@
                             class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
                             :class="{ 'active': activeTab === 'api' }" @click="activeTab = 'api'">
                             <i data-lucide="terminal" class="w-4 h-4"></i> API Lab Interactif
+                        </a>
+                        <a href="#checkout"
+                            class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                            :class="{ 'active': activeTab === 'checkout' }" @click="activeTab = 'checkout'">
+                            <i data-lucide="shopping-cart" class="w-4 h-4"></i> Guide Intégration
                         </a>
                     </div>
                 </div>
@@ -383,6 +389,112 @@
                             </div>
                         </div>
                     </template>
+                </div>
+            </section>
+
+            <!-- Checkout & LMS Integration Guide -->
+            <section id="checkout" class="mb-32 scroll-mt-24"
+                x-show="activeTab === 'checkout' || activeTab === 'overview'">
+                <div class="flex items-center gap-6 mb-12">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center shadow-lg shadow-blue-600/30">
+                        <i data-lucide="shopping-cart" class="text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold">Checkout & LMS Integration</h2>
+                        <p class="text-slate-500 text-sm">Comment intégrer le paiement "Full Power" dans votre
+                            Front-end.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-12">
+                    <!-- Workflow Visual -->
+                    <div class="grid md:grid-cols-4 gap-4">
+                        <div class="glass p-6 rounded-3xl text-center">
+                            <i data-lucide="form-input" class="w-6 h-6 mx-auto mb-3 text-blue-400"></i>
+                            <h5 class="text-xs font-bold mb-1">1. Formulaire</h5>
+                            <p class="text-[10px] text-slate-500">Collecte des infos client</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl text-center border-blue-500/20 bg-blue-500/5">
+                            <i data-lucide="zap" class="w-6 h-6 mx-auto mb-3 text-blue-400"></i>
+                            <h5 class="text-xs font-bold mb-1">2. Initialisation</h5>
+                            <p class="text-[10px] text-slate-500">Appel /api/payments/init</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl text-center">
+                            <i data-lucide="external-link" class="w-6 h-6 mx-auto mb-3 text-blue-400"></i>
+                            <h5 class="text-xs font-bold mb-1">3. Paiement</h5>
+                            <p class="text-[10px] text-slate-500">Redirection ou Widget</p>
+                        </div>
+                        <div class="glass p-6 rounded-3xl text-center border-emerald-500/20 bg-emerald-500/5">
+                            <i data-lucide="user-plus" class="w-6 h-6 mx-auto mb-3 text-emerald-400"></i>
+                            <h5 class="text-xs font-bold mb-1">4. Enrôlement</h5>
+                            <p class="text-[10px] text-slate-500">Sync auto post-paiement</p>
+                        </div>
+                    </div>
+
+                    <!-- Payload Example -->
+                    <div class="glass rounded-[40px] p-10 overflow-hidden relative">
+                        <div class="absolute top-0 right-0 p-8">
+                            <span
+                                class="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full text-[10px] font-bold tracking-widest uppercase">Spécialisation
+                                LMS</span>
+                        </div>
+                        <h4 class="text-xl font-bold mb-6 flex items-center gap-3">
+                            <i data-lucide="code" class="w-5 h-5 text-blue-400"></i>
+                            Payload Idéal (LMS Aware)
+                        </h4>
+                        <p class="text-sm text-slate-400 mb-8 max-w-2xl">
+                            Pour utiliser la pleine puissance du backend, envoyez les champs <code
+                                class="text-blue-300">lmsItemId</code> et <code
+                                class="text-blue-300">lmsItemType</code>. Le système s'occupe du reste (Stats par cours,
+                            enrôlement auto).
+                        </p>
+
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <pre class="font-mono text-xs text-blue-300 overflow-x-auto">
+{
+  "amount": 25000,
+  "currency": "XAF",
+  "customerEmail": "student@example.com",
+  "customerName": "Albert Einstein",
+  "paymentMethod": "mobile_money",
+  "countryCode": "CM",
+  
+  // Champs Cruciaux pour le LMS
+  "lmsItemId": "452", 
+  "lmsItemType": "course",
+  
+  "metadata": {
+    "courseName": "Mastering Flutter Premium",
+    "batch": "Summer 2026"
+  }
+}</pre>
+                            <div class="space-y-6">
+                                <div class="flex gap-4">
+                                    <div
+                                        class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-sm font-bold mb-1">Audit Précis</h6>
+                                        <p class="text-xs text-slate-500">Les revenus sont liés directement à l'ID du
+                                            cours en base de données.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div
+                                        class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-sm font-bold mb-1">Zéro Action Manuelle</h6>
+                                        <p class="text-xs text-slate-500">L'élève est inscrit dès que le partenaire de
+                                            paiement (ex: Orange Money) valide le transfert.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

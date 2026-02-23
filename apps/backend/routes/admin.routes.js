@@ -426,6 +426,7 @@ router.get("/transactions", catchAsync(async (req, res) => {
     const {
         status, provider, from, to, search,
         page = 1, limit = 25, currency,
+        lmsItemId, lmsItemType,
     } = req.query;
 
     const where = {};
@@ -437,18 +438,21 @@ router.get("/transactions", catchAsync(async (req, res) => {
         if (to) where.createdAt[Op.lte] = new Date(to);
     }
 
+    const orderWhere = {};
+    if (search) {
+        orderWhere[Op.or] = [
+            { reference: { [Op.like]: `%${search}%` } },
+            { customerEmail: { [Op.like]: `%${search}%` } },
+        ];
+    }
+    if (lmsItemId) orderWhere.lmsItemId = lmsItemId;
+    if (lmsItemType) orderWhere.lmsItemType = lmsItemType;
+
     const include = [
         {
             model: Order,
             as: "order",
-            ...(search && {
-                where: {
-                    [Op.or]: [
-                        { reference: { [Op.like]: `%${search}%` } },
-                        { customerEmail: { [Op.like]: `%${search}%` } },
-                    ],
-                },
-            }),
+            ...(Object.keys(orderWhere).length > 0 && { where: orderWhere }),
         },
         {
             model: PaymentProvider,

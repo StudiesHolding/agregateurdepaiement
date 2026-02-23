@@ -18,6 +18,8 @@ export class OrderService {
             currency: data.currency,
             totalAmount: data.totalAmount,
             metadata: data.metadata || {},
+            lmsItemId: data.lmsItemId,
+            lmsItemType: data.lmsItemType,
             status: OrderStatus.PENDING,
         });
 

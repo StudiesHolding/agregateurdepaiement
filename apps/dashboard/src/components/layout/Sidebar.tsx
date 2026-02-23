@@ -12,6 +12,7 @@ import {
     Settings,
     Zap,
     ShieldCheck,
+    Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ const navItems = [
         group: "Administration",
         items: [
             { href: "/audit", label: "Journal d'Audit", icon: ShieldCheck },
-            { href: "/settings", label: "Paramètres", icon: Settings },
+            { href: "/settings/notifications", label: "Notifications", icon: Bell },
         ],
     },
 ];

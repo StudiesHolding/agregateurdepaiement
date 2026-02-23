@@ -146,4 +146,63 @@ export class LmsBridgeService {
             return null;
         }
     }
+
+    /**
+     * Synchronize enrollment status in the LMS
+     * Triggered after a successful payment
+     * @param {Order} order 
+     */
+    static async syncEnrollment(order) {
+        if (!order.lmsItemId || !order.customerEmail) {
+            console.log(`[LmsBridge] Skipping enrollment sync: No LMS item ID or customer email for Order ${order.reference}`);
+            return;
+        }
+
+        try {
+            // 1. Find the User in LMS
+            const [user] = await sequelize.query(
+                `SELECT ID FROM kyd4_users WHERE user_email = :email LIMIT 1`,
+                { replacements: { email: order.customerEmail }, type: QueryTypes.SELECT }
+            );
+
+            if (!user) {
+                console.warn(`[LmsBridge] Enrollment FAILED: User with email ${order.customerEmail} not found in LMS database.`);
+                return;
+            }
+
+            // 2. Check if already enrolled to avoid duplicates
+            const [existing] = await sequelize.query(
+                `SELECT user_item_id FROM kyd4_learnpress_user_items 
+                 WHERE user_id = :userId AND item_id = :itemId AND item_type = 'lp_course' LIMIT 1`,
+                {
+                    replacements: { userId: user.ID, itemId: order.lmsItemId },
+                    type: QueryTypes.SELECT
+                }
+            );
+
+            if (existing) {
+                console.log(`[LmsBridge] User ${user.ID} already enrolled in Course ${order.lmsItemId}. Updating status.`);
+                await sequelize.query(
+                    `UPDATE kyd4_learnpress_user_items SET status = 'enrolled' WHERE user_item_id = :id`,
+                    { replacements: { id: existing.user_item_id }, type: QueryTypes.UPDATE }
+                );
+            } else {
+                // 3. Perform Enrollment
+                console.log(`[LmsBridge] Enrolling User ${user.ID} into Course ${order.lmsItemId}...`);
+                await sequelize.query(
+                    `INSERT INTO kyd4_learnpress_user_items 
+                     (user_id, item_id, start_time, item_type, status, access_level)
+                     VALUES (:userId, :itemId, NOW(), 'lp_course', 'enrolled', 50)`,
+                    {
+                        replacements: { userId: user.ID, itemId: order.lmsItemId },
+                        type: QueryTypes.INSERT
+                    }
+                );
+            }
+
+            console.log(`[LmsBridge] Successfully synchronized enrollment for Order ${order.reference}`);
+        } catch (err) {
+            console.error(`[LmsBridge] CRITICAL Error during enrollment sync for Order ${order.reference}:`, err.message);
+        }
+    }
 }

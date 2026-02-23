@@ -35,8 +35,11 @@ interface Filters {
     provider: string;
     currency: string;
     search: string;
+    search: string;
     from: string;
     to: string;
+    lmsItemId: string;
+    lmsItemType: string;
 }
 
 function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
@@ -78,6 +81,24 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
                 <option value="USD">USD</option>
             </select>
 
+            {/* LMS Item Filters */}
+            <input
+                className="input w-32 border-dashed border-primary/50 text-sm placeholder:text-primary/70 focus:border-primary"
+                placeholder="ID Produit LMS"
+                value={filters.lmsItemId}
+                onChange={(e) => onChange({ ...filters, lmsItemId: e.target.value })}
+            />
+            <select
+                className="input w-auto border-dashed border-primary/50 text-sm focus:border-primary"
+                value={filters.lmsItemType}
+                onChange={(e) => onChange({ ...filters, lmsItemType: e.target.value })}
+            >
+                <option value="">Type de Produit LMS</option>
+                <option value="course">Formation</option>
+                <option value="package">Package</option>
+                <option value="subscription">Abonnement</option>
+            </select>
+
             {/* Date range */}
             <input type="date" className="input w-auto text-sm"
                 value={filters.from} onChange={(e) => onChange({ ...filters, from: e.target.value })} />
@@ -92,7 +113,7 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
 export default function TransactionsPage() {
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<Filters>({
-        status: "", provider: "", currency: "", search: "", from: "", to: "",
+        status: "", provider: "", currency: "", search: "", from: "", to: "", lmsItemId: "", lmsItemType: ""
     });
 
     const params = Object.fromEntries(

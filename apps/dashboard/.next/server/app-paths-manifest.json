@@ -1,9 +1,7 @@
 {
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
-  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js",
   "/(dashboard)/providers/page": "app/(dashboard)/providers/page.js",
-  "/(dashboard)/transactions/[id]/page": "app/(dashboard)/transactions/[id]/page.js",
   "/(dashboard)/routing/page": "app/(dashboard)/routing/page.js",
-  "/(dashboard)/providers/new/page": "app/(dashboard)/providers/new/page.js"
+  "/(dashboard)/providers/new/page": "app/(dashboard)/providers/new/page.js",
+  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js"
 }

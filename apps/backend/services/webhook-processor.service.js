@@ -5,9 +5,10 @@ import {
   Order,
   sequelize,
 } from "../models/index.js";
-import { PaymentStatus, AttemptStatus } from "../enums/index.js";
+import { PaymentStatus, AttemptStatus, OrderStatus } from "../enums/index.js";
 import { ProviderFactory } from "../providers/index.js";
 import { MailService } from "./mail.service.js";
+import { LmsBridgeService } from "./lms-bridge.service.js";
 
 export class WebhookProcessor {
   /**
@@ -27,6 +28,7 @@ export class WebhookProcessor {
           payload: payload,
           signatureValid: true,
           processed: false,
+          providerId: null, // Initialisation
         },
         { transaction },
       );
@@ -43,32 +45,18 @@ export class WebhookProcessor {
           stripeObj?.client_reference_id ||
           stripeObj?.id;
       } else if (providerCode === "kkiapay") {
-        // KKiaPay webhook payload structure
-        // Format: { transactionId, isPaymentSucces, event, partnerId, ... }
-        // partnerId is our reference that we passed to KKiaPay
         transactionNumber =
-          payload.partnerId || // Our reference passed as partnerId
+          payload.partnerId ||
           payload.transactionId ||
-          payload.transaction_id;
+          payload.transaction_id ||
+          payload.transaction_reference;
 
-        // Debug log for KKiaPay
         console.log(
           `[WebhookProcessor] KKiaPay payload: isPaymentSucces=${payload.isPaymentSucces}, event=${payload.event}, transactionId=${payload.transactionId}, partnerId=${payload.partnerId}`,
         );
-
-        // Also check event field directly
-        if (payload.event === "transaction.success") {
-          console.log(
-            `[WebhookProcessor] KKiaPay SUCCESS detected from event field`,
-          );
-        } else if (payload.event === "transaction.failed") {
-          console.log(
-            `[WebhookProcessor] KKiaPay FAILURE detected from event field`,
-          );
-        }
       }
 
-      // KKiaPay fallback: try to find via amount matching
+      // 3. Find the attempt
       let attempt = null;
 
       if (transactionNumber) {
@@ -76,7 +64,6 @@ export class WebhookProcessor {
           `[WebhookProcessor] Processing transaction: ${transactionNumber}`,
         );
 
-        // Find the attempt with Intent and Order
         attempt = await PaymentAttempt.findOne(
           {
             where: { transactionNumber },
@@ -98,14 +85,12 @@ export class WebhookProcessor {
           `[WebhookProcessor] KKiaPay: Attempt not found by transactionNumber=${transactionNumber}, trying fallback via amount=${payload.amount}...`,
         );
 
-        // Find recent attempts for KKiaPay with exact amount match
         const recentAttempts = await PaymentAttempt.findAll(
           {
             where: {
-              providerId: 3, // KKiaPay provider ID
               createdAt: {
                 [Symbol.for("gte")]: new Date(Date.now() - 2 * 60 * 60 * 1000),
-              }, // Last 2 hours
+              },
             },
             include: [
               {
@@ -120,54 +105,9 @@ export class WebhookProcessor {
           { transaction },
         );
 
-        // Match by exact amount
         attempt = recentAttempts.find(
           (a) => a.paymentIntent?.amount === payload.amount,
         );
-
-            if (verification.success) {
-              console.log(
-                `[WebhookProcessor] CinetPay verification: ${verification.status}`,
-              );
-              finalStatus = verification.status;
-              providerResponse = verification.response;
-            } else {
-              console.warn(
-                `[WebhookProcessor] CinetPay verification FAILED for ${transactionNumber}: ${verification.errorMessage || "Unknown error"}`,
-              );
-            }
-          } else {
-            // For other providers (Stripe, KKiaPay), we map from the validated payload
-            let signatureValid = true;
-
-            // Validate KKiaPay signature if provided
-            if (providerCode === "kkiapay" && signature) {
-              const kkiapay = ProviderFactory.getProvider("kkiapay");
-              signatureValid = kkiapay.validateWebhookSignature(
-                payload,
-                signature,
-              );
-              console.log(
-                `[WebhookProcessor] KKiaPay signature validation: ${signatureValid}`,
-              );
-            }
-
-            if (!signatureValid) {
-              console.warn(
-                `[WebhookProcessor] Invalid signature for ${providerCode} webhook`,
-              );
-              event.signatureValid = false;
-            }
-
-            const eventType = payload.type;
-            const isSuccess = this.isSuccessEvent(providerCode, payload);
-            const isFailure = this.isFailureEvent(providerCode, payload);
-            console.log(
-              `[WebhookProcessor] ${providerCode} event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
-            );
-          }
-          transactionNumber = payload.transactionId;
-        }
       }
 
       if (attempt && attempt.paymentIntent && attempt.paymentIntent.order) {
@@ -182,40 +122,50 @@ export class WebhookProcessor {
         let finalStatus = null;
         let providerResponse = payload;
 
-        if (providerCode === "cinetpay") {
-          // Anti-MitM: Call CinetPay API to verify the real status
-          console.log(
-            `[WebhookProcessor] Verifying CinetPay Tx: ${transactionNumber}`,
-          );
-          const cinetpay = ProviderFactory.getProvider("cinetpay");
-          const verification = await cinetpay.checkStatus(transactionNumber);
-
-          if (verification.success) {
-            console.log(
-              `[WebhookProcessor] CinetPay verification: ${verification.status}`,
-            );
-            finalStatus = verification.status;
-            providerResponse = verification.response;
-          } else {
-            console.warn(
-              `[WebhookProcessor] CinetPay verification FAILED for ${transactionNumber}: ${verification.errorMessage || "Unknown error"}`,
-            );
+        // Signature Validation for non-synced flow
+        let signatureValid = true;
+        if (providerCode === "kkiapay" && signature) {
+          const kkiapay = ProviderFactory.getProvider("kkiapay");
+          signatureValid = kkiapay.validateWebhookSignature(payload, signature);
+          if (!signatureValid) {
+            console.warn(`[WebhookProcessor] Invalid signature for KKiaPay`);
+            event.signatureValid = false;
           }
-        } else {
-          // For other providers, we map from the validated payload
-          const eventType = payload.type;
-          const isSuccess = this.isSuccessEvent(providerCode, payload);
-          const isFailure = this.isFailureEvent(providerCode, payload);
-          console.log(
-            `[WebhookProcessor] Stripe event: ${eventType}, isSuccess: ${isSuccess}, isFailure: ${isFailure}`,
-          );
-          if (isSuccess) finalStatus = PaymentStatus.SUCCEEDED;
-          else if (isFailure) finalStatus = PaymentStatus.FAILED;
+        }
+
+        if (signatureValid) {
+          if (providerCode === "cinetpay") {
+            console.log(
+              `[WebhookProcessor] Verifying CinetPay Tx: ${transactionNumber}`,
+            );
+            const cinetpay = ProviderFactory.getProvider("cinetpay");
+            const verification = await cinetpay.checkStatus(transactionNumber);
+
+            if (verification.success) {
+              finalStatus = verification.status;
+              providerResponse = verification.response;
+            } else {
+              console.warn(
+                `[WebhookProcessor] CinetPay verification FAILED: ${verification.errorMessage}`,
+              );
+            }
+          } else {
+            const isSuccess = this.isSuccessEvent(providerCode, payload);
+            const isFailure = this.isFailureEvent(providerCode, payload);
+
+            if (isSuccess) finalStatus = PaymentStatus.SUCCEEDED;
+            else if (isFailure) finalStatus = PaymentStatus.FAILED;
+          }
         }
 
         if (finalStatus === PaymentStatus.SUCCEEDED) {
           await this.markAsSucceeded(attempt, providerResponse, transaction);
           notificationData = { type: "success", intent, order };
+
+          // LMS Specialization: Auto-Enrollment
+          await LmsBridgeService.syncEnrollment(order);
+
+          await MailService.notifyLmsAdmins("success", order, intent);
         } else if (finalStatus === PaymentStatus.FAILED) {
           await this.markAsFailed(attempt, providerResponse, transaction);
           notificationData = {
@@ -224,11 +174,8 @@ export class WebhookProcessor {
             order,
             reason: providerResponse.message || "Payment failed",
           };
-        } else if (finalStatus === PaymentStatus.PROCESSING) {
-          await this.markAsProcessing(attempt, providerResponse, transaction);
-          console.log(
-            " Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
-          );
+
+          await MailService.notifyLmsAdmins("failure", order, intent);
         }
 
         event.processed = true;
@@ -237,15 +184,12 @@ export class WebhookProcessor {
         console.warn(
           `[WebhookProcessor] No payment attempt found for ID: ${transactionNumber}`,
         );
-        console.log(
-          "💡 Tip: Webhooks use the Transaction Number (TXN-...), not the Order Reference (ORD-...).",
-        );
       }
 
       await event.save({ transaction });
       await transaction.commit();
 
-      // Trigger notifications AFTER commit to ensure data integrity
+      // Trigger notifications AFTER commit
       if (notificationData) {
         if (notificationData.type === "success") {
           await MailService.sendPaymentSuccessNotification(
@@ -254,7 +198,7 @@ export class WebhookProcessor {
           );
           await MailService.sendAdminNotification(
             `Nouveau paiement reçu - ${notificationData.order.reference}`,
-            `Un paiement de ${notificationData.intent.amount} ${notificationData.intent.currency} a été confirmé pour ${notificationData.order.customerName}.`,
+            `Un paiement de ${notificationData.intent.amount} ${notificationData.intent.currency} a été reçu.`,
           );
         } else {
           await MailService.sendPaymentFailureNotification(
@@ -328,6 +272,17 @@ export class WebhookProcessor {
         transaction,
       },
     );
+
+    // CRITICAL FIX: Ensure Order status is also updated to 'completed'
+    await Order.update(
+      {
+        status: OrderStatus.COMPLETED,
+      },
+      {
+        where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId }, // fallback if eager load missing
+        transaction,
+      }
+    );
   }
 
   static async markAsFailed(attempt, payload, transaction) {
@@ -338,6 +293,26 @@ export class WebhookProcessor {
         errorMessage: payload.message || "Payment failed via webhook",
       },
       { transaction },
+    );
+
+    await PaymentIntent.update(
+      {
+        status: PaymentStatus.FAILED,
+      },
+      {
+        where: { id: attempt.paymentIntentId },
+        transaction,
+      },
+    );
+
+    await Order.update(
+      {
+        status: OrderStatus.FAILED,
+      },
+      {
+        where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId },
+        transaction,
+      }
     );
   }
 

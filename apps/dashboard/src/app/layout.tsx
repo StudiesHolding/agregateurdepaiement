@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { I18nProvider } from "@/components/providers/I18nProvider";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -23,7 +25,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 />
             </head>
             <body>
-                <QueryProvider>{children}</QueryProvider>
+                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                    <I18nProvider>
+                        <QueryProvider>{children}</QueryProvider>
+                    </I18nProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

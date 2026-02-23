@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { InvoiceService } from "./invoice.service.js";
+import { NotificationSettings } from "../models/index.js";
 
 dotenv.config();
 
@@ -91,11 +92,10 @@ export class MailService {
           <p style="margin: 0;"><strong>Référence de paiement :</strong> ${intent.id}</p>
           <p style="margin: 0;"><strong>Statut :</strong> Payé</p>
         </div>
-        ${
-          attachments.length > 0
-            ? "<p>Vous trouverez ci-joint la facture correspondant à cette transaction.</p>"
-            : "<p>Votre facture sera disponible sous peu dans votre espace membre.</p>"
-        }
+        ${attachments.length > 0
+        ? "<p>Vous trouverez ci-joint la facture correspondant à cette transaction.</p>"
+        : "<p>Votre facture sera disponible sous peu dans votre espace membre.</p>"
+      }
         <p>Si vous avez des questions, n'hésitez pas à nous contacter à <a href="mailto:support@studieslearning.com" style="color: #2980b9;">support@studieslearning.com</a>.</p>
         <p>Cordialement,<br>L'équipe Studies Learning</p>
       </div>
@@ -158,16 +158,16 @@ export class MailService {
           </thead>
           <tbody>
             ${payments
-              .map(
-                (p) => `
+        .map(
+          (p) => `
               <tr>
                 <td style="padding: 10px; border: 1px solid #eee;">N°${p.installmentNumber}</td>
                 <td style="padding: 10px; border: 1px solid #eee;">${new Date(p.dueDate).toLocaleDateString("fr-FR")}</td>
                 <td style="padding: 10px; border: 1px solid #eee; text-align: right;">${p.amount} ${plan.currency}</td>
               </tr>
             `,
-              )
-              .join("")}
+        )
+        .join("")}
           </tbody>
         </table>
 
@@ -240,8 +240,8 @@ export class MailService {
   /**
    * Send notification to administrative stakeholders
    */
-  static async sendAdminNotification(subject, message) {
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@studiesholding.com";
+  static async sendAdminNotification(subject, message, toEmail = null) {
+    const adminEmail = toEmail || process.env.ADMIN_EMAIL || "admin@studiesholding.com";
     const html = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #444; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e1e4e8; padding: 25px; border-radius: 8px;">
         <div style="text-align: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;">
@@ -271,6 +271,49 @@ export class MailService {
         error.message,
       );
       return null;
+    }
+  }
+
+  /**
+   * Notify LMS Admins based on their settings
+   */
+  static async notifyLmsAdmins(eventType, order, intent = null) {
+    try {
+      const admins = await NotificationSettings.findAll({ where: { isActive: true } });
+      if (!admins.length) return;
+
+      const adminEmails = admins.filter(admin => {
+        if (eventType === 'success' && admin.notifyOnSuccess) return true;
+        if (eventType === 'failure' && admin.notifyOnFailure) return true;
+        if (eventType === 'suspicious' && admin.notifyOnSuspicious) return true;
+        return false;
+      }).map(a => a.adminEmail);
+
+      if (!adminEmails.length) return;
+
+      let subject = '';
+      let message = '';
+
+      if (eventType === 'success') {
+        subject = `✅ Succès Paiement LMS - ${order.reference}`;
+        message = `Une nouvelle vente a été effectuée avec succès !\n\n` +
+          `Client: ${order.customerName} (${order.customerEmail})\n` +
+          `Montant: ${intent ? intent.amount + ' ' + intent.currency : 'N/A'}\n` +
+          `Produit LMS: ID ${order.lmsItemId} (${order.lmsItemType})\n` +
+          `Référence: ${order.reference}`;
+      } else if (eventType === 'failure') {
+        subject = `❌ Échec Paiement LMS - ${order.reference}`;
+        message = `Une tentative de paiement a échoué.\n\n` +
+          `Client: ${order.customerName} (${order.customerEmail})\n` +
+          `Produit LMS: ID ${order.lmsItemId} (${order.lmsItemType})\n` +
+          `Référence: ${order.reference}`;
+      }
+
+      for (const email of adminEmails) {
+        await this.sendAdminNotification(subject, message, email);
+      }
+    } catch (error) {
+      console.error("[MailService] Failed to notify LMS admins:", error);
     }
   }
 }

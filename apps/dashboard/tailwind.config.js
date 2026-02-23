@@ -6,6 +6,7 @@ module.exports = {
         "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
         "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
     ],
+    darkMode: "class",
     theme: {
         extend: {
             colors: {
@@ -34,11 +35,11 @@ module.exports = {
                     light: "#fee2e2",
                     dark: "#7f1d1d",
                 },
-                surface: "#ffffff",
-                background: "#f8fafc",
-                border: "#e2e8f0",
-                "text-main": "#1e293b",
-                "text-light": "#64748b",
+                surface: "var(--color-surface)",
+                background: "var(--color-background)",
+                border: "var(--color-border)",
+                "text-main": "var(--color-text-main)",
+                "text-light": "var(--color-text-light)",
                 // Status specific for provider health
                 operational: "#10b981",
                 degraded: "#f59e0b",
