@@ -15,11 +15,28 @@ export class OrderService {
             reference,
             customerEmail: data.customerEmail,
             customerName: data.customerName,
+            customerSurname: data.customerSurname,
+            customerPhone: data.customerPhone,
+            customerCity: data.customerCity,
+            purchaseType: data.purchaseType || "self",
+
+            // Beneficiary (gift)
+            beneficiaryFirstName: data.beneficiaryFirstName,
+            beneficiaryLastName: data.beneficiaryLastName,
+            beneficiaryEmail: data.beneficiaryEmail,
+            beneficiaryPhone: data.beneficiaryPhone,
+            beneficiaryRelationship: data.beneficiaryRelationship,
+
+            // Formation info
+            formationId: data.formationId,
+            formationName: data.formationName,
+            formationPrice: data.formationPrice || data.totalAmount,
+
             currency: data.currency,
             totalAmount: data.totalAmount,
             metadata: data.metadata || {},
-            lmsItemId: data.lmsItemId,
-            lmsItemType: data.lmsItemType,
+            lmsItemId: data.lmsItemId || data.formationId,
+            lmsItemType: data.lmsItemType || "course",
             status: OrderStatus.PENDING,
         });
 

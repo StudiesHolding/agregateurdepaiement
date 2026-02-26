@@ -16,6 +16,7 @@ import { WebhookProcessor } from "../services/webhook-processor.service.js";
 import { ProviderRouterService } from "../services/provider-router.service.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
+import { OrderController } from "../controllers/order.controller.js";
 
 const router = Router();
 
@@ -481,6 +482,7 @@ router.get("/transactions", catchAsync(async (req, res) => {
             currency: i.currency,
             provider: i.selectedProvider?.name || null,
             orderReference: i.order?.reference,
+            orderId: i.order?.id,
             customerEmail: i.order?.customerEmail,
             createdAt: i.createdAt,
         })),
@@ -664,6 +666,58 @@ router.get("/audit-logs", catchAsync(async (req, res) => {
         data: rows,
         meta: { total: count, page: parseInt(page), perPage: parseInt(limit) },
     });
+}));
+
+// ═══════════════════════════════════════════════════════════
+// 📋 ORDERS - Gestion du cycle de vie LMS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/orders
+ * Liste des commandes avec filtres
+ */
+router.get("/orders", catchAsync(async (req, res, next) => {
+    await OrderController.list(req, res, next);
+}));
+
+/**
+ * GET /api/admin/orders/:id
+ * Détail d'une commande avec historique d'audit
+ */
+router.get("/orders/:id", catchAsync(async (req, res, next) => {
+    await OrderController.getById(req, res, next);
+}));
+
+/**
+ * POST /api/admin/orders/:id/validate
+ * Valider ou rejeter une commande
+ */
+router.post(
+    "/orders/:id/validate",
+    auditLog("VALIDATE_ORDER", "order"),
+    catchAsync(async (req, res, next) => {
+        await OrderController.validate(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/orders/:id/complete
+ * Finaliser une commande - envoyer credentials
+ */
+router.post(
+    "/orders/:id/complete",
+    auditLog("COMPLETE_ORDER", "order"),
+    catchAsync(async (req, res, next) => {
+        await OrderController.complete(req, res, next);
+    })
+);
+
+/**
+ * GET /api/admin/orders/:id/audit
+ * Historique d'audit d'une commande
+ */
+router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
+    await OrderController.getAuditHistory(req, res, next);
 }));
 
 export default router;

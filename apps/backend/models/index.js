@@ -12,6 +12,7 @@ import { VerifiedEmail } from "./verified-email.model.js";
 import { AdminAuditLog } from "./admin-audit-log.model.js";
 import { ProviderStatsCache } from "./provider-stats-cache.model.js";
 import { NotificationSettings } from "./notification-settings.model.js";
+import { OrderAuditLog } from "./order-audit-log.model.js";
 
 // Associations
 
@@ -20,50 +21,90 @@ Order.hasMany(PaymentIntent, { foreignKey: "orderId", as: "paymentIntents" });
 PaymentIntent.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 // PaymentIntent <-> PaymentAttempt (1:N)
-PaymentIntent.hasMany(PaymentAttempt, { foreignKey: "paymentIntentId", as: "attempts" });
-PaymentAttempt.belongsTo(PaymentIntent, { foreignKey: "paymentIntentId", as: "paymentIntent" });
+PaymentIntent.hasMany(PaymentAttempt, {
+  foreignKey: "paymentIntentId",
+  as: "attempts",
+});
+PaymentAttempt.belongsTo(PaymentIntent, {
+  foreignKey: "paymentIntentId",
+  as: "paymentIntent",
+});
 
 // PaymentIntent <-> PaymentProvider (Selected Provider)
-PaymentIntent.belongsTo(PaymentProvider, { foreignKey: "selectedProviderId", as: "selectedProvider" });
+PaymentIntent.belongsTo(PaymentProvider, {
+  foreignKey: "selectedProviderId",
+  as: "selectedProvider",
+});
 
 // PaymentAttempt <-> PaymentProvider
-PaymentAttempt.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
+PaymentAttempt.belongsTo(PaymentProvider, {
+  foreignKey: "providerId",
+  as: "provider",
+});
 
 // PaymentProvider <-> ProviderRoute (1:N)
-PaymentProvider.hasMany(ProviderRoute, { foreignKey: "providerId", as: "routes" });
-ProviderRoute.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
+PaymentProvider.hasMany(ProviderRoute, {
+  foreignKey: "providerId",
+  as: "routes",
+});
+ProviderRoute.belongsTo(PaymentProvider, {
+  foreignKey: "providerId",
+  as: "provider",
+});
 
 // WebhookEvent <-> PaymentProvider
-WebhookEvent.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
+WebhookEvent.belongsTo(PaymentProvider, {
+  foreignKey: "providerId",
+  as: "provider",
+});
 
 // ProviderStatsCache <-> PaymentProvider
-ProviderStatsCache.belongsTo(PaymentProvider, { foreignKey: "providerId", as: "provider" });
-PaymentProvider.hasMany(ProviderStatsCache, { foreignKey: "providerId", as: "statsCache" });
+ProviderStatsCache.belongsTo(PaymentProvider, {
+  foreignKey: "providerId",
+  as: "provider",
+});
+PaymentProvider.hasMany(ProviderStatsCache, {
+  foreignKey: "providerId",
+  as: "statsCache",
+});
 
 // Order <-> InstallmentPlan (1:N)
-Order.hasMany(InstallmentPlan, { foreignKey: "orderId", as: "installmentPlans" });
+Order.hasMany(InstallmentPlan, {
+  foreignKey: "orderId",
+  as: "installmentPlans",
+});
 InstallmentPlan.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 // InstallmentPlan <-> InstallmentPayment (1:N)
-InstallmentPlan.hasMany(InstallmentPayment, { foreignKey: "planId", as: "payments" });
-InstallmentPayment.belongsTo(InstallmentPlan, { foreignKey: "planId", as: "plan" });
+InstallmentPlan.hasMany(InstallmentPayment, {
+  foreignKey: "planId",
+  as: "payments",
+});
+InstallmentPayment.belongsTo(InstallmentPlan, {
+  foreignKey: "planId",
+  as: "plan",
+});
 
 // InstallmentPayment <-> PaymentIntent
-InstallmentPayment.belongsTo(PaymentIntent, { foreignKey: "paymentIntentId", as: "paymentIntent" });
+InstallmentPayment.belongsTo(PaymentIntent, {
+  foreignKey: "paymentIntentId",
+  as: "paymentIntent",
+});
 
 export {
-    sequelize,
-    Order,
-    PaymentProvider,
-    PaymentIntent,
-    PaymentAttempt,
-    ProviderRoute,
-    WebhookEvent,
-    InstallmentPlan,
-    InstallmentPayment,
-    ApiKey,
-    VerifiedEmail,
-    AdminAuditLog,
-    ProviderStatsCache,
-    NotificationSettings,
+  sequelize,
+  Order,
+  PaymentProvider,
+  PaymentIntent,
+  PaymentAttempt,
+  ProviderRoute,
+  WebhookEvent,
+  InstallmentPlan,
+  InstallmentPayment,
+  ApiKey,
+  VerifiedEmail,
+  AdminAuditLog,
+  ProviderStatsCache,
+  NotificationSettings,
+  OrderAuditLog,
 };
