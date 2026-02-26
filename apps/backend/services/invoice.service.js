@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+import fs from "fs";
 
 /**
  * Service to generate professional PDF invoices
@@ -24,7 +25,7 @@ export class InvoiceService {
                 "/usr/bin/chromium",
             ].filter(Boolean);
 
-            let executablePath = possiblePaths[0];
+            let executablePath = possiblePaths.find(path => fs.existsSync(path));
 
             browser = await puppeteer.launch({
                 executablePath,
