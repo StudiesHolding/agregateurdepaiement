@@ -1154,9 +1154,6 @@ body{
 .right-1\/2{
   right: 50%;
 }
-.right-2{
-  right: 0.5rem;
-}
 .right-\[-10\%\]{
   right: -10%;
 }
@@ -2833,9 +2830,6 @@ body{
 }
 .pr-2\.5{
   padding-right: 0.625rem;
-}
-.pr-24{
-  padding-right: 6rem;
 }
 .pr-3{
   padding-right: 0.75rem;

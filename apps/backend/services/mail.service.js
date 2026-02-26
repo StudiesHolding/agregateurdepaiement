@@ -382,7 +382,10 @@ export class MailService {
 
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; color: white;">
+        <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+          <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+        </div>
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Félicitations !</h1>
           <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Votre inscription est validée</p>
         </div>
@@ -437,7 +440,10 @@ export class MailService {
   static async sendOrderRejected(order) {
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
-        <div style="background: #ef4444; padding: 30px; text-align: center; color: white;">
+        <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+          <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+        </div>
+        <div style="background: #ef4444; padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Information d'Inscription</h1>
           <p style="margin: 5px 0 0; opacity: 0.9;">Concernant votre commande ${order.reference}</p>
         </div>
@@ -495,7 +501,10 @@ export class MailService {
 
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(135deg, #3b82f6, #1e3a8a); padding: 30px; text-align: center; color: white;">
+        <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+          <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+        </div>
+        <div style="background: linear-gradient(135deg, #3b82f6, #1e3a8a); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Bienvenue sur le Campus !</h1>
           <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Vos accès sont maintenant prêts</p>
         </div>

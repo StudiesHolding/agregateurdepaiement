@@ -1,3 +1,9 @@
 {
+  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js",
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/orders/[id]/page": "app/(dashboard)/orders/[id]/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/orders/page": "app/(dashboard)/orders/page.js",
+  "/(dashboard)/webhooks/page": "app/(dashboard)/webhooks/page.js",
   "/(dashboard)/test-order/page": "app/(dashboard)/test-order/page.js"
 }
