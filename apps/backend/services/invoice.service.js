@@ -14,9 +14,20 @@ export class InvoiceService {
     static async generateInvoiceBuffer(intent, order) {
         let browser;
         try {
+            // Auto-detection of browser to avoid "not found" errors
+            // USER REQUEST: Prioritize chromium-browser for VPS compatibility
+            const possiblePaths = [
+                process.env.PUPPETEER_EXECUTABLE_PATH,
+                "/usr/bin/chromium-browser",
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable",
+                "/usr/bin/chromium",
+            ].filter(Boolean);
+
+            let executablePath = possiblePaths[0];
+
             browser = await puppeteer.launch({
-                executablePath:
-                    process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome",
+                executablePath,
                 args: [
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
@@ -35,11 +46,9 @@ export class InvoiceService {
               @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
               body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; padding: 0; background: #fff; }
               .invoice-container { max-width: 800px; margin: auto; padding: 40px; }
-              .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 50px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
-              .brand { display: flex; align-items: center; gap: 10px; }
-              .logo-box { width: 40px; hieght: 40px; background: linear-gradient(135deg, #10b981, #3b82f6); border-radius: 10px; }
-              .brand-name { font-size: 24px; font-weight: 800; letter-spacing: -1px; color: #0f172a; }
-              .brand-name span { color: #10b981; }
+              .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
+              .brand { display: flex; align-items: center; gap: 15px; }
+              .logo { width: 140px; height: auto; object-fit: contain; }
               .invoice-meta { text-align: right; }
               .invoice-meta h1 { margin: 0; font-size: 32px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
               .meta-item { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; font-size: 13px; color: #64748b; }
@@ -70,8 +79,7 @@ export class InvoiceService {
           <div class="invoice-container">
               <div class="header">
                   <div class="brand">
-                      <div class="logo-box"></div>
-                      <div class="brand-name">STUDIES<span>LEARNING</span></div>
+                      <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" class="logo" alt="Logo">
                   </div>
                   <div class="invoice-meta">
                       <h1>FACTURE</h1>

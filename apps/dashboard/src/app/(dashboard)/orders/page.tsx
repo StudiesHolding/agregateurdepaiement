@@ -406,21 +406,12 @@ export default function OrdersPage() {
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-text-light ml-1">Mot de passe temporaire</label>
-            <div className="relative">
-              <input
-                className="input h-12 w-full font-mono pr-24"
-                placeholder="••••••••"
-                value={credentials.password}
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-              />
-              <button
-                type="button"
-                onClick={() => setCredentials({ ...credentials, password: Math.random().toString(36).slice(-8).toUpperCase() })}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-bold hover:bg-primary hover:text-white transition-all uppercase"
-              >
-                Générer
-              </button>
-            </div>
+            <input
+              className="input h-12 w-full font-mono"
+              placeholder="••••••••"
+              value={credentials.password}
+              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+            />
           </div>
         </div>
       </ActionModal>

@@ -146,6 +146,9 @@ export default function TestOrderPage() {
   const [beneficiaryName, setBeneficiaryName] = useState("");
   const [beneficiaryEmail, setBeneficiaryEmail] = useState("");
 
+  // Simulation credentials
+  const [simulationCreds, setSimulationCreds] = useState({ u: "", p: "" });
+
   // Created order
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
@@ -194,8 +197,8 @@ export default function TestOrderPage() {
   const completeOrderMutation = useMutation({
     mutationFn: () =>
       adminApi.completeOrder(createdOrder!.id, {
-        username: `user_${createdOrder!.reference.split('-')[1]}`,
-        password: "password123",
+        username: simulationCreds.u,
+        password: simulationCreds.p,
       }),
     onSuccess: (response) => {
       setCreatedOrder(response.data.data.order);
@@ -253,8 +256,8 @@ export default function TestOrderPage() {
         <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur opacity-25" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-8 bg-white border border-slate-200 rounded-2xl shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 text-primary rounded-2xl">
-              <Terminal size={32} />
+            <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+              <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" className="h-12 w-auto" alt="Studies Learning" />
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">Workflow Control Room</h1>
@@ -562,10 +565,28 @@ export default function TestOrderPage() {
                   </div>
 
                   {/* Finalization Block */}
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Phase 4: Inscription Campus</span>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">Phase 4: Inscription Campus</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          className="input input-sm h-10 bg-slate-50 border-slate-200"
+                          placeholder="Username"
+                          value={simulationCreds.u}
+                          onChange={e => setSimulationCreds({ ...simulationCreds, u: e.target.value })}
+                          disabled={createdOrder.status !== 'validated'}
+                        />
+                        <input
+                          className="input input-sm h-10 bg-slate-50 border-slate-200 font-mono"
+                          placeholder="Password"
+                          value={simulationCreds.p}
+                          onChange={e => setSimulationCreds({ ...simulationCreds, p: e.target.value })}
+                          disabled={createdOrder.status !== 'validated'}
+                        />
+                      </div>
+                    </div>
                     <button
-                      disabled={createdOrder.status !== 'validated' || completeOrderMutation.isPending}
+                      disabled={createdOrder.status !== 'validated' || !simulationCreds.u || !simulationCreds.p || completeOrderMutation.isPending}
                       onClick={() => completeOrderMutation.mutate()}
                       className={cn(
                         "w-full btn btn-sm rounded-xl h-12",
