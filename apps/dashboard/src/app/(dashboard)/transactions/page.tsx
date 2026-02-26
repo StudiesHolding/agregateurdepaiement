@@ -35,7 +35,6 @@ interface Filters {
     provider: string;
     currency: string;
     search: string;
-    search: string;
     from: string;
     to: string;
     lmsItemId: string;
@@ -195,7 +194,7 @@ export default function TransactionsPage() {
                                         </td>
                                         <td>
                                             <Link
-                                                href={`/transactions/${txn.orderReference}`}
+                                                href={txn.orderReference?.startsWith("ORD-") ? `/orders/${txn.orderId}` : `/transactions/${txn.orderReference}`}
                                                 className="btn-ghost p-1.5 rounded-lg flex items-center justify-center"
                                                 title="Voir le détail"
                                             >

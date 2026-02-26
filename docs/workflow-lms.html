@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS Workflow Documentation | Studies PSP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --secondary: #10b981;
+            --accent: #8b5cf6;
+            --bg-deep: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --phase-1: #3b82f6;
+            --phase-2: #10b981;
+            --phase-3: #f59e0b;
+            --phase-4: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Animated Background */
+        .bg-mesh {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            animation: pulse-bg 20s infinite alternate;
+        }
+
+        @keyframes pulse-bg {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.1);
+            }
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        /* Header Section */
+        header {
+            text-align: center;
+            margin-bottom: 6rem;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fade-up 1s forwards cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(79, 70, 229, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 99px;
+            color: var(--primary);
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 30%, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Workflow Grid */
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem;
+            perspective: 1000px;
+        }
+
+        .phase-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        .phase-card:hover {
+            transform: translateY(-10px) rotateX(5deg) rotateY(2deg);
+            background: rgba(45, 55, 72, 0.8);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--primary-glow);
+        }
+
+        .phase-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            position: absolute;
+            top: -1rem;
+            right: 2rem;
+            opacity: 0.1;
+            transition: 0.5s;
+        }
+
+        .phase-card:hover .phase-number {
+            opacity: 0.3;
+            transform: scale(1.2);
+        }
+
+        .icon-box {
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            border-radius: 1.25rem;
+            display: flex;
+            items-center: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .phase-1 {
+            border-top: 4px solid var(--phase-1);
+        }
+
+        .phase-2 {
+            border-top: 4px solid var(--phase-2);
+        }
+
+        .phase-3 {
+            border-top: 4px solid var(--phase-3);
+        }
+
+        .phase-4 {
+            border-top: 4px solid var(--phase-4);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .phase-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Detail Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            display: none;
+            items-center: center;
+            justify-content: center;
+            padding: 2rem;
+            animation: fade-in 0.3s forwards;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            max-width: 800px;
+            width: 100%;
+            border-radius: 3rem;
+            padding: 4rem;
+            position: relative;
+            transform: scale(0.9);
+            animation: zoom-in 0.5s 0.2s forwards cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        /* Email Timeline Component */
+        .email-steps {
+            margin-top: 3rem;
+            padding-left: 2rem;
+            border-left: 2px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .email-step {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .email-step::before {
+            content: '';
+            position: absolute;
+            left: -2.45rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fade-up {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes zoom-in {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        /* Staggered load for cards */
+        .phase-card:nth-child(1) {
+            animation: fade-up 0.8s 0.2s forwards;
+        }
+
+        .phase-card:nth-child(2) {
+            animation: fade-up 0.8s 0.4s forwards;
+        }
+
+        .phase-card:nth-child(3) {
+            animation: fade-up 0.8s 0.6s forwards;
+        }
+
+        .phase-card:nth-child(4) {
+            animation: fade-up 0.8s 0.8s forwards;
+        }
+
+        .cta-section {
+            margin-top: 8rem;
+            text-align: center;
+            padding: 4rem;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, transparent 100%);
+            border-radius: 3rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 1.25rem 3rem;
+            border-radius: 99px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: inline-block;
+            transition: 0.3s;
+            box-shadow: 0 10px 30px var(--primary-glow);
+        }
+
+        .btn-premium:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 15px 40px var(--primary-glow);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-mesh"></div>
+
+    <div class="container">
+        <header>
+            <span class="badge">Nouveauté 2026</span>
+            <h1>LMS Enrollment <span style="color: var(--primary)">Workflow</span></h1>
+            <p class="subtitle">Une architecture en 4 phases pour une gestion premium des inscriptions et une
+                automatisation maîtrisée.</p>
+        </header>
+
+        <div class="workflow-grid">
+            <!-- Phase 1 -->
+            <div class="phase-card phase-1" onclick="openModal(1)">
+                <div class="phase-number">01</div>
+                <div class="icon-box" style="background: var(--phase-1)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <line x1="2" y1="10" x2="22" y2="10" />
+                    </svg>
+                </div>
+                <h3>Paiement Client</h3>
+                <p>Le client choisit sa formation et effectue le règlement via Mobile Money ou Carte.</p>
+                <span class="status-pill">Statut: PENDING</span>
+            </div>
+
+            <!-- Phase 2 -->
+            <div class="phase-card phase-2" onclick="openModal(2)">
+                <div class="phase-number">02</div>
+                <div class="icon-box" style="background: var(--phase-2)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z" />
+                        <path d="m22 9-10 7L2 9" />
+                    </svg>
+                </div>
+                <h3>Confirmation</h3>
+                <p>Réception automatique du paiement. Envoi du premier email de confirmation au client.</p>
+                <span class="status-pill" style="color: var(--phase-2)">CONFIRMÉ</span>
+            </div>
+
+            <!-- Phase 3 -->
+            <div class="phase-card phase-3" onclick="openModal(3)">
+                <div class="phase-number">03</div>
+                <div class="icon-box" style="background: var(--phase-3)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <polyline points="9 11 11 13 15 9" />
+                    </svg>
+                </div>
+                <h3>Validation Admin</h3>
+                <p>L'admin vérifie les données et valide la commande. Génération et envoi de la facture.</p>
+                <span class="status-pill" style="color: var(--phase-3)">VALIDATED</span>
+            </div>
+
+            <!-- Phase 4 -->
+            <div class="phase-card phase-4" onclick="openModal(4)">
+                <div class="phase-number">04</div>
+                <div class="icon-box" style="background: var(--phase-4)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </div>
+                <h3>Finalisation</h3>
+                <p>Création du compte campus et envoi des accès (credentials) par email au client.</p>
+                <span class="status-pill" style="color: var(--phase-4)">COMPLETED</span>
+            </div>
+        </div>
+
+        <section class="cta-section">
+            <h2 style="font-size: 2.5rem; margin-bottom: 2rem;">Prêt à gérer vos transactions ?</h2>
+            <a href="/transactions" class="btn-premium">Accéder au Dashboard</a>
+        </section>
+    </div>
+
+    <!-- Modals Container -->
+    <div id="modal" class="modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <div id="modal-body">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const phaseData = {
+            1: {
+                title: "Phase 1 : Paiement Initial",
+                content: `
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">Lors de cette étape, le système crée une commande en statut <strong>PENDING</strong>.</p>
+                    <div class="email-steps">
+                        <div class="email-step">
+                            <h4>Initialisation de la Transaction</h4>
+                            <p>Calcul des taxes, frais de gateway et redirection vers le provider (CinetPay, KKiaPay, KKiaPay, etc.)</p>
+                        </div>
+                    </div>
+                `
+            },
+            2: {
+                title: "Phase 2 : Confirmation Reçue",
+                content: `
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">Le Webhook confirme le succès. La commande passe en <strong>PAYMENT_CONFIRMED</strong>.</p>
+                    <div class="email-steps">
+                        <div class="email-step">
+                            <h4>Email de Confirmation (Template 01)</h4>
+                            <p>Envoyé au client pour accuser réception. <em>Note: Aucune facture n'est jointe ici.</em></p>
+                        </div>
+                        <div class="email-step">
+                            <h4>Notification Admin</h4>
+                            <p>Alerte envoyée aux administrateurs pour traitement.</p>
+                        </div>
+                    </div>
+                `
+            },
+            3: {
+                title: "Phase 3 : Validation Humaine",
+                content: `
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">L'administrateur valide la cohérence des informations.</p>
+                    <div class="email-steps">
+                        <div class="email-step">
+                            <h4>Génération de Facture</h4>
+                            <p>Le système génère un PDF professionnel aux couleurs de Studies Learning.</p>
+                        </div>
+                        <div class="email-step">
+                            <h4>Email de Validation (Template 02)</h4>
+                            <p>Contient la facture officielle et confirme que l'inscription est en cours.</p>
+                        </div>
+                    </div>
+                `
+            },
+            4: {
+                title: "Phase 4 : Finalisation & Accès",
+                content: `
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">L'étape finale de délivrance de la valeur au client.</p>
+                    <div class="email-steps">
+                        <div class="email-step">
+                            <h4>Création Manuelle Campus</h4>
+                            <p>L'admin crée le compte sur le campus externe Studies.</p>
+                        </div>
+                        <div class="email-step">
+                            <h4>Envoi des identifiants (Template 03)</h4>
+                            <p>Email final contenant Username, Password et lien vers le campus.</p>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        function openModal(id) {
+            const data = phaseData[id];
+            document.getElementById('modal-body').innerHTML = `
+                <h2 style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary)">${data.title}</h2>
+                ${data.content}
+            `;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Add some parallax effect on hover
+        document.addEventListener('mousemove', (e) => {
+            const mesh = document.querySelector('.bg-mesh');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            mesh.style.transform = \`translate(\${x * 20}px, \${y * 20}px)\`;
+        });
+    </script>
+</body>
+
+</html>
