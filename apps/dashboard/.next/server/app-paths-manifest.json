@@ -1,11 +1,14 @@
 {
-  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
-  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js",
-  "/(dashboard)/orders/page": "app/(dashboard)/orders/page.js",
-  "/(dashboard)/webhooks/page": "app/(dashboard)/webhooks/page.js",
-  "/(dashboard)/test-order/page": "app/(dashboard)/test-order/page.js",
-  "/(dashboard)/providers/page": "app/(dashboard)/providers/page.js",
-  "/(dashboard)/routing/page": "app/(dashboard)/routing/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/audit/page": "app/(dashboard)/audit/page.js"
+  "/(docs)/docs/page": "app/(docs)/docs/page.js",
+  "/(docs)/docs/architecture/page": "app/(docs)/docs/architecture/page.js",
+  "/(docs)/docs/quick-start/page": "app/(docs)/docs/quick-start/page.js",
+  "/(docs)/docs/api/auth/page": "app/(docs)/docs/api/auth/page.js",
+  "/(docs)/docs/deployment/vps/page": "app/(docs)/docs/deployment/vps/page.js",
+  "/(docs)/docs/api/webhooks/page": "app/(docs)/docs/api/webhooks/page.js",
+  "/(docs)/docs/maintenance/troubleshooting/page": "app/(docs)/docs/maintenance/troubleshooting/page.js",
+  "/(docs)/docs/integration/lms/page": "app/(docs)/docs/integration/lms/page.js",
+  "/(docs)/docs/maintenance/updates/page": "app/(docs)/docs/maintenance/updates/page.js",
+  "/(docs)/docs/deployment/security/page": "app/(docs)/docs/deployment/security/page.js",
+  "/(docs)/docs/api/payments/page": "app/(docs)/docs/api/payments/page.js",
+  "/(docs)/docs/api/admin/page": "app/(docs)/docs/api/admin/page.js"
 }

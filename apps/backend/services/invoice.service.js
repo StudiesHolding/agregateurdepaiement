@@ -89,22 +89,30 @@ export class InvoiceService {
                   </div>
               </div>
 
-              <div class="billing-section">
-                  <div class="billing-box">
-                      <h3>Émetteur</h3>
-                      <p><b>Studies Holding Sarl</b></p>
-                      <p>Douala, Cameroun</p>
-                      <p>contact@studieslearning.com</p>
-                      <p>RCCM: RC/DLA/2021/B/1234</p>
-                  </div>
-                  <div class="billing-box">
-                      <h3>Client</h3>
-                      <p><b>${order.customerName}</b></p>
-                      <p>${order.customerEmail}</p>
-                      <p>${order.customerPhone || ''}</p>
-                      <p>${order.customerCity || ''}</p>
-                  </div>
-              </div>
+                <div class="billing-section">
+                    <div class="billing-box">
+                        <h3>Émetteur</h3>
+                        <p><b>Studies Holding Sarl</b></p>
+                        <p>Douala, Cameroun</p>
+                        <p>contact@studieslearning.com</p>
+                    </div>
+                    <div class="billing-box">
+                        <h3>Acheteur</h3>
+                        <p><b>${order.customerName} ${order.customerSurname || ''}</b></p>
+                        <p>${order.customerEmail}</p>
+                        <p>${order.customerPhone || ''}</p>
+                        <p>${order.customerCountry || ''}</p>
+                    </div>
+                    ${order.purchaseType === 'gift' ? `
+                    <div class="billing-box" style="margin-top: 20px;">
+                        <h3>Bénéficiaire (Cadeau)</h3>
+                        <p><b>${order.beneficiaryFirstName} ${order.beneficiaryLastName || ''}</b></p>
+                        <p>${order.beneficiaryEmail || ''}</p>
+                        <p>${order.beneficiaryCountry || ''}</p>
+                        <p><i>Lien : ${order.beneficiaryRelationship || 'N/A'}</i></p>
+                    </div>
+                    ` : ''}
+                </div>
 
               <table>
                   <thead>

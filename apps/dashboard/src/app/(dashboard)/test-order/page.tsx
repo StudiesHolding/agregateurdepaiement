@@ -137,14 +137,19 @@ export default function TestOrderPage() {
   // Form state
   const [selectedFormation, setSelectedFormation] = useState<string>("");
   const [customerEmail, setCustomerEmail] = useState("test@example.com");
-  const [customerName, setCustomerName] = useState("Test User");
+  const [customerName, setCustomerName] = useState("Albert");
+  const [customerSurname, setCustomerSurname] = useState("Studies");
   const [customerPhone, setCustomerPhone] = useState("+237 600 000 000");
+  const [customerCountry, setCustomerCountry] = useState("Cameroun");
   const [purchaseType, setPurchaseType] = useState<"self" | "gift">("self");
   const [amount, setAmount] = useState<number>(5000);
 
   // Beneficiary for gifts
   const [beneficiaryName, setBeneficiaryName] = useState("");
+  const [beneficiaryLastName, setBeneficiaryLastName] = useState("");
   const [beneficiaryEmail, setBeneficiaryEmail] = useState("");
+  const [beneficiaryCountry, setBeneficiaryCountry] = useState("Gabon");
+  const [beneficiaryRelationship, setBeneficiaryRelationship] = useState("Ami");
 
   // Simulation credentials
   const [simulationCreds, setSimulationCreds] = useState({ u: "", p: "" });
@@ -234,11 +239,16 @@ export default function TestOrderPage() {
       formationPrice: amount,
       customerEmail,
       customerName,
+      customerSurname,
       customerPhone,
+      customerCountry,
       purchaseType,
       amount,
       beneficiaryEmail: purchaseType === 'gift' ? beneficiaryEmail : undefined,
-      beneficiaryFirstName: purchaseType === 'gift' ? beneficiaryName : undefined
+      beneficiaryFirstName: purchaseType === 'gift' ? beneficiaryName : undefined,
+      beneficiaryLastName: purchaseType === 'gift' ? beneficiaryLastName : undefined,
+      beneficiaryCountry: purchaseType === 'gift' ? beneficiaryCountry : undefined,
+      beneficiaryRelationship: purchaseType === 'gift' ? beneficiaryRelationship : undefined,
     });
   };
 
@@ -356,15 +366,49 @@ export default function TestOrderPage() {
                     disabled={!!createdOrder}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Client Nom</label>
-                  <input
-                    type="text"
-                    className="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    disabled={!!createdOrder}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Client Prénom</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Client Nom</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl"
+                      value={customerSurname}
+                      onChange={(e) => setCustomerSurname(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Téléphone</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Pays Résidence</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full bg-slate-50 border-slate-200 rounded-xl"
+                      value={customerCountry}
+                      onChange={(e) => setCustomerCountry(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -379,14 +423,42 @@ export default function TestOrderPage() {
                     onChange={(e) => setBeneficiaryEmail(e.target.value)}
                     disabled={!!createdOrder}
                   />
-                  <input
-                    type="text"
-                    placeholder="Nom bénéficiaire"
-                    className="input input-sm input-bordered w-full rounded-lg"
-                    value={beneficiaryName}
-                    onChange={(e) => setBeneficiaryName(e.target.value)}
-                    disabled={!!createdOrder}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Prénom"
+                      className="input input-sm input-bordered w-full rounded-lg"
+                      value={beneficiaryName}
+                      onChange={(e) => setBeneficiaryName(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Nom"
+                      className="input input-sm input-bordered w-full rounded-lg"
+                      value={beneficiaryLastName}
+                      onChange={(e) => setBeneficiaryLastName(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Pays"
+                      className="input input-sm input-bordered w-full rounded-lg"
+                      value={beneficiaryCountry}
+                      onChange={(e) => setBeneficiaryCountry(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Lien (Ami, Parent...)"
+                      className="input input-sm input-bordered w-full rounded-lg"
+                      value={beneficiaryRelationship}
+                      onChange={(e) => setBeneficiaryRelationship(e.target.value)}
+                      disabled={!!createdOrder}
+                    />
+                  </div>
                 </div>
               )}
 

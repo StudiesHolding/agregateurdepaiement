@@ -11,8 +11,8 @@ const startServer = async () => {
 
         // In development, you might want to sync models
         // Using alter: true carefully
-        await sequelize.sync({ alter: false });
-        console.log("✅ Database models synchronized.");
+        await sequelize.sync({ alter: true });
+        console.log(" Database models synchronized.");
 
         // Auto-seed default admin key if missing
         try {
@@ -22,13 +22,13 @@ const startServer = async () => {
 
             if (adminKeyCount === 0) {
                 const defaultKey = await ApiKeyService.generate("admin:default-key");
-                console.log("\n🔑 [SECURITY] No admin key found. Generated default admin key:");
+                console.log("\n [SECURITY] No admin key found. Generated default admin key:");
                 console.log(`            KEY: ${defaultKey.key}`);
                 console.log(`            OWNER: admin:default-key`);
                 console.log("   --- Store this safely and delete after first production login ---\n");
             }
         } catch (seedError) {
-            console.warn("⚠️  Default key seeding skipped:", seedError.message);
+            console.warn("  Default key seeding skipped:", seedError.message);
         }
 
         const server = app.listen(PORT, '0.0.0.0', () => {

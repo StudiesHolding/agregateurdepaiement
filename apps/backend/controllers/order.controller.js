@@ -148,10 +148,10 @@ export class OrderController {
 
       const previousState = { status: order.status };
 
-      // Déterminer le destinataire
-      const recipientEmail =
+      // Déterminer le(s) destinataire(s) pour l'audit
+      const recipients =
         order.purchaseType === "gift"
-          ? order.beneficiaryEmail
+          ? `${order.customerEmail} (Acheteur) & ${order.beneficiaryEmail} (Bénéficiaire)`
           : order.customerEmail;
 
       if (action === "validate") {
@@ -170,7 +170,7 @@ export class OrderController {
         await MailService.sendOrderValidated(order);
 
         console.log(
-          `[OrderController] Order validated & invoice sent to: ${recipientEmail}`,
+          `[OrderController] Order validated & invoice sent to: ${recipients}`,
         );
 
         // Log audit
@@ -187,7 +187,7 @@ export class OrderController {
           },
           ipAddress: req.ip,
           userAgent: req.headers["user-agent"],
-          emailSentTo: recipientEmail,
+          emailSentTo: recipients,
         });
 
         await transaction.commit();
@@ -230,7 +230,7 @@ export class OrderController {
           },
           ipAddress: req.ip,
           userAgent: req.headers["user-agent"],
-          emailSentTo: recipientEmail,
+          emailSentTo: order.customerEmail,
         });
 
         await transaction.commit();
@@ -278,10 +278,10 @@ export class OrderController {
 
       const previousState = { status: order.status };
 
-      // Déterminer le destinataire
-      const recipientEmail =
+      // Déterminer le(s) destinataire(s) pour l'audit
+      const recipients =
         order.purchaseType === "gift"
-          ? order.beneficiaryEmail
+          ? `${order.customerEmail} (Acheteur) & ${order.beneficiaryEmail} (Bénéficiaire)`
           : order.customerEmail;
 
       // Mettre à jour la commande
@@ -292,7 +292,7 @@ export class OrderController {
           completedBy: req.apiKeyId || 0,
           campusUsername: username,
           credentialsSentAt: new Date(),
-          credentialsSentTo: recipientEmail,
+          credentialsSentTo: recipients,
         },
         { transaction },
       );
@@ -301,7 +301,7 @@ export class OrderController {
       await MailService.sendOrderCompleted(order, { username, password });
 
       console.log(
-        `[OrderController] Credentials sent to: ${recipientEmail}`,
+        `[OrderController] Credentials sent to: ${recipients}`,
       );
 
       // Log audit
@@ -319,7 +319,7 @@ export class OrderController {
         },
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
-        emailSentTo: recipientEmail,
+        emailSentTo: recipients,
       });
 
       await transaction.commit();

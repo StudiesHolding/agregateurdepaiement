@@ -205,6 +205,7 @@ export interface Order {
   customerSurname: string | null;
   customerPhone: string | null;
   customerCity: string | null;
+  customerCountry: string | null;
   currency: string;
   totalAmount: number;
   status: OrderStatus;
@@ -220,6 +221,7 @@ export interface Order {
   beneficiaryLastName: string | null;
   beneficiaryEmail: string | null;
   beneficiaryPhone: string | null;
+  beneficiaryCountry: string | null;
   beneficiaryRelationship: string | null;
   // Validation
   validatedAt: Date | string | null;
@@ -324,6 +326,7 @@ export interface TransactionDetail {
   order: {
     id: number;
     reference: string;
+    status: PaymentStatus;
     customerEmail: string;
     totalAmount: number;
     metadata?: Record<string, string>;
