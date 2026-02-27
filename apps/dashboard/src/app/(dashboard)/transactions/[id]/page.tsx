@@ -17,7 +17,13 @@ import {
     AlertTriangle,
     CheckCircle2,
     FileCode,
+    XCircle,
+    Send,
+    ShieldCheck,
+    Loader2,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 // ── Status Chip ──────────────────────────────────────────────────────────────
 
@@ -28,6 +34,15 @@ function StatusChip({ status }: { status: PaymentStatus | string }) {
         pending: "bg-warning-light text-warning-dark border-warning/20",
         processing: "bg-primary-light text-primary border-primary/20",
         refunded: "bg-border text-text-light border-border",
+        // New LMS statuses
+        payment_confirmed: "bg-success/10 text-success border-success/20",
+        PAYMENT_CONFIRMED: "bg-success/10 text-success border-success/20",
+        validated: "bg-secondary-light text-secondary border-secondary/20",
+        VALIDATED: "bg-secondary-light text-secondary border-secondary/20",
+        completed: "bg-success-light text-success-dark border-success/20",
+        COMPLETED: "bg-success-light text-success-dark border-success/20",
+        rejected: "bg-danger-light text-danger-dark border-danger/20",
+        REJECTED: "bg-danger-light text-danger-dark border-danger/20",
     };
     return (
         <span className={cn("px-3 py-1 rounded-full text-xs font-bold border", styles[status] ?? styles.pending)}>
@@ -57,6 +72,163 @@ function DetailRow({ label, value, mono = false }: { label: string; value: strin
             <span className={cn("text-sm font-semibold text-text-main", mono && "font-mono text-xs bg-background px-1.5 py-0.5 rounded")}>
                 {value}
             </span>
+        </div>
+    );
+}
+
+// ── Workflow Actions ─────────────────────────────────────────────────────────
+
+function WorkflowActions({ order, onUpdate }: { order: any; onUpdate: () => void }) {
+    const [isValidating, setIsValidating] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
+
+    const [modal, setModal] = useState<'validate' | 'reject' | 'complete' | null>(null);
+    const [notes, setNotes] = useState("");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+
+    const handleAction = async () => {
+        try {
+            if (modal === 'validate' || modal === 'reject') {
+                setIsValidating(true);
+                await adminApi.validateOrder(order.id, {
+                    action: modal === 'validate' ? 'validate' : 'reject',
+                    notes
+                });
+                toast.success(modal === 'validate' ? "Commande validée avec succès !" : "Commande rejetée.");
+            } else if (modal === 'complete') {
+                setIsCompleting(true);
+                await adminApi.completeOrder(order.id, { username, password });
+                toast.success("Commande finalisée et identifiants envoyés !");
+            }
+            setModal(null);
+            onUpdate();
+        } catch (err: any) {
+            toast.error(err.message || "Une erreur est survenue");
+        } finally {
+            setIsValidating(false);
+            setIsRejecting(false);
+            setIsCompleting(false);
+        }
+    };
+
+    if (order.status === 'completed' || order.status === 'COMPLETED') {
+        return (
+            <div className="card p-6 bg-success/5 border-success/20 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-success/10 text-success flex items-center justify-center">
+                    <ShieldCheck size={24} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-success-dark">Workflow Terminé</h3>
+                    <p className="text-xs text-success-dark/70">Cette commande a été finalisée et les accès ont été envoyés.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="card p-6 border-primary/20 bg-primary/5 space-y-4">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Activity size={20} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-primary-dark">Actions de Workflow</h3>
+                    <p className="text-[10px] text-primary-dark/60 uppercase font-black tracking-widest">Étape actuelle: {order.status}</p>
+                </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+                {(order.status === 'payment_confirmed' || order.status === 'PAYMENT_CONFIRMED') && (
+                    <>
+                        <button
+                            onClick={() => setModal('validate')}
+                            className="btn-primary gap-2 py-2 px-4 text-xs"
+                        >
+                            <CheckCircle2 size={14} /> Valider l'inscription
+                        </button>
+                        <button
+                            onClick={() => setModal('reject')}
+                            className="btn-ghost text-danger hover:bg-danger/10 gap-2 py-2 px-4 text-xs"
+                        >
+                            <XCircle size={14} /> Rejeter
+                        </button>
+                    </>
+                )}
+
+                {(order.status === 'validated' || order.status === 'VALIDATED') && (
+                    <button
+                        onClick={() => setModal('complete')}
+                        className="btn-primary bg-secondary hover:bg-secondary-dark gap-2 py-2 px-4 text-xs font-bold"
+                    >
+                        <Send size={14} /> Finaliser (Envoyer Accès)
+                    </button>
+                )}
+            </div>
+
+            {/* Modals */}
+            {modal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-main/20 backdrop-blur-sm animate-fade-in">
+                    <div className="card w-full max-w-md shadow-2xl animate-scale-up">
+                        <div className="p-6 space-y-4">
+                            <h3 className="text-lg font-bold text-text-main">
+                                {modal === 'validate' && "Valider la commande"}
+                                {modal === 'reject' && "Rejeter la commande"}
+                                {modal === 'complete' && "Finaliser & Envoyer Accès"}
+                            </h3>
+
+                            {modal === 'complete' ? (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-text-light">Saisissez les identifiants créés sur le campus pour l'utilisateur.</p>
+                                    <input
+                                        className="input text-sm"
+                                        placeholder="Nom d'utilisateur"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                    />
+                                    <input
+                                        className="input text-sm"
+                                        type="text"
+                                        placeholder="Mot de passe"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-text-light">
+                                        {modal === 'validate'
+                                            ? "Une fois validée, le client recevra sa facture automatiquement."
+                                            : "Veuillez indiquer le motif du rejet (sera visible par le client)."}
+                                    </p>
+                                    <textarea
+                                        className="input text-sm min-h-[100px]"
+                                        placeholder="Notes ou motif..."
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button onClick={() => setModal(null)} className="btn-ghost text-xs">Annuler</button>
+                                <button
+                                    onClick={handleAction}
+                                    disabled={isValidating || isCompleting}
+                                    className={cn(
+                                        "btn-primary text-xs gap-2",
+                                        modal === 'reject' && "bg-danger hover:bg-danger-dark"
+                                    )}
+                                >
+                                    {(isValidating || isCompleting) && <Loader2 size={12} className="animate-spin" />}
+                                    Confirmer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -123,7 +295,7 @@ export default function TransactionDetailPage() {
                 <div className="space-y-1">
                     <h1 className="text-2xl font-bold text-text-main flex items-center gap-3">
                         Transaction {intent.id}
-                        <StatusChip status={intent.status} />
+                        <StatusChip status={order.status || intent.status} />
                     </h1>
                     <p className="text-sm text-text-light font-medium">
                         Créée le {new Date(intent.createdAt).toLocaleString("fr-FR")}
@@ -139,6 +311,9 @@ export default function TransactionDetailPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Workflow Actions Section */}
+            <WorkflowActions order={order} onUpdate={() => router.refresh()} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">

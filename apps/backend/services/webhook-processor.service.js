@@ -160,12 +160,15 @@ export class WebhookProcessor {
 
         if (finalStatus === PaymentStatus.SUCCEEDED) {
           await this.markAsSucceeded(attempt, providerResponse, transaction);
-          notificationData = { type: "success", intent, order };
+          // notificationData = { type: "success", intent, order };
 
-          // LMS Specialization: Auto-Enrollment
-          await LmsBridgeService.syncEnrollment(order);
+          // LMS Specialization: NO AUTO-ENROLLMENT anymore (Phase 4 manual)
+          // await LmsBridgeService.syncEnrollment(order);
 
           await MailService.notifyLmsAdmins("success", order, intent);
+
+          // Phase 2: Send payment confirmation WITHOUT invoice
+          await MailService.sendPaymentConfirmed(order);
         } else if (finalStatus === PaymentStatus.FAILED) {
           await this.markAsFailed(attempt, providerResponse, transaction);
           notificationData = {
@@ -176,6 +179,12 @@ export class WebhookProcessor {
           };
 
           await MailService.notifyLmsAdmins("failure", order, intent);
+
+          await MailService.sendPaymentFailureNotification(
+            intent,
+            order,
+            notificationData.reason
+          );
         }
 
         event.processed = true;
@@ -190,24 +199,7 @@ export class WebhookProcessor {
       await transaction.commit();
 
       // Trigger notifications AFTER commit
-      if (notificationData) {
-        if (notificationData.type === "success") {
-          await MailService.sendPaymentSuccessNotification(
-            notificationData.intent,
-            notificationData.order,
-          );
-          await MailService.sendAdminNotification(
-            `Nouveau paiement reçu - ${notificationData.order.reference}`,
-            `Un paiement de ${notificationData.intent.amount} ${notificationData.intent.currency} a été reçu.`,
-          );
-        } else {
-          await MailService.sendPaymentFailureNotification(
-            notificationData.intent,
-            notificationData.order,
-            notificationData.reason,
-          );
-        }
-      }
+      // (Handled directly above now for better control)
 
       return { success: true, eventId: event.id };
     } catch (error) {
@@ -273,13 +265,14 @@ export class WebhookProcessor {
       },
     );
 
-    // CRITICAL FIX: Ensure Order status is also updated to 'completed'
+    // PHASE 2: Update Order status to 'payment_confirmed' (NOT 'completed')
     await Order.update(
       {
-        status: OrderStatus.COMPLETED,
+        status: OrderStatus.PAYMENT_CONFIRMED,
+        paidAt: new Date(), // Set paidAt timestamp
       },
       {
-        where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId }, // fallback if eager load missing
+        where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId },
         transaction,
       }
     );
