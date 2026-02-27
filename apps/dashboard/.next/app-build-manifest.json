@@ -1,14 +1,14 @@
 {
   "pages": {
-    "/(dashboard)/analytics/page": [
+    "/(docs)/docs/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/analytics/page.js"
+      "static/chunks/app/(docs)/docs/page.js"
     ],
-    "/(dashboard)/layout": [
+    "/(docs)/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/layout.js"
+      "static/chunks/app/(docs)/layout.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -16,50 +16,60 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/(dashboard)/transactions/page": [
+    "/(docs)/docs/architecture/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/transactions/page.js"
+      "static/chunks/app/(docs)/docs/architecture/page.js"
     ],
-    "/(dashboard)/page": [
+    "/(docs)/docs/quick-start/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/page.js"
+      "static/chunks/app/(docs)/docs/quick-start/page.js"
     ],
-    "/(dashboard)/orders/[id]/page": [
+    "/(docs)/docs/api/auth/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/orders/[id]/page.js"
+      "static/chunks/app/(docs)/docs/api/auth/page.js"
     ],
-    "/(dashboard)/orders/page": [
+    "/(docs)/docs/deployment/vps/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/orders/page.js"
+      "static/chunks/app/(docs)/docs/deployment/vps/page.js"
     ],
-    "/(dashboard)/webhooks/page": [
+    "/(docs)/docs/api/webhooks/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/webhooks/page.js"
+      "static/chunks/app/(docs)/docs/api/webhooks/page.js"
     ],
-    "/(dashboard)/test-order/page": [
+    "/(docs)/docs/maintenance/troubleshooting/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/test-order/page.js"
+      "static/chunks/app/(docs)/docs/maintenance/troubleshooting/page.js"
     ],
-    "/(dashboard)/providers/page": [
+    "/(docs)/docs/integration/lms/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/providers/page.js"
+      "static/chunks/app/(docs)/docs/integration/lms/page.js"
     ],
-    "/(dashboard)/routing/page": [
+    "/(docs)/docs/maintenance/updates/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/routing/page.js"
+      "static/chunks/app/(docs)/docs/maintenance/updates/page.js"
     ],
-    "/(dashboard)/audit/page": [
+    "/(docs)/docs/deployment/security/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/audit/page.js"
+      "static/chunks/app/(docs)/docs/deployment/security/page.js"
+    ],
+    "/(docs)/docs/api/payments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(docs)/docs/api/payments/page.js"
+    ],
+    "/(docs)/docs/api/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(docs)/docs/api/admin/page.js"
     ]
   }
 }

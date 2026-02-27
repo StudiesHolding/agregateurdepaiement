@@ -41,6 +41,11 @@ Order.init(
             allowNull: true,
             field: 'customer_city',
         },
+        customerCountry: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            field: 'customer_country',
+        },
         currency: {
             type: DataTypes.STRING(10),
             allowNull: false,
@@ -54,7 +59,7 @@ Order.init(
             type: DataTypes.ENUM(...Object.values(OrderStatus)),
             defaultValue: OrderStatus.PENDING,
         },
-        
+
         // === LMS Fields ===
         lmsItemId: {
             type: DataTypes.STRING(255),
@@ -81,14 +86,14 @@ Order.init(
             allowNull: true,
             field: 'formation_price',
         },
-        
+
         // === Purchase Type ===
         purchaseType: {
             type: DataTypes.ENUM("self", "gift"),
             defaultValue: "self",
             field: 'purchase_type',
         },
-        
+
         // === Beneficiary (for gifts) ===
         beneficiaryEmail: {
             type: DataTypes.STRING(255),
@@ -115,7 +120,12 @@ Order.init(
             allowNull: true,
             field: 'beneficiary_relationship',
         },
-        
+        beneficiaryCountry: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            field: 'beneficiary_country',
+        },
+
         // === Payment Info ===
         paidAt: {
             type: DataTypes.DATE,
@@ -137,7 +147,7 @@ Order.init(
             allowNull: true,
             field: 'transaction_reference',
         },
-        
+
         // === Validation ===
         validatedAt: {
             type: DataTypes.DATE,
@@ -159,7 +169,7 @@ Order.init(
             allowNull: true,
             field: 'rejection_reason',
         },
-        
+
         // === Completion ===
         completedAt: {
             type: DataTypes.DATE,
@@ -186,7 +196,7 @@ Order.init(
             allowNull: true,
             field: 'credentials_sent_to',
         },
-        
+
         // === Legacy / Extra ===
         metadata: {
             type: DataTypes.JSON,
