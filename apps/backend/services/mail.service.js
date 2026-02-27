@@ -357,43 +357,47 @@ export class MailService {
   /**
    * Email: Validation + Facture - Phase 3 (automatique après validation admin)
    */
-  static async sendOrderValidated(order) {
-    const recipientEmail = order.purchaseType === 'gift'
-      ? order.beneficiaryEmail
-      : order.customerEmail;
-
-    const recipientName = order.purchaseType === 'gift'
-      ? `${order.beneficiaryFirstName} ${order.beneficiaryLastName}`
-      : order.customerName;
-
-    let attachments = [];
+  static async asyncGetInvoiceAttachment(order) {
     try {
       const pdfBuffer = await InvoiceService.generateInvoiceBuffer(null, order);
       if (pdfBuffer) {
-        attachments = [{
+        return [{
           filename: `facture_${order.reference}.pdf`,
           content: pdfBuffer,
           contentType: "application/pdf",
         }];
       }
     } catch (e) {
-      console.warn("[MailService] PDF Invoice generation failed for validation email:", e.message);
+      console.warn("[MailService] PDF Invoice generation failed:", e.message);
     }
+    return [];
+  }
 
-    const html = `
+  /**
+   * Email: Validation + Facture - Phase 3 (automatique après validation admin)
+   */
+  static async sendOrderValidated(order) {
+    const isGift = order.purchaseType === 'gift';
+    const buyerEmail = order.customerEmail;
+    const buyerName = `${order.customerName} ${order.customerSurname || ''}`.trim();
+
+    const attachments = await this.asyncGetInvoiceAttachment(order);
+
+    // 1. Email to Buyer (Always gets the invoice)
+    const buyerHtml = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
           <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
         </div>
         <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
-          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Félicitations !</h1>
-          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Votre inscription est validée</p>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">${isGift ? 'Cadeau Validé !' : 'Félicitations !'}</h1>
+          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">${isGift ? 'Le cadeau pour votre proche est prêt' : 'Votre inscription est validée'}</p>
         </div>
         
         <div style="padding: 40px;">
-          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${recipientName || 'Étudiant'}</strong>,</p>
+          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${buyerName || 'Client'}</strong>,</p>
           
-          <p>Nous avons le plaisir de vous informer que votre inscription à la formation <strong>${order.formationName}</strong> a été officiellement <strong>validée</strong> par notre équipe pédagogique.</p>
+          <p>Nous avons le plaisir de vous informer que ${isGift ? `l'inscription pour <strong>${order.beneficiaryFirstName} ${order.beneficiaryLastName}</strong>` : 'votre inscription'} à la formation <strong>${order.formationName}</strong> a été officiellement <strong>validée</strong>.</p>
           
           <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 30px 0;">
             <table style="width: 100%; font-size: 14px;">
@@ -406,6 +410,20 @@ export class MailService {
                 <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${order.formationName}</td>
               </tr>
               <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Acheteur</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${buyerName} (${order.customerCountry || 'N/A'})</td>
+              </tr>
+              ${isGift ? `
+              <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Bénéficiaire</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${order.beneficiaryFirstName} ${order.beneficiaryLastName} (${order.beneficiaryCountry || 'N/A'})</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Lien</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${order.beneficiaryRelationship || 'N/A'}</td>
+              </tr>
+              ` : ''}
+              <tr>
                 <td style="color: #64748b;">Montant Réglé</td>
                 <td style="text-align: right; font-weight: 800; color: #10b981;">${order.formationPrice} ${order.currency}</td>
               </tr>
@@ -416,22 +434,49 @@ export class MailService {
             📄 Votre facture officielle est jointe à cet email en format PDF.
           </p>
           
-          <p>Nos services préparent actuellement la configuration de vos accès personnels au campus numérique <strong>Studies Learning</strong>. Vous recevrez très prochainement un email contenant vos identifiants sécurisés.</p>
+          <p>Nos services préparent actuellement la configuration des accès au campus numérique <strong>Studies Learning</strong>. ${isGift ? `<strong>${order.beneficiaryFirstName}</strong> recevra très prochainement ses identifiants personnels.` : 'Vous recevrez très prochainement un email contenant vos identifiants sécurisés.'}</p>
           
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
             <p style="margin: 0; color: #64748b; font-size: 13px;">L'équipe Studies Learning</p>
-            <p style="margin: 5px 0 0; font-weight: 700; color: #0f172a;">Études. Inscriptions. Réussite.</p>
           </div>
         </div>
       </div>
     `;
 
-    return await this.sendEmail({
-      to: recipientEmail,
-      subject: `[Studies Learning] Validation d'inscription et Facture - ${order.reference}`,
-      html,
+    await this.sendEmail({
+      to: buyerEmail,
+      subject: `[Facture] Validation d'inscription - ${order.reference}`,
+      html: buyerHtml,
       attachments,
     });
+
+    // 2. Optional: Notify Beneficiary if it's a gift (No invoice)
+    if (isGift && order.beneficiaryEmail) {
+      const beneficiaryHtml = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+          <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+            <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+          </div>
+          <div style="background: linear-gradient(135deg, #3b82f6, #1e3a8a); padding: 30px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Une surprise pour vous !</h1>
+            <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Votre formation a été validée</p>
+          </div>
+          <div style="padding: 40px;">
+            <p>Bonjour <strong>${order.beneficiaryFirstName}</strong>,</p>
+            <p>Nous avons le plaisir de vous informer que <strong>${buyerName}</strong> vous a offert l'accès à la formation <strong>${order.formationName}</strong>.</p>
+            <p>Notre équipe valide actuellement vos accès au campus. Vous recevrez très prochainement un email séparé contenant vos identifiants de connexion.</p>
+            <p>À très bientôt sur le campus !</p>
+          </div>
+        </div>
+      `;
+      await this.sendEmail({
+        to: order.beneficiaryEmail,
+        subject: `[Surprise] Une formation vous a été offerte ! - ${order.reference}`,
+        html: beneficiaryHtml,
+      });
+    }
+
+    return true;
   }
 
   /**
@@ -477,78 +522,93 @@ export class MailService {
    * Ce email contient les identifiants de connexion au campus
    */
   static async sendOrderCompleted(order, credentials) {
-    const recipientEmail = order.purchaseType === 'gift'
-      ? order.beneficiaryEmail
-      : order.customerEmail;
-
-    const recipientName = order.purchaseType === 'gift'
+    const isGift = order.purchaseType === 'gift';
+    const buyerEmail = order.customerEmail;
+    const buyerName = `${order.customerName} ${order.customerSurname || ''}`.trim();
+    const beneficiaryEmail = isGift ? order.beneficiaryEmail : buyerEmail;
+    const beneficiaryName = isGift
       ? `${order.beneficiaryFirstName} ${order.beneficiaryLastName}`
-      : order.customerName;
+      : buyerName;
 
-    let attachments = [];
-    try {
-      const pdfBuffer = await InvoiceService.generateInvoiceBuffer(null, order);
-      if (pdfBuffer) {
-        attachments = [{
-          filename: `facture_${order.reference}.pdf`,
-          content: pdfBuffer,
-          contentType: "application/pdf",
-        }];
-      }
-    } catch (e) {
-      console.warn("[MailService] PDF Invoice generation failed for completion email:", e.message);
-    }
+    // Common HTML for credentials block
+    const credsBlock = `
+      <div style="background: #eff6ff; padding: 30px; border-radius: 16px; border: 1px solid #dbeafe; margin: 30px 0; text-align: center;">
+        <h3 style="margin: 0 0 20px 0; color: #1e40af; font-size: 18px;">🔐 Vos Identifiants de Connexion</h3>
+        <div style="display: inline-block; text-align: left; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Nom d'utilisateur :</p>
+          <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${credentials.username}</p>
+          <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Mot de passe temporaire :</p>
+          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${credentials.password}</p>
+        </div>
+        <p style="margin: 20px 0 0 0; font-size: 12px; color: #3b82f6; font-weight: 600;">⚠️ Pour votre sécurité, changez votre mot de passe dès votre première connexion.</p>
+      </div>
+    `;
 
-    const html = `
+    // 1. Email to Beneficiary (Credentials ONLY, No invoice)
+    const beneficiaryHtml = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
           <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
         </div>
         <div style="background: linear-gradient(135deg, #3b82f6, #1e3a8a); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
-          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Bienvenue sur le Campus !</h1>
-          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Vos accès sont maintenant prêts</p>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Prêt à apprendre !</h1>
+          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Vos accès au campus sont activés</p>
         </div>
         
         <div style="padding: 40px;">
-          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${recipientName || 'Étudiant'}</strong>,</p>
+          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${beneficiaryName}</strong>,</p>
+          <p>Félicitations ! Votre inscription à la formation <strong>${order.formationName}</strong> est maintenant terminée. ${isGift ? `Ce cadeau offert par <strong>${buyerName}</strong> est désormais prêt.` : ''}</p>
           
-          <p>Félicitations ! Votre inscription à la formation <strong>${order.formationName}</strong> est maintenant terminée. Vous avez désormais accès à l'intégralité des ressources pédagogiques sur notre campus numérique.</p>
-          
-          <div style="background: #eff6ff; padding: 30px; border-radius: 16px; border: 1px solid #dbeafe; margin: 30px 0; text-align: center;">
-            <h3 style="margin: 0 0 20px 0; color: #1e40af; font-size: 18px;">🔐 Vos Identifiants de Connexion</h3>
-            <div style="display: inline-block; text-align: left; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Nom d'utilisateur :</p>
-              <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${credentials.username}</p>
-              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Mot de passe temporaire :</p>
-              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${credentials.password}</p>
-            </div>
-            <p style="margin: 20px 0 0 0; font-size: 12px; color: #3b82f6; font-weight: 600;">⚠️ Pour votre sécurité, changez votre mot de passe dès votre première connexion.</p>
-          </div>
+          ${credsBlock}
           
           <div style="text-align: center; margin: 35px 0;">
-            <a href="https://campus.studieslearning.com" style="background: #2563eb; color: white; padding: 18px 35px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);">
+            <a href="https://campus.studieslearning.com" style="background: #2563eb; color: white; padding: 18px 35px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; display: inline-block;">
               Accéder au Campus
             </a>
           </div>
-
-          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 30px 0; font-size: 13px; color: #64748b;">
-             <strong>📄 Rappel :</strong> Votre facture acquittée est jointe à cet email pour vos archives administratives.
-          </div>
-          
           <p>Nous vous souhaitons un excellent parcours d'apprentissage !</p>
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-            <p style="margin: 0; color: #64748b; font-size: 13px;">L'équipe pédagogique Studies Learning</p>
-          </div>
         </div>
       </div>
     `;
 
-    return await this.sendEmail({
-      to: recipientEmail,
-      subject: `[Bienvenue] Vos accès au Campus Studies Learning - ${order.reference}`,
-      html,
-      attachments,
+    await this.sendEmail({
+      to: beneficiaryEmail,
+      subject: `[Accès Campus] Vos identifiants de connexion - ${order.reference}`,
+      html: beneficiaryHtml,
     });
+
+    // 2. Email to Buyer (Everything: Confirmation + Invoice Reminder + Copy of Credentials)
+    if (isGift) {
+      const buyerHtml = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+          <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+            <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+          </div>
+          <div style="background: #0f172a; padding: 30px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Cadeau Finalisé</h1>
+            <p style="margin: 5px 0 0; opacity: 0.9;">Félicitations, vos accès ont été envoyés</p>
+          </div>
+          <div style="padding: 40px;">
+            <p>Bonjour <strong>${buyerName}</strong>,</p>
+            <p>Nous vous confirmons que les accès pour <strong>${beneficiaryName}</strong> ont été envoyés avec succès.</p>
+            <p>Voici une copie des informations transmises pour vos archives :</p>
+            
+            ${credsBlock}
+            
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 30px 0; font-size: 13px; color: #64748b;">
+               <strong>📄 Rappel :</strong> Votre facture acquittée est jointe à l'email de validation précédent pour vos archives administratives.
+            </div>
+            <p>Merci de votre confiance en Studies Learning.</p>
+          </div>
+        </div>
+      `;
+      await this.sendEmail({
+        to: buyerEmail,
+        subject: `[Confirmation] Accès envoyés à ${beneficiaryName} - ${order.reference}`,
+        html: buyerHtml,
+      });
+    }
+
+    return true;
   }
 }

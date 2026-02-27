@@ -355,8 +355,18 @@ export default function OrderDetailPage() {
                 <DataRow icon={Phone} label="Téléphone" value={order.customerPhone} />
               </div>
               <div className="space-y-1">
-                <DataRow icon={MapPin} label="Localisation" value={order.customerCity} />
-                {order.purchaseType === 'gift' && <DataRow icon={Gift} label="Email Bénéficiaire" value={order.beneficiaryEmail} />}
+                <DataRow icon={MapPin} label="Localisation" value={`${order.customerCity || ''}${order.customerCity && order.customerCountry ? ', ' : ''}${order.customerCountry || ''}`} />
+                {order.purchaseType === 'gift' && (
+                  <>
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-3 ml-2">Destinataire (Cadeau)</p>
+                      <DataRow icon={User} label="Nom / Prénom" value={`${order.beneficiaryFirstName || ""} ${order.beneficiaryLastName || ""}`} />
+                      <DataRow icon={Mail} label="Email" value={order.beneficiaryEmail} />
+                      <DataRow icon={MapPin} label="Pays" value={order.beneficiaryCountry} />
+                      <DataRow icon={Gift} label="Lien / Relation" value={order.beneficiaryRelationship} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

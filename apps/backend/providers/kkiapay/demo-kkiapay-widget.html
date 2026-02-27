@@ -219,7 +219,7 @@
 
     <script>
       // Configuration API - VPS IONOS
-      const API_URL = "https://api.studieslearning.com/api/payments/init";
+      const API_URL = "http://localhost:3000/api/payments/init";
       // IMPORTANT: La clé API a été générée sur le VPS
       // Si elle ne fonctionne pas, vérifiez qu'elle existe dans la table aggp_api_keys
       const API_KEY = "sk_23abc297660a0cab827003e66e8bd7f92af447c3b63ca5d7";
@@ -292,7 +292,7 @@
               name: widgetParams.name,
               surname: widgetParams.surname,
               reference: widgetParams.reference,
-              callback: widgetParams.callback_url,
+              callback: widgetParams.callback_url, 
               position: "center",
               theme: "#0095ff",
             });

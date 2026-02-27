@@ -68,12 +68,15 @@ router.post(
       customerSurname,
       customerPhone,
       customerCity,
+      customerCountry,
       purchaseType = "self",
       amount,
       // Gift specific
       beneficiaryEmail,
       beneficiaryFirstName,
       beneficiaryLastName,
+      beneficiaryCountry,
+      beneficiaryRelationship,
     } = req.body;
 
     // Validation
@@ -113,6 +116,9 @@ router.post(
       beneficiaryFirstName:
         purchaseType === "gift" ? beneficiaryFirstName : null,
       beneficiaryLastName: purchaseType === "gift" ? beneficiaryLastName : null,
+      beneficiaryCountry: purchaseType === "gift" ? beneficiaryCountry : null,
+      beneficiaryRelationship: purchaseType === "gift" ? beneficiaryRelationship : null,
+      customerCountry: customerCountry || null,
       metadata: {
         courseId: formationId,
         courseName: formationName || `Formation #${formationId}`,
