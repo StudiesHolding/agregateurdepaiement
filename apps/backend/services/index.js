@@ -7,3 +7,4 @@ export * from "./orchestrator.service.js";
 export * from "./webhook-processor.service.js";
 export * from "./installment.service.js";
 export * from "./order-audit.service.js";
+export * from "./provider-health.service.js";

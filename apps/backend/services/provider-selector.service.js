@@ -2,6 +2,7 @@ import { ProviderRouterService } from "./provider-router.service.js";
 import { PaymentAttemptService } from "./payment-attempt.service.js";
 import { PaymentIntentService } from "./payment-intent.service.js";
 import { PaymentStatus } from "../enums/index.js";
+import providerHealthService from "./provider-health.service.js";
 
 export class ProviderSelectorService {
     /**
@@ -14,7 +15,7 @@ export class ProviderSelectorService {
     }
 
     /**
-     * Initialize candidate routes
+     * Initialize candidate routes with health check for widget providers
      * @param {string} paymentMethod 
      * @param {string} countryCode 
      * @returns {Promise<ProviderRoute[]>}
@@ -26,10 +27,38 @@ export class ProviderSelectorService {
             this.paymentIntent.amount
         );
 
-        this.routes = ProviderRouterService.filterByPaymentMethod(
+        let routes = ProviderRouterService.filterByPaymentMethod(
             rawRoutes,
             paymentMethod
         );
+
+        // Health check for widget-based providers
+        const healthyRoutes = [];
+        for (const route of routes) {
+            const providerCode = route.provider?.code?.toLowerCase();
+            
+            // Skip health check for non-widget providers (redirect-based)
+            if (!providerHealthService.needsHealthCheck(providerCode)) {
+                healthyRoutes.push(route);
+                continue;
+            }
+            
+            // Health check for widget providers (like Kkiapay)
+            const health = await providerHealthService.checkProviderHealth(providerCode);
+            
+            if (health.available) {
+                healthyRoutes.push(route);
+                console.log(`[ProviderSelector] ✓ ${route.provider.name} is AVAILABLE`);
+            } else {
+                console.warn(`[ProviderSelector] ✗ ${route.provider.name} is UNAVAILABLE (${health.error || health.reason}), skipping`);
+            }
+        }
+
+        this.routes = healthyRoutes;
+        
+        if (this.routes.length === 0) {
+            console.warn(`[ProviderSelector] No available providers after health check for ${paymentMethod}`);
+        }
 
         return this.routes;
     }
