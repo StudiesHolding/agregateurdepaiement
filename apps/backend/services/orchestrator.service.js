@@ -3,6 +3,7 @@ import { PaymentIntentService } from "./payment-intent.service.js";
 import { ProviderSelectorService } from "./provider-selector.service.js";
 import { ProviderFactory } from "../providers/index.js";
 import { BadRequestError } from "../utils/errors.js";
+import { FormationsService } from "./formations.service.js";
 
 export class OrchestratorService {
   /**
@@ -45,13 +46,48 @@ export class OrchestratorService {
       process.env.CINETPAY_WEEBHOOK_NOTIFY_URL ||
       process.env.WEBHOOK_NOTIFY_URL;
 
+    let finalAmount = amount;
+    let finalMetadata = metadata || {};
+
+    if (finalMetadata.source === "payment_form_v3" && finalMetadata.formation_id) {
+      const licenceCount = Number(finalMetadata.licence_count || 1) || 1;
+
+      const formation = await FormationsService.getFormation(finalMetadata.formation_id);
+
+      if (!formation) {
+        throw new BadRequestError("Formation introuvable pour ce paiement.");
+      }
+
+      const expectedAmount = formation.price * licenceCount;
+
+      if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+        throw new BadRequestError("Montant de formation invalide pour ce paiement.");
+      }
+
+      if (expectedAmount !== finalAmount) {
+        console.warn(
+          `[OrchestratorService] Amount mismatch for formation ${finalMetadata.formation_id}. ` +
+            `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
+        );
+      }
+
+      finalAmount = expectedAmount;
+
+      finalMetadata = {
+        ...finalMetadata,
+        validatedByBackend: true,
+        backendUnitPrice: formation.price,
+        backendLicenceCount: licenceCount,
+      };
+    }
+
     // 1. Create or Find Order (simplified here to create new)
     const order = await OrderService.create({
       customerEmail,
       customerName,
       currency,
-      totalAmount: amount,
-      metadata: metadata || {},
+      totalAmount: finalAmount,
+      metadata: finalMetadata,
       lmsItemId,
       lmsItemType,
     });
@@ -60,9 +96,9 @@ export class OrchestratorService {
     const intent = await PaymentIntentService.create(
       {
         orderId: order.id,
-        amount,
+        amount: finalAmount,
         currency,
-        metadata: metadata || {},
+        metadata: finalMetadata,
       },
       idempotencyKey,
     );
@@ -87,7 +123,7 @@ export class OrchestratorService {
       });
 
       return await adapter.createPayment({
-        amount,
+        amount: finalAmount,
         currency,
         orderId: order.id,
         orderReference: order.reference,
