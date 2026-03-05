@@ -1,30 +1,30 @@
 import axios from "axios";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+const API_URL = typeof window !== "undefined"
+  ? "/api/psp"
+  : (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000") + "/api";
 
 /**
  * Axios instance for PSP Admin API calls
- * Injects x-api-key automatically on all requests
+ * Client-side: Uses local proxy to /api/psp/admin/*
+ * Server-side: Calls backend directly using internal API key
  */
 export const api = axios.create({
-  baseURL: `${API_BASE}/api/admin`,
+  baseURL: `${API_URL}/admin`,
   headers: {
     "Content-Type": "application/json",
   },
   timeout: 15000,
 });
 
-// Request interceptor — inject admin API key
+// Request interceptor — inject admin API key (Server-side ONLY)
 api.interceptors.request.use((config) => {
-  const apiKey =
-    process.env.ADMIN_API_KEY ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("psp_admin_key")
-      : null);
-
-  if (apiKey) {
-    config.headers["x-api-key"] = apiKey;
+  // If we're on the server, we need to inject the key for direct calls
+  if (typeof window === "undefined") {
+    const apiKey = process.env.ADMIN_API_KEY;
+    if (apiKey) {
+      config.headers["x-api-key"] = apiKey;
+    }
   }
 
   return config;
