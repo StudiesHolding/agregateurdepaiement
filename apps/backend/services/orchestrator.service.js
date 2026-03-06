@@ -49,11 +49,12 @@ export class OrchestratorService {
 
     let finalAmount = amount;
     let finalMetadata = metadata || {};
+    let formation = null;
 
     if (finalMetadata.source === "payment_form_v3" && finalMetadata.formation_id) {
       const licenceCount = Number(finalMetadata.licence_count || 1) || 1;
 
-      const formation = await FormationsService.getFormation(finalMetadata.formation_id);
+      formation = await FormationsService.getFormation(finalMetadata.formation_id);
 
       if (!formation) {
         throw new BadRequestError("Formation introuvable pour ce paiement.");
