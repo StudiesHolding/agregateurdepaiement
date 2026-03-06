@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { auth } from "@/lib/auth";
 
 /**
  * Secure Proxy Route Handler — Studies PSP Dashboard
@@ -45,13 +46,16 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
         }
     }
 
-    // 3. Forward the request to the backend with the API Key
+    // 3. Forward the request to the backend with the API Key from session
     try {
+        const session = await auth();
+        const apiKey = (session?.user as any)?.apiKey || ADMIN_API_KEY;
+
         const axiosConfig: any = {
             method,
             url: targetUrl,
             headers: {
-                "x-api-key": ADMIN_API_KEY,
+                "x-api-key": apiKey,
             },
             validateStatus: () => true,
         };

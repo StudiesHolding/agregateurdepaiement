@@ -10,6 +10,7 @@ export class AdminAuth2FAController {
      * Step 1: Initialize 2FA by verifying ApiKey and sending OTP
      */
     static async init(req, res) {
+        console.log("[2FA DEBUG] Init started. Body:", JSON.stringify(req.body));
         const { apiKey } = req.body;
 
         if (!apiKey) {
@@ -56,6 +57,7 @@ export class AdminAuth2FAController {
      * Step 2: Verify OTP and return session token
      */
     static async verify(req, res) {
+        console.log("[2FA DEBUG] Verify started. Body:", JSON.stringify(req.body));
         const { apiKey, otp } = req.body;
 
         if (!apiKey || !otp) {
@@ -98,6 +100,7 @@ export class AdminAuth2FAController {
                 name: keyRecord.owner.split(":")[1] || "Admin",
                 email: keyRecord.email,
                 role: "admin",
+                apiKey: keyRecord.key
             },
             token
         });
