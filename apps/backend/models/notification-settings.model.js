@@ -49,9 +49,8 @@ NotificationSettings.init({
     sequelize,
     modelName: 'NotificationSettings',
     tableName: 'aggp_notification_settings',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    underscored: true,
+    timestamps: true
 });
 
 export { NotificationSettings };
