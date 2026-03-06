@@ -1,33 +1,36 @@
-import dotenv from "dotenv";
-dotenv.config({ path: new URL("../.env", import.meta.url).pathname });
-
 import { ApiKeyService } from "../services/api-key.service.js";
 import { sequelize } from "../models/index.js";
 
-async function generate() {
+/**
+ * API Key Generation Tool
+ * Usage: node scripts/generate-key.js "Owner Name"
+ */
+async function run() {
+  const owner = process.argv[2];
+
+  if (!owner) {
+    console.error(" Error: You must provide an owner name.");
+    console.log("Usage: node scripts/generate-key.js \"admin:Your Name\"");
+    process.exit(1);
+  }
+
   try {
-    await sequelize.authenticate();
+    console.log(`\n Generating new API Key for: "${owner}"...`);
 
-    // We might need to sync if the table doesn't exist
-    await sequelize.sync({ alter: true });
-
-    const owner = process.env.KEY_OWNER || "Development Team";
     const apiKey = await ApiKeyService.generate(owner);
 
+    console.log("\n Success!");
     console.log("--------------------------------------------------");
-    console.log("API Key generated successfully!");
     console.log(`Owner: ${apiKey.owner}`);
     console.log(`Key:   ${apiKey.key}`);
     console.log("--------------------------------------------------");
-    console.log("Use this key in your Postman requests as: ");
-    console.log("Header: X-API-KEY");
-    console.log("Value:  " + apiKey.key);
-    console.log("--------------------------------------------------");
-  } catch (error) {
-    console.error(" Failed to generate API key:", error);
-  } finally {
+    console.log("\n IMPORTANT: Keep this key secret and update your .env files.\n");
+
     await sequelize.close();
+  } catch (error) {
+    console.error(" Fatal Error:", error.message);
+    process.exit(1);
   }
 }
 
-generate();
+run();
