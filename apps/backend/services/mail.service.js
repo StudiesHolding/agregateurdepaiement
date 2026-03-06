@@ -646,7 +646,7 @@ export class MailService {
       </div>
     `;
 
-    return this.sendMail({
+    return this.sendEmail({
       to: adminEmail,
       subject: `🚨 [Urgent] Validation Requise - Commande ${order.reference}`,
       html
