@@ -4,6 +4,8 @@ import {
   PaymentAttempt,
   Order,
   sequelize,
+  AdminNotification,
+  NotificationSettings,
 } from "../models/index.js";
 import { PaymentStatus, AttemptStatus, OrderStatus } from "../enums/index.js";
 import { ProviderFactory } from "../providers/index.js";
@@ -165,7 +167,8 @@ export class WebhookProcessor {
           // LMS Specialization: NO AUTO-ENROLLMENT anymore (Phase 4 manual)
           // await LmsBridgeService.syncEnrollment(order);
 
-          await MailService.notifyLmsAdmins("success", order, intent);
+          // ── Admin Alerts Redesign ──
+          await this.notifyAdminsForValidation(order);
 
           // Phase 2: Send payment confirmation WITHOUT invoice
           await MailService.sendPaymentConfirmed(order);
@@ -317,5 +320,32 @@ export class WebhookProcessor {
       },
       { transaction },
     );
+  }
+
+  /**
+   * Notify administrators that a new order is waiting for validation
+   */
+  static async notifyAdminsForValidation(order) {
+    try {
+      // 1. In-App Notification (for Dashboard Bell)
+      await AdminNotification.create({
+        type: "WARNING",
+        title: "Nouveau paiement à valider",
+        message: `La commande ${order.reference} de ${order.customerEmail} est confirmée et attend votre validation.`,
+        orderReference: order.reference,
+        metadata: { orderId: order.id }
+      });
+
+      // 2. Email Notifications (based on Admin Preferences)
+      const admins = await NotificationSettings.findAll({
+        where: { notifyOnNewOrder: true, isActive: true }
+      });
+
+      for (const admin of admins) {
+        await MailService.sendAdminOrderValidationAlert(admin.adminEmail, order);
+      }
+    } catch (error) {
+      console.error("[WebhookProcessor] Error notifying admins:", error);
+    }
   }
 }

@@ -611,4 +611,45 @@ export class MailService {
 
     return true;
   }
+
+  /**
+   * Admin Alert: New order requires manual validation
+   */
+  static async sendAdminOrderValidationAlert(adminEmail, order) {
+    const dashboardUrl = process.env.DASHBOARD_URL || "https://dashboard.studies-cm.com";
+    const orderUrl = `${dashboardUrl}/orders/${order.id}`;
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px; text-align: center; color: white;">
+          <h2 style="margin: 0; font-size: 20px;">🚨 Action Requise : Nouveau Paiement</h2>
+          <p style="opacity: 0.8; margin-top: 10px;">Une commande attend votre validation manuelle.</p>
+        </div>
+        <div style="padding: 30px; color: #1e293b; line-height: 1.6;">
+          <p>Bonjour,</p>
+          <p>La commande <strong>${order.reference}</strong> vient d'être confirmée par le prestataire de paiement.</p>
+          
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+             <p style="margin: 0;"><strong>Client :</strong> ${order.customerEmail}</p>
+             <p style="margin: 5px 0 0 0;"><strong>Montant :</strong> ${order.totalAmount} ${order.currency}</p>
+             <p style="margin: 5px 0 0 0;"><strong>Formation :</strong> ${order.formationName || 'N/A'}</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${orderUrl}" style="background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Accéder à la Commande</a>
+          </div>
+          
+          <p style="font-size: 12px; color: #64748b; margin-top: 40px; text-align: center;">
+            Ceci est une notification automatique. Veuillez traiter cette commande dès que possible.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return this.sendMail({
+      to: adminEmail,
+      subject: `🚨 [Urgent] Validation Requise - Commande ${order.reference}`,
+      html
+    });
+  }
 }
