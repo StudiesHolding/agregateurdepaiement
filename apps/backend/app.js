@@ -28,7 +28,12 @@ app.use((req, res, next) => {
 app.use(helmet({
     crossOriginResourcePolicy: false,
 }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ALLOWED_ORIGINS
+        ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+        : ["http://localhost:3000", "http://localhost:3001", "https://dashboard.studieslearning.com"],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

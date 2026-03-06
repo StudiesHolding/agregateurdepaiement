@@ -18,14 +18,6 @@ export const protectAdmin = catchAsync(async (req, res, next) => {
         throw new UnauthorizedError("Admin access requires an API Key (x-api-key header)");
     }
 
-    // [SIMPLIFICATION] Master Key Bypass from .env
-    const masterKey = process.env.ADMIN_MASTER_KEY;
-    if (masterKey && apiKey === masterKey) {
-        req.adminIdentifier = "admin:master";
-        req.apiKeyId = 0;
-        return next();
-    }
-
     const keyRecord = await ApiKeyService.findByKey(apiKey);
 
     if (!keyRecord || !keyRecord.isActive) {
