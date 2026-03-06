@@ -58,8 +58,8 @@ app.get("/health", (req, res) => {
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin/test", testRoutes);
 
