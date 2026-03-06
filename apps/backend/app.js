@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -9,6 +10,15 @@ import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { status: "fail", message: "Too many requests from this IP, please try again after 15 minutes" },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 dotenv.config();
 
@@ -18,6 +28,9 @@ BigInt.prototype.toJSON = function () {
 };
 
 const app = express();
+
+// Apply Rate Limiter
+app.use("/api/", limiter);
 
 // Basic Request Logger
 app.use((req, res, next) => {
