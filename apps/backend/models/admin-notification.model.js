@@ -44,8 +44,7 @@ AdminNotification.init(
         sequelize,
         modelName: "AdminNotification",
         tableName: "aggp_admin_notifications",
+        underscored: true,
         timestamps: true,
-        createdAt: "created_at",
-        updatedAt: "updated_at",
     }
 );
