@@ -106,7 +106,7 @@ export function NotificationCenter() {
                                                 </span>
                                                 {n.orderReference && (
                                                     <Link
-                                                        href={`/orders/${n.orderReference}`}
+                                                        href={`/orders/${n.id}`}
                                                         className="text-[9px] font-black uppercase text-primary flex items-center gap-0.5"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
