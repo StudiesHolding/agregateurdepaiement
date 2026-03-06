@@ -157,10 +157,6 @@ export default function LoginPage() {
                                         <ShieldCheck size={14} className="text-emerald-500" />
                                         <span className="text-[11px] font-medium">Chiffrement AES-256 bits actif</span>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between">
-                                        <span className="text-[10px] text-blue-300 font-semibold uppercase tracking-wider">Compte de test</span>
-                                        <span className="text-[10px] font-mono text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-md">admin:studies:secret</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
