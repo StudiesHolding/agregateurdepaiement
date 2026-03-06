@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useTranslation } from "@/components/providers/I18nProvider";
 import { cn } from "@/lib/utils";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const pageTitles: Record<string, string> = {
     "/": "Command Center",
@@ -81,11 +82,8 @@ export function Header({ onRefresh, isRefreshing }: HeaderProps) {
                     {language.toUpperCase()}
                 </button>
 
-                {/* Alerts placeholder */}
-                <button className="btn-ghost p-2 rounded-xl relative" title={t("header.alerts" as any)}>
-                    <Bell size={16} />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-danger" />
-                </button>
+                {/* Alerts */}
+                <NotificationCenter />
 
                 {/* Admin badge */}
                 <div className="flex items-center gap-2 pl-2 border-l border-border">

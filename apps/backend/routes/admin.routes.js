@@ -17,6 +17,8 @@ import { ProviderRouterService } from "../services/provider-router.service.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
+import { NotificationController } from "../controllers/notification.controller.js";
+import { AdminNotificationController } from "../controllers/admin-notification.controller.js";
 
 const router = Router();
 
@@ -641,6 +643,23 @@ router.post(
         });
     })
 );
+
+
+// ══════════════════════════════════════════════════════════
+// 🔔 NOTIFICATIONS & ALERTS
+// ══════════════════════════════════════════════════════════
+
+// Preferences (Email alerts)
+router.get("/notifications/me", catchAsync(NotificationController.getMe));
+router.get("/notifications", catchAsync(NotificationController.getSettings));
+router.get("/notifications/search", catchAsync(NotificationController.searchAdmins));
+router.post("/notifications", catchAsync(NotificationController.updateSetting));
+router.delete("/notifications/:id", catchAsync(NotificationController.deleteSetting));
+
+// In-App Alerts (Dashboard Bell)
+router.get("/admin-notifications", catchAsync(AdminNotificationController.list));
+router.put("/admin-notifications/:id/read", catchAsync(AdminNotificationController.markAsRead));
+router.put("/admin-notifications/read-all", catchAsync(AdminNotificationController.markAllAsRead));
 
 // ══════════════════════════════════════════════════════════
 // 🔍 AUDIT LOGS

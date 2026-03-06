@@ -394,6 +394,8 @@ export interface NotificationSetting {
   notifyOnSuccess: boolean;
   notifyOnFailure: boolean;
   notifyOnSuspicious: boolean;
+  notifyOnNewOrder: boolean;
+  notifyWithSound: boolean;
   isActive: boolean;
   createdAt?: string;
 }

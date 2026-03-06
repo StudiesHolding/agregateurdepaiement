@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import  sequelize  from '../config/database.js';
+import sequelize from '../config/database.js';
 
 class NotificationSettings extends Model { }
 
@@ -29,6 +29,16 @@ NotificationSettings.init({
         type: DataTypes.BOOLEAN,
         defaultValue: true,
         field: 'notify_on_suspicious'
+    },
+    notifyOnNewOrder: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'notify_on_new_order'
+    },
+    notifyWithSound: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'notify_with_sound'
     },
     isActive: {
         type: DataTypes.BOOLEAN,

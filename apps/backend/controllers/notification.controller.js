@@ -1,6 +1,6 @@
-import { NotificationSettings } from "../models/index.js";
+import { NotificationSettings, ApiKey } from "../models/index.js";
 import sequelize from "../config/database.js";
-import { QueryTypes } from "sequelize";
+import { QueryTypes, Op } from "sequelize";
 
 export const NotificationController = {
     /**
@@ -19,32 +19,60 @@ export const NotificationController = {
     },
 
     /**
-     * Search for potential admins in the LMS database (kyd4_users)
+     * Get current authenticated admin's settings
      */
-    async searchLmsUsers(req, res, next) {
+    async getMe(req, res, next) {
         try {
-            const { q } = req.query;
-            let queryStr = `
-                SELECT u.ID as id, u.user_email as email, u.display_name as name
-                FROM kyd4_users u
-                JOIN kyd4_usermeta um ON u.ID = um.user_id
-                WHERE um.meta_key = 'kyd4_capabilities' AND um.meta_value LIKE '%"administrator"%'
-            `;
-            let replacements = {};
-
-            if (q) {
-                queryStr += ` AND (u.user_email LIKE :query OR u.display_name LIKE :query) LIMIT 20`;
-                replacements.query = `%${q}%`;
-            } else {
-                queryStr += ` LIMIT 50`;
+            const adminEmail = req.adminEmail;
+            if (!adminEmail) {
+                return res.status(200).json({ success: true, data: null });
             }
 
-            const users = await sequelize.query(queryStr, {
-                replacements,
-                type: QueryTypes.SELECT
+            const setting = await NotificationSettings.findOne({
+                where: { adminEmail }
             });
 
-            res.json({ success: true, data: users });
+            res.json({
+                success: true,
+                data: setting
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Search for potential admins in the Dashboard API Keys table
+     */
+    async searchAdmins(req, res, next) {
+        try {
+            const { q } = req.query;
+
+            const where = {
+                owner: { [Op.like]: 'admin:%' }
+            };
+
+            if (q) {
+                where[Op.or] = [
+                    { owner: { [Op.like]: `%${q}%` } },
+                    { email: { [Op.like]: `%${q}%` } }
+                ];
+            }
+
+            const keys = await ApiKey.findAll({
+                where,
+                attributes: ['id', 'email', 'owner'],
+                limit: 50
+            });
+
+            // Map to uniform format: id, email, name
+            const admins = keys.map(k => ({
+                id: k.id,
+                email: k.email || (k.owner.includes(':') ? k.owner.split(':')[1] : k.owner),
+                name: k.owner.includes(':') ? k.owner.split(':')[1] : k.owner
+            }));
+
+            res.json({ success: true, data: admins });
         } catch (error) {
             next(error);
         }
@@ -55,19 +83,43 @@ export const NotificationController = {
      */
     async updateSetting(req, res, next) {
         try {
-            const { adminEmail, notifyOnSuccess, notifyOnFailure, notifyOnSuspicious, isActive } = req.body;
+            const {
+                notifyOnSuccess,
+                notifyOnFailure,
+                notifyOnSuspicious,
+                notifyOnNewOrder,
+                notifyWithSound,
+                isActive
+            } = req.body;
+
+            // Use email from body or from authenticated session
+            const adminEmail = req.body.adminEmail || req.adminEmail;
 
             if (!adminEmail) {
-                return res.status(400).json({ success: false, error: "adminEmail is required" });
+                return res.status(400).json({ success: false, error: "adminEmail is required (or must be authenticated)" });
             }
 
             let [setting, created] = await NotificationSettings.findOrCreate({
                 where: { adminEmail },
-                defaults: { notifyOnSuccess, notifyOnFailure, notifyOnSuspicious, isActive }
+                defaults: {
+                    notifyOnSuccess,
+                    notifyOnFailure,
+                    notifyOnSuspicious,
+                    notifyOnNewOrder,
+                    notifyWithSound,
+                    isActive
+                }
             });
 
             if (!created) {
-                await setting.update({ notifyOnSuccess, notifyOnFailure, notifyOnSuspicious, isActive });
+                await setting.update({
+                    notifyOnSuccess,
+                    notifyOnFailure,
+                    notifyOnSuspicious,
+                    notifyOnNewOrder,
+                    notifyWithSound,
+                    isActive
+                });
             }
 
             res.json({ success: true, data: setting });

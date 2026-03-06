@@ -10,8 +10,8 @@ const startServer = async () => {
         console.log("✅ Database connection established successfully.");
 
         // In development, you might want to sync models
-        // Using alter: true carefully
-        await sequelize.sync({ alter: true });
+        // Using alter: false after index cleanup to prevent duplication
+        await sequelize.sync({ alter: false });
         console.log(" Database models synchronized.");
 
         // Auto-seed default admin key if missing

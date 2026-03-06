@@ -13,6 +13,7 @@ import { AdminAuditLog } from "./admin-audit-log.model.js";
 import { ProviderStatsCache } from "./provider-stats-cache.model.js";
 import { NotificationSettings } from "./notification-settings.model.js";
 import { OrderAuditLog } from "./order-audit-log.model.js";
+import { AdminNotification } from "./admin-notification.model.js";
 
 // Associations
 
@@ -107,4 +108,5 @@ export {
   ProviderStatsCache,
   NotificationSettings,
   OrderAuditLog,
+  AdminNotification,
 };
