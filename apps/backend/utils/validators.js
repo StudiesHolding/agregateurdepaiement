@@ -20,6 +20,7 @@ export const initPaymentSchema = z.object({
     countryCode: z.string().length(2),
     successUrl: z.string().url(),
     cancelUrl: z.string().url(),
+    failedUrl: z.string().url().optional(),
     notifyUrl: z.string().url().optional(),
     idempotencyKey: z.string().optional(),
     metadata: z.record(z.any()).optional(),

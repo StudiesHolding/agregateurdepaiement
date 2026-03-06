@@ -33,6 +33,7 @@ export class OrchestratorService {
       countryCode,
       successUrl,
       cancelUrl,
+      failedUrl,
       notifyUrl,
       idempotencyKey,
       metadata,
@@ -123,6 +124,28 @@ export class OrchestratorService {
       );
     }
 
+    // Function to append query parameters to URLs
+    const appendParams = (url, params) => {
+      if (!url) return url;
+      const urlObj = new URL(url);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          urlObj.searchParams.set(key, value);
+        }
+      });
+      return urlObj.toString();
+    };
+
+    const urlParams = {
+      order_ref: order.reference,
+      amount: finalAmount,
+      currency: currency,
+    };
+
+    const enrichedSuccessUrl = appendParams(successUrl, urlParams);
+    const enrichedCancelUrl = appendParams(cancelUrl, urlParams);
+    const enrichedFailedUrl = appendParams(failedUrl, urlParams);
+
     // 4. Define Payment Execution Logic
     const paymentFunction = async (provider, attempt) => {
       const adapter = ProviderFactory.getProvider(provider.code, {
@@ -154,8 +177,9 @@ export class OrchestratorService {
         channels,
         lockPhoneNumber,
         countryCode,
-        successUrl,
-        cancelUrl,
+        successUrl: enrichedSuccessUrl,
+        cancelUrl: enrichedCancelUrl,
+        failedUrl: enrichedFailedUrl,
         notifyUrl: finalNotifyUrl,
       });
     };

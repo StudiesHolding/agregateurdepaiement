@@ -25,7 +25,7 @@ export class CinetPayService extends PaymentProviderInterface {
     // Ensure notify_url has a valid value
     const notifyUrl =
       paymentData.notifyUrl ||
-      process.env.CINETPAY_WEBHOOK_NOTIFY_URL || 
+      process.env.CINETPAY_WEBHOOK_NOTIFY_URL ||
       process.env.WEBHOOK_NOTIFY_URL ||
       paymentData.successUrl; // Fallback to successUrl if no notifyUrl configured
 
@@ -49,6 +49,7 @@ export class CinetPayService extends PaymentProviderInterface {
       customer_zip_code: paymentData.customerZipCode || "00000",
       notify_url: notifyUrl,
       return_url: paymentData.successUrl,
+      cancel_url: paymentData.cancelUrl,
       channels: paymentData.channels || "ALL",
       lock_phone_number: paymentData.lockPhoneNumber || false,
       metadata: JSON.stringify({
