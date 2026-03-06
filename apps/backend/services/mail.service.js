@@ -397,7 +397,7 @@ export class MailService {
         <div style="padding: 40px;">
           <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${buyerName || 'Client'}</strong>,</p>
           
-          <p>Nous avons le plaisir de vous informer que ${isGift ? `l'inscription pour <strong>${order.beneficiaryFirstName} ${order.beneficiaryLastName}</strong>` : 'votre inscription'} à la formation <strong>${order.formationName}</strong> a été officiellement <strong>validée</strong>.</p>
+          <p>Nous avons le plaisir de vous informer que ${isGift ? `l'inscription pour <strong>${(order.beneficiaryFirstName || 'votre proche').trim()} ${order.beneficiaryLastName || ''}</strong>` : 'votre inscription'} à la formation <strong>${order.formationName || 'demandée'}</strong> a été officiellement <strong>validée</strong>.</p>
           
           <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 30px 0;">
             <table style="width: 100%; font-size: 14px;">
@@ -407,7 +407,7 @@ export class MailService {
               </tr>
               <tr>
                 <td style="color: #64748b; padding-bottom: 8px;">Formation</td>
-                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${order.formationName}</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${order.formationName || 'N/A'}</td>
               </tr>
               <tr>
                 <td style="color: #64748b; padding-bottom: 8px;">Acheteur</td>
@@ -527,8 +527,8 @@ export class MailService {
     const buyerName = `${order.customerName} ${order.customerSurname || ''}`.trim();
     const beneficiaryEmail = isGift ? order.beneficiaryEmail : buyerEmail;
     const beneficiaryName = isGift
-      ? `${order.beneficiaryFirstName} ${order.beneficiaryLastName}`
-      : buyerName;
+      ? `${order.beneficiaryFirstName || ''} ${order.beneficiaryLastName || ''}`.trim() || 'Client'
+      : buyerName || 'Client';
 
     // Common HTML for credentials block
     const credsBlock = `
@@ -557,7 +557,7 @@ export class MailService {
         
         <div style="padding: 40px;">
           <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${beneficiaryName}</strong>,</p>
-          <p>Félicitations ! Votre inscription à la formation <strong>${order.formationName}</strong> est maintenant terminée. ${isGift ? `Ce cadeau offert par <strong>${buyerName}</strong> est désormais prêt.` : ''}</p>
+          <p>Félicitations ! Votre inscription à la formation <strong>${order.formationName || 'demandée'}</strong> est maintenant terminée. ${isGift ? `Ce cadeau offert par <strong>${buyerName || 'un proche'}</strong> est désormais prêt.` : ''}</p>
           
           ${credsBlock}
           

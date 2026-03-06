@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminApi } from "@/lib/api";
-import { formatXAF, cn } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { Transaction, PaymentStatus } from "@/lib/types";
 import { Search, Filter, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -178,8 +178,7 @@ export default function TransactionsPage() {
                                             {txn.customerEmail}
                                         </td>
                                         <td className="font-semibold text-sm">
-                                            {formatXAF(txn.amount)}
-                                            <span className="text-xs text-text-light ml-1">{txn.currency}</span>
+                                            {formatCurrency(txn.amount, txn.currency)}
                                         </td>
                                         <td>
                                             {txn.provider ? (
