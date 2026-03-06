@@ -28,6 +28,9 @@ BigInt.prototype.toJSON = function () {
 
 const app = express();
 
+// Trust proxy (required for express-rate-limit behind Nginx/PM2)
+app.set("trust proxy", 1);
+
 // Apply Rate Limiter
 app.use("/api/", limiter);
 
