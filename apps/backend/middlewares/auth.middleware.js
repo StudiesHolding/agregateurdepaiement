@@ -13,11 +13,13 @@ export const protect = catchAsync(async (req, res, next) => {
     req.headers["x-api-key-value"] ||
     req.headers["X-API-KEY-VALUE"];
 
-  console.log("[AUTH DEBUG] Headers received:", JSON.stringify(req.headers));
-  console.log(
-    "[AUTH DEBUG] API Key extracted:",
-    apiKey ? apiKey.substring(0, 10) + "..." : "MISSING",
-  );
+  // console.log("[AUTH DEBUG] Headers received:", JSON.stringify(req.headers));
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      "[AUTH DEBUG] API Key extracted:",
+      apiKey ? apiKey.substring(0, 10) + "..." : "MISSING",
+    );
+  }
 
   if (!apiKey) {
     throw new UnauthorizedError("App identification failed: Missing API Key");

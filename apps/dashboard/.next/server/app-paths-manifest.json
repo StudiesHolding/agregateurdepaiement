@@ -1,1 +1,15 @@
-{}
+{
+  "/api/psp/[...path]/route": "app/api/psp/[...path]/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/routing/page": "app/(dashboard)/routing/page.js",
+  "/(dashboard)/providers/page": "app/(dashboard)/providers/page.js",
+  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js",
+  "/(dashboard)/providers/new/page": "app/(dashboard)/providers/new/page.js",
+  "/(dashboard)/orders/page": "app/(dashboard)/orders/page.js",
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/webhooks/page": "app/(dashboard)/webhooks/page.js",
+  "/(dashboard)/settings/notifications/page": "app/(dashboard)/settings/notifications/page.js",
+  "/(dashboard)/test-order/page": "app/(dashboard)/test-order/page.js",
+  "/(dashboard)/audit/page": "app/(dashboard)/audit/page.js"
+}

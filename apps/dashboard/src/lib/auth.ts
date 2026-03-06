@@ -18,21 +18,33 @@ export const {
             name: "Admin Access",
             credentials: {
                 apiKey: { label: "Admin API Key", type: "password" },
+                otp: { label: "OTP", type: "text" },
             },
             async authorize(credentials) {
-                if (!credentials?.apiKey) return null;
+                if (!credentials?.apiKey || !credentials?.otp) return null;
 
-                const apiKey = credentials.apiKey as string;
+                try {
+                    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+                    const res = await fetch(`${apiBase}/api/admin/auth/2fa/verify`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            apiKey: credentials.apiKey,
+                            otp: credentials.otp
+                        }),
+                    });
 
-                // In a simplified flow, we check if it starts with 'admin:'
-                if (apiKey.startsWith("admin:")) {
-                    return {
-                        id: "admin-user",
-                        name: "Super Admin",
-                        email: "admin@studies-learning.com",
-                        role: "admin",
-                        apiKey: apiKey,
-                    };
+                    const data = await res.json();
+
+                    if (data.status === "success" && data.user) {
+                        return {
+                            ...data.user,
+                            apiKey: credentials.apiKey,
+                            token: data.token
+                        };
+                    }
+                } catch (err) {
+                    console.error("[Auth] 2FA verification failed:", err);
                 }
 
                 return null;

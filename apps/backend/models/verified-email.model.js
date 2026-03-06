@@ -23,7 +23,7 @@ VerifiedEmail.init(
             defaultValue: false,
         },
         verificationCode: {
-            type: DataTypes.STRING(6),
+            type: DataTypes.STRING(10),
             allowNull: true,
         },
         codeExpiresAt: {

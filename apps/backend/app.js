@@ -2,12 +2,23 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { status: "fail", message: "Too many requests from this IP, please try again after 15 minutes" },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 dotenv.config();
 
@@ -17,6 +28,9 @@ BigInt.prototype.toJSON = function () {
 };
 
 const app = express();
+
+// Apply Rate Limiter
+app.use("/api/", limiter);
 
 // Basic Request Logger
 app.use((req, res, next) => {
@@ -28,7 +42,12 @@ app.use((req, res, next) => {
 app.use(helmet({
     crossOriginResourcePolicy: false,
 }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ALLOWED_ORIGINS
+        ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+        : ["http://localhost:3000", "http://localhost:3001", "https://dashboard.studieslearning.com"],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,6 +58,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin/test", testRoutes);

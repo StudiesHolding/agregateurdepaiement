@@ -27,6 +27,10 @@ ApiKey.init(
             type: DataTypes.DATE,
             allowNull: true,
         },
+        email: {
+            type: DataTypes.STRING(255),
+            allowNull: true, // Optional for app keys, required for admin keys
+        },
     },
     {
         sequelize,

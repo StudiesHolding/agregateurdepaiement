@@ -2,6 +2,7 @@ import { ApiKeyService } from "../services/api-key.service.js";
 import { AdminAuditLog } from "../models/admin-audit-log.model.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 import { catchAsync } from "./error.middleware.js";
+import jwt from "jsonwebtoken";
 
 /**
  * Admin API Key protection middleware.
@@ -12,30 +13,34 @@ import { catchAsync } from "./error.middleware.js";
  * Regular API keys have owner = "app:<name>" or just "<name>"
  */
 export const protectAdmin = catchAsync(async (req, res, next) => {
-    const apiKey = req.headers["x-api-key"] || req.headers["X-API-KEY"];
+    let apiKey = req.headers["x-api-key"] || req.headers["X-API-KEY"];
+    const authHeader = req.headers["authorization"] || req.headers["Authorization"];
 
-    if (!apiKey) {
-        throw new UnauthorizedError("Admin access requires an API Key (x-api-key header)");
+    // 1. Try JWT Bearer Token
+    if (!apiKey && authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split(" ")[1];
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+            apiKey = decoded.apiKey;
+        } catch (err) {
+            throw new UnauthorizedError("Session expirée ou token invalide. Veuillez vous reconnecter.");
+        }
     }
 
-    // [SIMPLIFICATION] Master Key Bypass from .env
-    const masterKey = process.env.ADMIN_MASTER_KEY;
-    if (masterKey && apiKey === masterKey) {
-        req.adminIdentifier = "admin:master";
-        req.apiKeyId = 0;
-        return next();
+    if (!apiKey) {
+        throw new UnauthorizedError("Admin access requires an API Key or active session");
     }
 
     const keyRecord = await ApiKeyService.findByKey(apiKey);
 
     if (!keyRecord || !keyRecord.isActive) {
-        throw new UnauthorizedError("Invalid or inactive API Key");
+        throw new UnauthorizedError("Session ou clé d'accès invalide. Veuillez vous reconnecter.");
     }
 
     // Check admin privilege: owner must be prefixed with "admin:"
     if (!keyRecord.owner.startsWith("admin:")) {
         throw new ForbiddenError(
-            "Insufficient privileges. This endpoint requires an admin-level API Key."
+            "Privilèges insuffisants. L'accès administrateur est requis."
         );
     }
 

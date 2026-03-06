@@ -8,16 +8,47 @@ import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
     const router = useRouter();
+    const [step, setStep] = useState<1 | 2>(1);
     const [apiKey, setApiKey] = useState("");
+    const [otp, setOtp] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [mounted, setMounted] = useState(false);
+    const [maskedEmail, setMaskedEmail] = useState("");
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleInit2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
+
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+            const res = await fetch(`${apiBase}/api/admin/auth/2fa/init`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ apiKey }),
+            });
+
+            const data = await res.json();
+
+            if (data.status === "success") {
+                setStep(2);
+                setMaskedEmail(data.emailMasked);
+            } else {
+                setError(data.message || "Erreur lors de l'initialisation du 2FA.");
+            }
+        } catch (err) {
+            setError("Impossible de contacter le serveur de sécurité.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError("");
@@ -25,11 +56,12 @@ export default function LoginPage() {
         try {
             const res = await signIn("credentials", {
                 apiKey,
+                otp,
                 redirect: false,
             });
 
             if (res?.error) {
-                setError("Accès refusé. Veuillez vérifier votre clé API.");
+                setError("Code OTP incorrect ou expiré.");
             } else {
                 localStorage.setItem("psp_admin_key", apiKey);
                 router.push("/");
@@ -50,13 +82,11 @@ export default function LoginPage() {
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-slow" />
 
-            {/* Grid Pattern */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 pointer-events-none" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20" />
 
             <div className="w-full max-w-[1100px] grid lg:grid-cols-2 gap-8 items-center relative z-10 animate-fade-in">
-
-                {/* Left Side: Branding & Info */}
+                {/* Left Side: Branding */}
                 <div className="hidden lg:flex flex-col space-y-8 pr-12">
                     <div className="space-y-4">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold tracking-wider uppercase">
@@ -67,101 +97,84 @@ export default function LoginPage() {
                             Studies <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">PSP</span>
                         </h1>
                         <p className="text-lg text-slate-400 max-w-md">
-                            L'orchestrateur de paiements nouvelle génération. Gérez, sécurisez et optimisez vos flux financiers mondiaux.
+                            L'orchestrateur de paiements sécurisé. Authentification forte activée.
                         </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 backdrop-blur-sm">
-                            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 text-blue-400">
-                                <CreditCard size={20} />
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-200">Multi-PSP</h3>
-                            <p className="text-xs text-slate-500">Router vos flux intelligemment.</p>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 backdrop-blur-sm">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-3 text-indigo-400">
-                                <Globe size={20} />
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-200">Global Reach</h3>
-                            <p className="text-xs text-slate-500">Paiements locaux et internationaux.</p>
-                        </div>
                     </div>
                 </div>
 
                 {/* Right Side: Login Form */}
                 <div className="flex flex-col items-center">
                     <div className="w-full max-w-md">
-                        {/* Mobile Logo */}
-                        <div className="lg:hidden text-center mb-10">
-                            <h1 className="text-4xl font-black tracking-tight">Studies <span className="text-blue-500">PSP</span></h1>
-                        </div>
-
                         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[32px] p-10 shadow-2xl relative overflow-hidden group">
-                            {/* Inner Glow */}
-                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px] group-hover:bg-blue-500/30 transition-colors" />
+                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-[60px]" />
 
                             <div className="relative z-10">
-                                <div className="mb-8">
-                                    <h2 className="text-2xl font-bold mb-2">Connexion Sécurisée</h2>
-                                    <p className="text-slate-400 text-sm">Entrez votre clé d'accès administrateur.</p>
-                                </div>
+                                {step === 1 ? (
+                                    <>
+                                        <div className="mb-8">
+                                            <h2 className="text-2xl font-bold mb-2">Identification</h2>
+                                            <p className="text-slate-400 text-sm">Entrez votre clé d'accès pour recevoir un OTP.</p>
+                                        </div>
 
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                                            Clé API Maîtresse
-                                        </label>
-                                        <div className="relative group/input">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within/input:text-blue-400 transition-colors">
-                                                <Lock size={18} />
+                                        <form onSubmit={handleInit2FA} className="space-y-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Clé API Admin</label>
+                                                <div className="relative group/input">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500"><Lock size={18} /></div>
+                                                    <input
+                                                        type="password"
+                                                        required
+                                                        autoFocus
+                                                        className="w-full h-14 pl-12 pr-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-blue-500 transition-all font-mono"
+                                                        placeholder="sk_••••••••"
+                                                        value={apiKey}
+                                                        onChange={(e) => setApiKey(e.target.value)}
+                                                    />
+                                                </div>
                                             </div>
-                                            <input
-                                                type="password"
-                                                required
-                                                autoFocus
-                                                autoComplete="off"
-                                                className="w-full h-14 pl-12 pr-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
-                                                placeholder="admin:••••••••"
-                                                value={apiKey}
-                                                onChange={(e) => setApiKey(e.target.value)}
-                                            />
+
+                                            {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm flex items-center gap-2"><AlertCircle size={18} /> {error}</div>}
+
+                                            <button type="submit" disabled={isLoading || !apiKey} className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl font-bold flex items-center justify-center gap-2">
+                                                {isLoading ? <Loader2 size={20} className="animate-spin" /> : <>Vérifier l'identité <ArrowRight size={20} /></>}
+                                            </button>
+                                        </form>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="mb-8">
+                                            <h2 className="text-2xl font-bold mb-2">Vérification OTP</h2>
+                                            <p className="text-slate-400 text-sm">Un code à 8 chiffres a été envoyé à <b>{maskedEmail}</b>.</p>
                                         </div>
-                                    </div>
 
-                                    {error && (
-                                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-400 text-sm animate-shake">
-                                            <AlertCircle size={18} />
-                                            {error}
-                                        </div>
-                                    )}
+                                        <form onSubmit={handleVerifyOTP} className="space-y-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Code à 8 chiffres</label>
+                                                <div className="relative group/input">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500"><ShieldCheck size={18} /></div>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        autoFocus
+                                                        maxLength={8}
+                                                        className="w-full h-14 pl-12 pr-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-blue-500 transition-all font-mono tracking-[0.5em] text-center text-xl"
+                                                        placeholder="••••••••"
+                                                        value={otp}
+                                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading || !apiKey}
-                                        className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 disabled:opacity-50 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-lg shadow-blue-500/20"
-                                    >
-                                        {isLoading ? (
-                                            <Loader2 size={20} className="animate-spin" />
-                                        ) : (
-                                            <>
-                                                Accéder au Dashboard
-                                                <ArrowRight size={20} />
-                                            </>
-                                        )}
-                                    </button>
-                                </form>
+                                            {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm flex items-center gap-2"><AlertCircle size={18} /> {error}</div>}
 
-                                <div className="mt-10 pt-8 border-t border-slate-800 flex flex-col space-y-4">
-                                    <div className="flex items-center gap-2 text-slate-500">
-                                        <ShieldCheck size={14} className="text-emerald-500" />
-                                        <span className="text-[11px] font-medium">Chiffrement AES-256 bits actif</span>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between">
-                                        <span className="text-[10px] text-blue-300 font-semibold uppercase tracking-wider">Compte de test</span>
-                                        <span className="text-[10px] font-mono text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-md">admin:studies:secret</span>
-                                    </div>
-                                </div>
+                                            <button type="submit" disabled={isLoading || otp.length < 8} className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl font-bold flex items-center justify-center gap-2">
+                                                {isLoading ? <Loader2 size={20} className="animate-spin" /> : <>Confirmer et se connecter</>}
+                                            </button>
+
+                                            <button type="button" onClick={() => setStep(1)} className="w-full text-xs text-slate-500 hover:text-white transition-colors">Retour à l'identification</button>
+                                        </form>
+                                    </>
+                                )}
                             </div>
                         </div>
 
