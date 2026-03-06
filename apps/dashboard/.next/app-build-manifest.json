@@ -1,5 +1,16 @@
 {
   "pages": {
+    "/(auth)/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(auth)/login/page.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
     "/(dashboard)/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -9,12 +20,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/layout.js"
-    ],
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
     ],
     "/(dashboard)/providers/page": [
       "static/chunks/webpack.js",
@@ -26,35 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/routing/page.js"
     ],
-    "/(dashboard)/providers/new/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/providers/new/page.js"
-    ],
-    "/(dashboard)/orders/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/orders/page.js"
-    ],
     "/(dashboard)/transactions/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/transactions/page.js"
-    ],
-    "/(dashboard)/orders/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/orders/[id]/page.js"
-    ],
-    "/(dashboard)/test-order/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/test-order/page.js"
-    ],
-    "/(auth)/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/login/page.js"
     ]
   }
 }
