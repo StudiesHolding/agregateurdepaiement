@@ -56,7 +56,8 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
             validateStatus: () => true,
         };
 
-        if (body) {
+        // Only include data if it exists and it's a mutation method
+        if (body && Object.keys(body).length > 0 && ["POST", "PUT", "PATCH"].includes(method)) {
             axiosConfig.data = body;
             axiosConfig.headers["Content-Type"] = "application/json";
         }
