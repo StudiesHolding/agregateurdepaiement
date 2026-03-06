@@ -1,8 +1,1 @@
-{
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/api/psp/[...path]/route": "app/api/psp/[...path]/route.js",
-  "/(dashboard)/providers/page": "app/(dashboard)/providers/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js",
-  "/(dashboard)/routing/page": "app/(dashboard)/routing/page.js"
-}
+{}
