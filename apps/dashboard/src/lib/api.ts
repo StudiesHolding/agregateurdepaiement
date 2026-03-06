@@ -6,8 +6,8 @@ const API_URL = typeof window !== "undefined"
 
 /**
  * Axios instance for PSP Admin API calls
- * Client-side: Uses local proxy to /api/psp/admin/*
- * Server-side: Calls backend directly using internal API key
+ * In the browser, we use the local proxy /api/psp which then prefixes with /admin.
+ * On the server, we call the backend /api/admin directly.
  */
 export const api = axios.create({
   baseURL: `${API_URL}/admin`,
@@ -17,8 +17,14 @@ export const api = axios.create({
   timeout: 15000,
 });
 
-// Request interceptor — inject admin API key (Server-side ONLY)
+// Request interceptor
 api.interceptors.request.use((config) => {
+  // Fix: Axios strips paths from baseURL if the URL starts with /
+  // We remove the leading slash to ensure it's appended to the baseURL path.
+  if (config.url?.startsWith("/")) {
+    config.url = config.url.substring(1);
+  }
+
   // If we're on the server, we need to inject the key for direct calls
   if (typeof window === "undefined") {
     const apiKey = process.env.ADMIN_API_KEY;
