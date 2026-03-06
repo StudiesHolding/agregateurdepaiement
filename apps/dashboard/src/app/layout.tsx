@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/components/providers/I18nProvider";
+import { SessionProvider } from "next-auth/react";
+import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -25,11 +27,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 />
             </head>
             <body>
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-                    <I18nProvider>
-                        <QueryProvider>{children}</QueryProvider>
-                    </I18nProvider>
-                </ThemeProvider>
+                <SessionProvider>
+                    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                        <I18nProvider>
+                            <SessionTimeoutProvider>
+                                <QueryProvider>{children}</QueryProvider>
+                            </SessionTimeoutProvider>
+                        </I18nProvider>
+                    </ThemeProvider>
+                </SessionProvider>
             </body>
         </html>
     );

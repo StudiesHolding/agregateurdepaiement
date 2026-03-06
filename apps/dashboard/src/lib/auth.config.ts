@@ -23,6 +23,10 @@ export const authConfig = {
             return session;
         },
     },
+    session: {
+        strategy: "jwt",
+        maxAge: 12 * 60 * 60, // 12 hours
+    },
     pages: {
         signIn: "/login",
     },
