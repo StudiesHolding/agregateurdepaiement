@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
@@ -45,6 +46,7 @@ app.get("/health", (req, res) => {
 app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin/test", testRoutes);
 

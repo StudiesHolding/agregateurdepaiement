@@ -1,5 +1,7 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
   "/(dashboard)/transactions/page": "app/(dashboard)/transactions/page.js"
 }
