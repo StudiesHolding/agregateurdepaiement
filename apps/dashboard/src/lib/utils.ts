@@ -9,14 +9,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format a number as XAF currency
+ * Format a number as dynamic currency
+ */
+export function formatCurrency(amount: number, currency: string = "XAF"): string {
+    const locale = currency === "XAF" || currency === "XOF" ? "fr-CM" : "fr-FR";
+    return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currency,
+        maximumFractionDigits: currency === "XAF" || currency === "XOF" ? 0 : 2,
+    }).format(amount);
+}
+
+/**
+ * Format a number as XAF currency (Legacy wrapper)
  */
 export function formatXAF(amount: number): string {
-    return new Intl.NumberFormat("fr-CM", {
-        style: "currency",
-        currency: "XAF",
-        maximumFractionDigits: 0,
-    }).format(amount);
+    return formatCurrency(amount, "XAF");
 }
 
 /**
