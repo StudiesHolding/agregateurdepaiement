@@ -67,7 +67,7 @@ export class OrchestratorService {
       if (expectedAmount !== finalAmount) {
         console.warn(
           `[OrchestratorService] Amount mismatch for formation ${finalMetadata.formation_id}. ` +
-            `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
+          `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
         );
       }
 
@@ -81,15 +81,25 @@ export class OrchestratorService {
       };
     }
 
-    // 1. Create or Find Order (simplified here to create new)
+    // 1. Create or Find Order
     const order = await OrderService.create({
       customerEmail,
       customerName,
+      customerSurname,
+      customerPhone: customerPhoneNumber,
+      customerAddress,
+      customerCity,
+      customerState,
+      customerZipCode,
       currency,
       totalAmount: finalAmount,
       metadata: finalMetadata,
       lmsItemId,
       lmsItemType,
+      // Pass formation details if found
+      formationId: finalMetadata.formation_id,
+      formationName: formation?.name, // From FormationsService
+      formationPrice: formation?.price
     });
 
     // 2. Create Payment Intent

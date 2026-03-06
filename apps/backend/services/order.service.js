@@ -18,6 +18,9 @@ export class OrderService {
             customerSurname: data.customerSurname,
             customerPhone: data.customerPhone,
             customerCity: data.customerCity,
+            customerAddress: data.customerAddress,
+            customerState: data.customerState,
+            customerZipCode: data.customerZipCode,
             purchaseType: data.purchaseType || "self",
 
             // Beneficiary (gift)

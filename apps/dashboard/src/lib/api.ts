@@ -118,10 +118,16 @@ export const adminApi = {
 
   // Notifications
   getNotifications: () => api.get("/notifications"),
+  getMyNotifications: () => api.get("/notifications/me"),
   searchLmsAdmins: (q: string) => api.get(`/notifications/search?q=${q}`),
   updateNotificationSetting: (data: Record<string, unknown>) =>
     api.post("/notifications", data),
   deleteNotificationSetting: (id: number) => api.delete(`/notifications/${id}`),
+
+  // Admin In-App Notifications
+  getAdminNotifications: () => api.get("/admin-notifications"),
+  markNotificationAsRead: (id: number) => api.put(`/admin-notifications/${id}/read`),
+  clearAllNotifications: () => api.put("/admin-notifications/read-all"),
 
   // Orders (LMS Workflow)
   getOrders: (params: Record<string, string | number>) =>

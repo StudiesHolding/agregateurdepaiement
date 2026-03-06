@@ -47,6 +47,7 @@ export const protectAdmin = catchAsync(async (req, res, next) => {
     // Attach identity to the request for audit logging
     req.adminIdentifier = keyRecord.owner;
     req.apiKeyId = keyRecord.id;
+    req.adminEmail = keyRecord.email;
 
     next();
 });

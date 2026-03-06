@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminApi } from "@/lib/api";
-import { formatXAF, cn } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import {
   Search,
@@ -294,7 +294,7 @@ export default function OrdersPage() {
                         <span className="text-[10px] text-text-light uppercase tracking-tight">{order.customerName} {order.customerSurname}</span>
                       </div>
                     </td>
-                    <td><span className="font-bold text-text-main">{formatXAF(Number(order.totalAmount))}</span></td>
+                    <td><span className="font-bold text-text-main">{formatCurrency(Number(order.totalAmount), order.currency)}</span></td>
                     <td><PurchaseTypeBadge type={order.purchaseType || 'self'} /></td>
                     <td>
                       <div className="flex items-center gap-1.5 text-text-light">
