@@ -1,0 +1,84 @@
+{
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue,",
+    "overview": "Vue d'ensemble de vos formations"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "catalog": "Catalogue",
+    "packages": "Packages",
+    "team": "Équipe",
+    "requests": "Demandes d'accès",
+    "history": "Historique",
+    "settings": "Paramètres",
+    "notifications": "Notifications",
+    "logout": "Se déconnecter"
+  },
+  "packages": {
+    "title": "Mes Packages",
+    "subtitle": "Gérez vos packages de formation et licences",
+    "totalLicenses": "Licences totales",
+    "usedLicenses": "Licences utilisées",
+    "availableLicenses": "Licences disponibles",
+    "assignLicense": "Attribuer une licence",
+    "buyMore": "Acheter plus",
+    "noPackages": "Aucun package acheté",
+    "viewDetails": "Voir les détails"
+  },
+  "team": {
+    "title": "Mon équipe",
+    "subtitle": "Gérez vos collaborateurs et leurs formations",
+    "addEmployee": "Ajouter un collaborateur",
+    "editEmployee": "Modifier",
+    "deleteEmployee": "Supprimer",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "department": "Département",
+    "position": "Poste",
+    "licensesAssigned": "Licences attribuées",
+    "noEmployees": "Aucun collaborateur enregistré",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce collaborateur ?"
+  },
+  "requests": {
+    "title": "Demandes d'accès",
+    "subtitle": "Suivez l'état d'activation des accès LMS",
+    "pending": "En attente",
+    "processing": "En cours",
+    "activated": "Activé",
+    "rejected": "Refusé",
+    "noRequests": "Aucune demande d'accès"
+  },
+  "stats": {
+    "activePackages": "Packages actifs",
+    "totalLicenses": "Licences totales",
+    "usedLicenses": "Licences utilisées",
+    "availableLicenses": "Disponibles",
+    "pendingRequests": "En attente"
+  },
+  "common": {
+    "search": "Rechercher...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "noData": "Aucune donnée",
+    "actions": "Actions",
+    "status": "Statut",
+    "date": "Date",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair",
+    "language": "Langue"
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "loginButton": "Se connecter",
+    "loginSubtitle": "Accédez au tableau de bord de votre entreprise"
+  }
+}

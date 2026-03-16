@@ -14,6 +14,16 @@ import { ProviderStatsCache } from "./provider-stats-cache.model.js";
 import { NotificationSettings } from "./notification-settings.model.js";
 import { OrderAuditLog } from "./order-audit-log.model.js";
 import { AdminNotification } from "./admin-notification.model.js";
+import { Company } from "./company.model.js";
+import { CompanyAdmin } from "./company-admin.model.js";
+import { Employee } from "./employee.model.js";
+import { FormationPackage } from "./formation-package.model.js";
+import { CompanyPackage } from "./company-package.model.js";
+import { AccessRequest } from "./access-request.model.js";
+import { Course } from "./course.model.js";
+import { PostMeta } from "./post-meta.model.js";
+import { PackageFormation } from "./package-formation.model.js";
+import { SpecificFormation } from "./specific-formation.model.js";
 
 // Associations
 
@@ -92,6 +102,58 @@ InstallmentPayment.belongsTo(PaymentIntent, {
   as: "paymentIntent",
 });
 
+// ============================================
+// B2B ASSOCIATIONS
+// ============================================
+
+// Company <-> CompanyAdmin (1:N)
+Company.hasMany(CompanyAdmin, { foreignKey: "company_id", as: "admins" });
+CompanyAdmin.belongsTo(Company, { foreignKey: "company_id", as: "company" });
+
+// Company <-> Employee (1:N)
+Company.hasMany(Employee, { foreignKey: "company_id", as: "employees" });
+Employee.belongsTo(Company, { foreignKey: "company_id", as: "company" });
+
+// Company <-> CompanyPackage (1:N)
+Company.hasMany(CompanyPackage, { foreignKey: "company_id", as: "packages" });
+CompanyPackage.belongsTo(Company, { foreignKey: "company_id", as: "company" });
+
+// FormationPackage <-> CompanyPackage (1:N)
+FormationPackage.hasMany(CompanyPackage, { foreignKey: "package_id", as: "companyPurchases" });
+CompanyPackage.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+
+// Company <-> AccessRequest (1:N)
+Company.hasMany(AccessRequest, { foreignKey: "company_id", as: "accessRequests" });
+AccessRequest.belongsTo(Company, { foreignKey: "company_id", as: "company" });
+
+// Employee <-> AccessRequest (1:N)
+Employee.hasMany(AccessRequest, { foreignKey: "employee_id", as: "requests" });
+AccessRequest.belongsTo(Employee, { foreignKey: "employee_id", as: "employee" });
+
+// CompanyPackage <-> AccessRequest (1:N)
+CompanyPackage.hasMany(AccessRequest, { foreignKey: "company_package_id", as: "activations" });
+AccessRequest.belongsTo(CompanyPackage, { foreignKey: "company_package_id", as: "companyPackage" });
+
+// ============================================
+// TRAINING PACKAGES & LEARNPRESS
+// ============================================
+
+// Course <-> PostMeta (1:N)
+Course.hasMany(PostMeta, { foreignKey: "post_id", as: "meta" });
+PostMeta.belongsTo(Course, { foreignKey: "post_id", as: "course" });
+
+// FormationPackage <-> PackageFormation (1:N)
+FormationPackage.hasMany(PackageFormation, { foreignKey: "package_id", as: "packageFormations" });
+PackageFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+
+// PackageFormation <-> Course (N:1, can be global or specific)
+PackageFormation.belongsTo(Course, { foreignKey: "global_formation_id", as: "globalCourse" });
+PackageFormation.belongsTo(SpecificFormation, { foreignKey: "package_formation_id", as: "specificCourse" });
+
+// FormationPackage <-> SpecificFormation (1:N)
+FormationPackage.hasMany(SpecificFormation, { foreignKey: "package_id", as: "specificFormations" });
+SpecificFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+
 export {
   sequelize,
   Order,
@@ -109,4 +171,14 @@ export {
   NotificationSettings,
   OrderAuditLog,
   AdminNotification,
+  Company,
+  CompanyAdmin,
+  Employee,
+  FormationPackage,
+  CompanyPackage,
+  AccessRequest,
+  Course,
+  PostMeta,
+  PackageFormation,
+  SpecificFormation,
 };
