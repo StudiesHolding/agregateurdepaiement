@@ -34,6 +34,7 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
   const [mounted, setMounted] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [expandedCurriculum, setExpandedCurriculum] = useState(true);
+  const [displayCurrency, setDisplayCurrency] = useState<"XAF" | "EUR" | "USD">("XAF");
 
   useEffect(() => {
     setMounted(true);
@@ -68,7 +69,24 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
 
   const formations = pkg.packageFormations || pkg.package?.packageFormations || [];
   const isCatalog = !pkg.company_id;
-  const totalPrice = (pkg.price || pkg.package?.price || 0);
+  const basePrice = (pkg.price || pkg.package?.price || 0);
+  const baseCurrency = (pkg.currency || pkg.package?.currency || "EUR");
+
+  // Approximate conversion rates (1 EUR as base)
+  const rates = {
+    XAF: 655.957,
+    EUR: 1,
+    USD: 1.08
+  };
+
+  const convertPrice = (price: number, from: string, to: string) => {
+    // Normalize to EUR first
+    const priceInEur = from === "XAF" ? price / rates.XAF : from === "USD" ? price / rates.USD : price;
+    // Convert to target
+    return priceInEur * rates[to as keyof typeof rates];
+  };
+
+  const totalPrice = convertPrice(basePrice, baseCurrency, displayCurrency);
 
   return (
     <>
@@ -254,18 +272,36 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
         <div className="mt-auto border-t border-white/5 bg-surface/60 backdrop-blur-2xl px-10 py-5 shrink-0">
            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 max-w-3xl mx-auto">
               {/* Price & Contract Info */}
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-8">
                  <div>
-                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-0.5">Investissement</p>
+                    <div className="flex items-center gap-3 mb-1">
+                       <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Investissement</p>
+                       <div className="flex gap-1 bg-white/5 p-0.5 rounded-md">
+                          {(["XAF", "EUR", "USD"] as const).map((curr) => (
+                             <button
+                               key={curr}
+                               onClick={() => setDisplayCurrency(curr)}
+                               className={cn(
+                                 "text-[8px] font-black px-1.5 py-0.5 rounded transition-all",
+                                 displayCurrency === curr 
+                                   ? "bg-primary text-white shadow-glow-sm" 
+                                   : "text-text-muted hover:text-white"
+                               )}
+                             >
+                               {curr}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
                     <div className="flex items-baseline gap-1.5">
-                       <span className="text-2xl font-black text-white tracking-tighter">
-                         {totalPrice.toLocaleString()}
+                       <span className="text-3xl font-black text-primary tracking-tighter drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]">
+                         {totalPrice.toLocaleString(undefined, { maximumFractionDigits: displayCurrency === "XAF" ? 0 : 2 })}
                        </span>
-                       <span className="text-xs font-bold text-primary italic uppercase">XOF</span>
+                       <span className="text-sm font-bold text-primary/80 italic uppercase">{displayCurrency}</span>
                     </div>
                  </div>
                  
-                 <div className="h-8 w-px bg-white/10 hidden sm:block" />
+                 <div className="h-10 w-px bg-white/10 hidden sm:block" />
                  
                  <div className="hidden md:block">
                     <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-0.5">Contrat</p>
