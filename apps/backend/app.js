@@ -8,6 +8,7 @@ import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
 import testRoutes from "./routes/test.routes.js";
+import b2bRoutes from "./routes/b2b.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 // Rate Limiting
@@ -47,7 +48,7 @@ app.use(helmet({
 app.use(cors({
     origin: process.env.CORS_ALLOWED_ORIGINS
         ? process.env.CORS_ALLOWED_ORIGINS.split(',')
-        : ["http://localhost:3000", "http://localhost:3001", "https://dashboard.studieslearning.com"],
+        : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "https://dashboard.studieslearning.com"],
     credentials: true
 }));
 app.use(express.json());
@@ -63,6 +64,7 @@ app.use("/api/webhooks", webhookRoutes);
 app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/test", testRoutes);
+app.use("/api/b2b", b2bRoutes);
 
 // Error handling
 app.use(errorHandler);
