@@ -7,6 +7,7 @@ import {
   PostMeta, 
   PackageFormation, 
   SpecificFormation, 
+  Order,
   sequelize 
 } from "../models/index.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
@@ -231,6 +232,71 @@ export const b2bPackageController = {
       res.json({
         status: "success",
         message: "Licence révoquée avec succès."
+      });
+    } catch (err) {
+      await transaction.rollback();
+      next(err);
+    }
+  },
+
+  /**
+   * @route POST /api/v1/b2b/packages/purchase
+   * @desc Purchase a package (Simulation)
+   */
+  purchasePackage: async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+      const { package_id, total_licenses } = req.body;
+      const companyId = req.company_id;
+
+      // 1. Get package details
+      const pkg = await FormationPackage.findByPk(package_id, { transaction });
+      if (!pkg) {
+        throw new NotFoundError("Package introuvable.");
+      }
+
+      // 2. Create Company Package
+      // We check if company already has this package active to maybe increment licenses?
+      // For simplicity in this simulation, we create a new entry or update existing.
+      const companyPackage = await CompanyPackage.create({
+        company_id: companyId,
+        package_id,
+        total_licenses,
+        used_licenses: 0,
+        status: 'active',
+        purchase_date: new Date()
+      }, { transaction });
+
+      // 3. Create simulated Order
+      const totalAmount = (pkg.price || 0) * 1; // Price per package or per license? 
+      // In B2B often it's a fixed price for the package with a set number of licenses.
+      
+      await Order.create({
+        reference: `B2B-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        customerEmail: req.company_email || 'b2b@enterprise.com',
+        customerName: req.company_name || 'Enterprise Client',
+        currency: pkg.currency || 'XOF',
+        totalAmount: totalAmount,
+        status: 'completed',
+        lmsItemId: package_id.toString(),
+        lmsItemType: 'package',
+        formationId: package_id,
+        formationName: pkg.title,
+        paidAt: new Date(),
+        paymentProvider: 'SIMULATED',
+        metadata: {
+          b2b_purchase: true,
+          company_id: companyId,
+          total_licenses
+        }
+      }, { transaction });
+
+      await transaction.commit();
+
+      res.status(201).json({
+        status: "success",
+        message: "Package acheté avec succès.",
+        data: companyPackage
       });
     } catch (err) {
       await transaction.rollback();

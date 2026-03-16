@@ -57,6 +57,8 @@ export const b2bPackages = {
   getAll: () => api.get("/b2b/packages"),
   getById: (id: number) => api.get(`/b2b/packages/${id}`),
   getCatalog: () => api.get("/b2b/packages/catalog"),
+  purchase: (data: { package_id: number; total_licenses: number }) =>
+    api.post("/b2b/packages/purchase", data),
 };
 
 // --- Employees ---

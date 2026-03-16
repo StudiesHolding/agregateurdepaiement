@@ -26,3 +26,9 @@ export const updateRequestStatusSchema = z.object({
   status: z.enum(["pending", "processing", "activated", "rejected"]),
   admin_notes: z.string().optional(),
 });
+
+// --- Purchase Validations ---
+export const purchaseSchema = z.object({
+  package_id: z.number().int().positive(),
+  total_licenses: z.number().int().positive().min(1, "Au moins une licence est requise"),
+});
