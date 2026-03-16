@@ -40,6 +40,7 @@ router.delete("/employees/:id", b2bEmployeeController.delete);
 router.get("/packages", b2bPackageController.getPackages);
 router.get("/packages/catalog", b2bPackageController.getCatalog);
 router.get("/packages/:id", b2bPackageController.getPackageById);
+router.post("/packages/purchase", validateB2B(B2BValidators.purchaseSchema), b2bPackageController.purchasePackage);
 router.post("/licenses/assign", validateB2B(B2BValidators.assignLicenseSchema), b2bPackageController.assignLicense);
 router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 

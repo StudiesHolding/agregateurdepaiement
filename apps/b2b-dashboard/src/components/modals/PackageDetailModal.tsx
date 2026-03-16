@@ -1,8 +1,11 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
-import { Package, GraduationCap, Clock, BarChart, CheckCircle2, X, ArrowRight, User } from "lucide-react";
+import { CheckCircle2, Clock, BarChart, Users, Star, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { b2bPackages } from "@/lib/api";
+import { toast } from "sonner";
 
 interface PackageDetailModalProps {
   isOpen: boolean;
@@ -11,10 +14,37 @@ interface PackageDetailModalProps {
 }
 
 export function PackageDetailModal({ isOpen, onClose, pkg }: PackageDetailModalProps) {
+  const queryClient = useQueryClient();
+  
+  const purchaseMutation = useMutation({
+    mutationFn: (data: { package_id: number; total_licenses: number }) => b2bPackages.purchase(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["b2b-packages"] });
+      queryClient.invalidateQueries({ queryKey: ["b2b-dashboard-stats"] });
+      toast.success("Package acheté avec succès ! Retrouvez-le dans 'Mes Packages'.");
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Erreur lors de l'achat");
+    }
+  });
+
   if (!pkg) return null;
 
   const formations = pkg.packageFormations || pkg.package?.packageFormations || [];
-  
+  const isCatalog = !pkg.company_id;
+
+  const handleAction = () => {
+    if (isCatalog) {
+      purchaseMutation.mutate({
+        package_id: pkg.id,
+        total_licenses: 10 // Simulated default
+      });
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={pkg.title || pkg.package?.title} maxWidth="lg">
       <div className="flex flex-col space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar pr-2">
@@ -23,17 +53,17 @@ export function PackageDetailModal({ isOpen, onClose, pkg }: PackageDetailModalP
           {pkg.image_url || pkg.package?.image_url ? (
             <img 
               src={pkg.image_url || pkg.package?.image_url} 
-              alt={pkg.title} 
+              alt={pkg.title || pkg.package?.title} 
               className="w-full h-full object-cover" 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
-              <Package className="h-16 w-16 text-primary/20" />
+              <Users className="h-16 w-16 text-primary/20" />
             </div>
           )}
           <div className="absolute bottom-4 left-4">
             <span className="badge badge-primary shadow-glow">
-              {pkg.price || pkg.package?.price} {pkg.currency || pkg.package?.currency || "€"}
+              {pkg.price || pkg.package?.price} {pkg.currency || pkg.package?.currency || "XOF"}
             </span>
           </div>
         </div>
@@ -50,7 +80,7 @@ export function PackageDetailModal({ isOpen, onClose, pkg }: PackageDetailModalP
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="card-subtle flex items-center gap-3 p-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <GraduationCap className="h-5 w-5" />
+                <Star className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Contenu</p>
@@ -59,7 +89,7 @@ export function PackageDetailModal({ isOpen, onClose, pkg }: PackageDetailModalP
             </div>
             <div className="card-subtle flex items-center gap-3 p-4">
               <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
-                <User className="h-5 w-5" />
+                <Users className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Public Cible</p>
@@ -129,19 +159,23 @@ export function PackageDetailModal({ isOpen, onClose, pkg }: PackageDetailModalP
         <div className="pt-6 border-t border-white/5 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-black text-text-main">
-              {pkg.price || pkg.package?.price} {pkg.currency || pkg.package?.currency || "€"}
+              {pkg.price || pkg.package?.price} {pkg.currency || pkg.package?.currency || "XOF"}
             </span>
             <span className="text-[10px] text-success font-bold uppercase">Activation immédiate</span>
           </div>
           <button 
-            className="btn btn-primary px-8 shadow-glow"
-            onClick={() => {
-              // Action logic depends on context (already owned or catalog)
-              onClose();
-            }}
+            disabled={purchaseMutation.isPending}
+            onClick={handleAction}
+            className="btn btn-primary px-8 shadow-glow disabled:opacity-50"
           >
-            {pkg.company_id ? "Gérer le package" : "Continuer"}
-            <ArrowRight className="ml-2 h-4 w-4" />
+            {purchaseMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : isCatalog ? (
+              "Acheter le Package"
+            ) : (
+              "Fermer"
+            )}
+            {!purchaseMutation.isPending && isCatalog && <ArrowRight className="ml-2 h-4 w-4" />}
           </button>
         </div>
       </div>
