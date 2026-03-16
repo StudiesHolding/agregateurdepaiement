@@ -18,7 +18,6 @@ export function NotificationCenter() {
         queryFn: () => adminApi.getAdminNotifications().then((r) => r.data.data),
         refetchInterval: 10000, // Refresh every 10s
     });
-
     const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
     // Play sound when new notifications arrive
@@ -106,7 +105,7 @@ export function NotificationCenter() {
                                                 </span>
                                                 {n.orderReference && (
                                                     <Link
-                                                        href={`/orders/${n.id}`}
+                                                        href={`/orders/${n.Id}`}
                                                         className="text-[9px] font-black uppercase text-primary flex items-center gap-0.5"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >

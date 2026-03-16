@@ -1,0 +1,173 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   DESIGN SYSTEM – CSS VARIABLES
+   Light Mode (default) + Dark Mode
+   ============================================ */
+
+:root {
+  /* Surface & Background */
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+
+  /* Text */
+  --color-text-main: #0f172a;
+  --color-text-light: #475569;
+  --color-text-muted: #94a3b8;
+
+  /* Sidebar */
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active: #eef2ff;
+  --sidebar-text: #475569;
+  --sidebar-text-active: #4f46e5;
+  --sidebar-border: #e2e8f0;
+}
+
+.dark {
+  /* Surface & Background */
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+
+  /* Text */
+  --color-text-main: #f1f5f9;
+  --color-text-light: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Sidebar */
+  --sidebar-bg: #1e293b;
+  --sidebar-hover: #334155;
+  --sidebar-active: rgba(79, 70, 229, 0.15);
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #818cf8;
+  --sidebar-border: #334155;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+body {
+  font-family: "Outfit", "Inter", system-ui, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-light);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-2xl border border-border p-6 shadow-card;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-success-light text-success-dark;
+  }
+
+  .badge-warning {
+    @apply bg-warning-light text-warning-dark;
+  }
+
+  .badge-danger {
+    @apply bg-danger-light text-danger-dark;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-700 shadow-sm hover:shadow-glow;
+  }
+
+  .btn-secondary {
+    @apply bg-surface text-text-main border border-border hover:bg-background;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white hover:bg-danger-dark;
+  }
+
+  .btn-ghost {
+    @apply text-text-light hover:bg-background hover:text-text-main;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text-main placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200;
+  }
+
+  .glass {
+    @apply bg-white/60 dark:bg-white/5 backdrop-blur-xl;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out both;
+}
+
+/* Staggered animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }

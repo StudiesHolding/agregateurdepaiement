@@ -1,0 +1,84 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome,",
+    "overview": "Overview of your training programs"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "catalog": "Catalog",
+    "packages": "Packages",
+    "team": "Team",
+    "requests": "Access Requests",
+    "history": "History",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "logout": "Log out"
+  },
+  "packages": {
+    "title": "My Packages",
+    "subtitle": "Manage your training packages and licenses",
+    "totalLicenses": "Total licenses",
+    "usedLicenses": "Used licenses",
+    "availableLicenses": "Available licenses",
+    "assignLicense": "Assign a license",
+    "buyMore": "Buy more",
+    "noPackages": "No packages purchased",
+    "viewDetails": "View details"
+  },
+  "team": {
+    "title": "My Team",
+    "subtitle": "Manage your employees and their training",
+    "addEmployee": "Add employee",
+    "editEmployee": "Edit",
+    "deleteEmployee": "Delete",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "department": "Department",
+    "position": "Position",
+    "licensesAssigned": "Licenses assigned",
+    "noEmployees": "No employees registered",
+    "confirmDelete": "Are you sure you want to delete this employee?"
+  },
+  "requests": {
+    "title": "Access Requests",
+    "subtitle": "Track activation status of LMS access",
+    "pending": "Pending",
+    "processing": "Processing",
+    "activated": "Activated",
+    "rejected": "Rejected",
+    "noRequests": "No access requests"
+  },
+  "stats": {
+    "activePackages": "Active Packages",
+    "totalLicenses": "Total Licenses",
+    "usedLicenses": "Used Licenses",
+    "availableLicenses": "Available",
+    "pendingRequests": "Pending"
+  },
+  "common": {
+    "search": "Search...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "noData": "No data",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "language": "Language"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email address",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Sign in",
+    "loginSubtitle": "Access your company dashboard"
+  }
+}
