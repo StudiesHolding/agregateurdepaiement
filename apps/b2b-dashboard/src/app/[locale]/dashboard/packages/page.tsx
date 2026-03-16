@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { b2bPackages } from "@/lib/api";
 import { useState } from "react";
 import { AssignLicenseModal } from "@/components/modals/AssignLicenseModal";
-import { PackageDetailModal } from "@/components/modals/PackageDetailModal";
+import { PackageDetailDrawer } from "@/components/modals/PackageDetailDrawer";
 import Link from "next/link";
 
 export default function PackagesPage() {
@@ -219,7 +219,7 @@ export default function PackagesPage() {
         packageName={selectedPkgForAssign?.name}
       />
 
-      <PackageDetailModal
+      <PackageDetailDrawer
         isOpen={!!viewingPkg}
         onClose={() => setViewingPkg(null)}
         pkg={viewingPkg}

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { b2bPackages } from "@/lib/api";
-import { PackageDetailModal } from "@/components/modals/PackageDetailModal";
+import { PackageDetailDrawer } from "@/components/modals/PackageDetailDrawer";
 
 export default function CatalogPage() {
   const t = useTranslations("packages");
@@ -132,7 +132,7 @@ export default function CatalogPage() {
         ))}
       </div>
 
-      <PackageDetailModal 
+      <PackageDetailDrawer 
         isOpen={!!selectedPkg} 
         onClose={() => setSelectedPkg(null)} 
         pkg={selectedPkg} 
