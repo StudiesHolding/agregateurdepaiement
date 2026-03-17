@@ -11,6 +11,7 @@ import { PaymentStatus, AttemptStatus, OrderStatus } from "../enums/index.js";
 import { ProviderFactory } from "../providers/index.js";
 import { MailService } from "./mail.service.js";
 import { LmsBridgeService } from "./lms-bridge.service.js";
+import { B2BProvisioningService } from "./b2b-provisioning.service.js";
 
 export class WebhookProcessor {
   /**
@@ -161,7 +162,7 @@ export class WebhookProcessor {
         }
 
         if (finalStatus === PaymentStatus.SUCCEEDED) {
-          await this.markAsSucceeded(attempt, providerResponse, transaction);
+          await this.markAsSucceeded(attempt, providerResponse, transaction, providerCode);
           // notificationData = { type: "success", intent, order };
 
           // LMS Specialization: NO AUTO-ENROLLMENT anymore (Phase 4 manual)
@@ -171,7 +172,19 @@ export class WebhookProcessor {
           await this.notifyAdminsForValidation(order);
 
           // Phase 2: Send payment confirmation WITHOUT invoice
+          // Phase 2: Send payment confirmation WITHOUT invoice
           await MailService.sendPaymentConfirmed(order);
+
+          // B2B Phase: Auto-Provisioning
+          if (order.metadata?.is_b2b) {
+            try {
+              await B2BProvisioningService.handleB2BOrder(order);
+            } catch (err) {
+              console.error(`[WebhookProcessor] B2B Provisioning failed for Order ${order.reference}:`, err);
+              // We don't fail the whole webhook because payment IS successful.
+              // Admin will see the payment and have to manual provision or retry.
+            }
+          }
         } else if (finalStatus === PaymentStatus.FAILED) {
           await this.markAsFailed(attempt, providerResponse, transaction);
           notificationData = {
@@ -249,7 +262,7 @@ export class WebhookProcessor {
     return false;
   }
 
-  static async markAsSucceeded(attempt, payload, transaction) {
+  static async markAsSucceeded(attempt, payload, transaction, providerCode) {
     await attempt.update(
       {
         status: AttemptStatus.SUCCEEDED,
@@ -273,6 +286,9 @@ export class WebhookProcessor {
       {
         status: OrderStatus.PAYMENT_CONFIRMED,
         paidAt: new Date(), // Set paidAt timestamp
+        paymentProvider: providerCode,
+        transactionReference: attempt.transactionNumber,
+        paymentIntentId: String(attempt.paymentIntentId)
       },
       {
         where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId },

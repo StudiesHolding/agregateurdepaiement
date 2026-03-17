@@ -39,7 +39,21 @@ export class OrchestratorService {
       metadata,
       lmsItemId,
       lmsItemType,
+      company_name,
+      company_industry,
+      company_admin_email,
+      licence_count,
     } = data;
+
+    console.log("[OrchestratorService] Incoming data:", {
+      customerEmail,
+      lmsItemId,
+      lmsItemType,
+      amount,
+      currency,
+      metadata: metadata || {},
+      company_name
+    });
 
     // Fallback for notifyUrl from environment variables
     const finalNotifyUrl =
@@ -51,35 +65,59 @@ export class OrchestratorService {
     let finalMetadata = metadata || {};
     let formation = null;
 
-    if (finalMetadata.source === "payment_form_v3" && finalMetadata.formation_id) {
-      const licenceCount = Number(finalMetadata.licence_count || 1) || 1;
+    if ((finalMetadata.source === "payment_form_v3" || lmsItemType === 'package') && (finalMetadata.formation_id || lmsItemId || data.formationId)) {
+      const actualFormationId = lmsItemId || finalMetadata.formation_id || data.formationId;
+      const actualLicenceCount = Number(licence_count || finalMetadata.licence_count || 1) || 1;
 
-      formation = await FormationsService.getFormation(finalMetadata.formation_id);
+      if (lmsItemType === 'package') {
+        formation = await FormationsService.getPackage(actualFormationId);
+      } else {
+        formation = await FormationsService.getFormation(actualFormationId);
+      }
 
       if (!formation) {
         throw new BadRequestError("Formation introuvable pour ce paiement.");
       }
 
-      const expectedAmount = formation.price * licenceCount;
+      const expectedAmount = formation.price * actualLicenceCount;
 
       if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
         throw new BadRequestError("Montant de formation invalide pour ce paiement.");
       }
 
-      if (expectedAmount !== finalAmount) {
-        console.warn(
-          `[OrchestratorService] Amount mismatch for formation ${finalMetadata.formation_id}. ` +
-          `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
+      // Only enforce the expected amount if the currency matches the formation's currency
+      // If they differ, it's a cross-currency payment (e.g., product in EUR, payment in XOF)
+      // and we should trust the frontend's converted amount.
+      const formationCurrency = formation.currency || 'XAF'; // Assuming XAF for standard courses if not specified
+
+      if (currency === formationCurrency) {
+        if (expectedAmount !== finalAmount) {
+          console.warn(
+            `[OrchestratorService] Amount mismatch for formation ${actualFormationId}. ` +
+            `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
+          );
+          finalAmount = expectedAmount;
+        }
+      } else {
+        console.log(
+          `[OrchestratorService] Cross-currency payment detected: Product=${formationCurrency}, Payment=${currency}. ` +
+          `Trusting frontend amount=${finalAmount}.`
         );
       }
-
-      finalAmount = expectedAmount;
 
       finalMetadata = {
         ...finalMetadata,
         validatedByBackend: true,
         backendUnitPrice: formation.price,
-        backendLicenceCount: licenceCount,
+        backendLicenceCount: actualLicenceCount,
+        b2b_purchase: lmsItemType === 'package',
+        is_b2b: lmsItemType === 'package' || !!company_name,
+        company_name,
+        company_industry,
+        company_admin_email,
+        total_licenses: actualLicenceCount,
+        licence_count: actualLicenceCount,
+        source: finalMetadata.source || 'payment_form_v3'
       };
     }
 

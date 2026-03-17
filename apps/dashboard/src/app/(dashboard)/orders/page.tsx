@@ -90,6 +90,18 @@ function PurchaseTypeBadge({ type }: { type: string }) {
   );
 }
 
+function LmsItemTypeBadge({ type }: { type: string }) {
+  const isPackage = type === 'package';
+  return (
+    <span className={cn(
+      "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ml-1",
+      isPackage ? "bg-primary-light text-primary-dark border border-primary/20" : "bg-background text-text-light border border-border"
+    )}>
+      {isPackage ? "📦 Package" : "🎓 Formation"}
+    </span>
+  );
+}
+
 // ── Modals ─────────────────────────────────────────────────────────
 
 function ActionModal({
@@ -184,8 +196,8 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title leading-tight">Workflow <span className="gradient-text text-primary">Formations</span></h1>
-          <p className="text-sm text-text-light font-medium mt-1">Gérez le cycle de vie des inscriptions et des paiements LMS.</p>
+          <h1 className="page-title leading-tight">Workflow <span className="gradient-text text-primary">Inscriptions</span></h1>
+          <p className="text-sm text-text-light font-medium mt-1">Gérez le cycle de vie des inscriptions (Formations & Packages) et des paiements.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -295,11 +307,20 @@ export default function OrdersPage() {
                       </div>
                     </td>
                     <td><span className="font-bold text-text-main">{formatCurrency(Number(order.totalAmount), order.currency)}</span></td>
-                    <td><PurchaseTypeBadge type={order.purchaseType || 'self'} /></td>
+                    <td>
+                      <div className="flex flex-col gap-1 items-start">
+                        <PurchaseTypeBadge type={order.purchaseType || 'self'} />
+                        <LmsItemTypeBadge type={order.lmsItemType || 'course'} />
+                      </div>
+                    </td>
                     <td>
                       <div className="flex items-center gap-1.5 text-text-light">
                         <Calendar size={12} />
-                        <span className="text-xs font-medium">{new Date(order.createdAt).toLocaleDateString("fr-FR")}</span>
+                        <span className="text-xs font-medium">
+                          {order.createdAt || order.created_at 
+                            ? new Date(order.createdAt || order.created_at).toLocaleDateString("fr-FR") 
+                            : "—"}
+                        </span>
                       </div>
                     </td>
                     <td><OrderStatusBadge status={order.status} /></td>

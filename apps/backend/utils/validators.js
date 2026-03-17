@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const initPaymentSchema = z.object({
     customerEmail: z.string().email(),
+    customerName: z.string().optional(),
     customerSurname: z.string().optional(),
     customerPhoneNumber: z.string().optional(),
     customerAddress: z.string().optional(),
@@ -24,6 +25,15 @@ export const initPaymentSchema = z.object({
     notifyUrl: z.string().url().optional(),
     idempotencyKey: z.string().optional(),
     metadata: z.record(z.any()).optional(),
+    
+    // LMS & B2B Specific Fields
+    lmsItemId: z.string().or(z.number()).optional(),
+    lmsItemType: z.enum(["course", "package"]).optional(),
+    is_b2b: z.boolean().optional(),
+    company_name: z.string().optional(),
+    company_industry: z.string().optional(),
+    company_admin_email: z.string().email().optional(),
+    licence_count: z.number().int().min(1).optional(),
 });
 
 export const paymentStatusSchema = z.object({

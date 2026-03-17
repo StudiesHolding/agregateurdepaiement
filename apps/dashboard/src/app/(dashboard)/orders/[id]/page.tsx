@@ -281,7 +281,9 @@ export default function OrderDetailPage() {
               <OrderStatusBadge status={order.status} />
             </div>
             <p className="text-xs text-text-light mt-1 font-medium flex items-center gap-1.5">
-              <Calendar size={12} /> {new Date(order.createdAt).toLocaleDateString("fr-FR", { dateStyle: 'long' })}
+              <Calendar size={12} /> {order.createdAt || (order as any).created_at 
+                ? new Date(order.createdAt || (order as any).created_at).toLocaleDateString("fr-FR", { dateStyle: 'long' }) 
+                : "En attente"}
             </p>
           </div>
         </div>
@@ -319,19 +321,34 @@ export default function OrderDetailPage() {
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
-                <DataRow label="Formation" value={order.formationName || order.lmsItemId} />
-                <DataRow label="Support" value={<span className="capitalize">{order.lmsItemType}</span>} />
-                <DataRow label="Paiement Brut" value={<span className="text-lg font-bold text-primary">{formatXAF(Number(order.totalAmount))}</span>} />
+                <DataRow 
+                  label={(order.lmsItemType || (order as any).lms_item_type) === 'package' ? "Package B2B" : "Formation"} 
+                  value={order.formationName || (order as any).formation_name || order.lmsItemId || (order as any).lms_item_id} 
+                />
+                <DataRow label="Type de Produit" value={<span className="capitalize font-bold text-primary">{(order.lmsItemType || (order as any).lms_item_type) === 'package' ? "PACK FORMATION" : "FORMATION INDIVIDUELLE"}</span>} />
+                {(order.lmsItemType || (order as any).lms_item_type) === 'package' && (
+                  <>
+                    <DataRow 
+                      label="Total Licences" 
+                      value={<span className="font-bold text-primary text-lg">{(order.metadata as any)?.backendLicenceCount || (order.metadata as any)?.licence_count || 1}</span>} 
+                    />
+                    <DataRow 
+                      label="Prix par Licence" 
+                      value={formatXAF(Number((order.metadata as any)?.backendUnitPrice || order.formationPrice || (order as any).formation_price || 0))} 
+                    />
+                  </>
+                )}
+                <DataRow label="Montant Transaction" value={<span className="text-lg font-bold text-primary">{formatXAF(Number(order.totalAmount || (order as any).total_amount))}</span>} />
                 <DataRow label="Devise" value={order.currency} />
-                <DataRow label="Bénéficiaire" value={order.purchaseType === 'gift' ? '🎁 Cadeau' : '👤 Personnel'} />
-                <DataRow label="Confirmé le" value={order.paidAt ? new Date(order.paidAt).toLocaleString("fr-FR", { dateStyle: 'short', timeStyle: 'short' }) : "En attente"} />
+                <DataRow label="Usage" value={(order.purchaseType || (order as any).purchase_type) === 'gift' ? '🎁 Cadeau' : '👤 Personnel'} />
+                <DataRow label="Confirmé le" value={(order.paidAt || (order as any).paid_at) ? new Date(order.paidAt || (order as any).paid_at).toLocaleString("fr-FR", { dateStyle: 'short', timeStyle: 'short' }) : "En attente"} />
               </div>
 
               <div className="mt-8 pt-8 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-background/50 border border-border">
-                  <DataRow label="Passerelle" value={order.paymentProvider} />
-                  <DataRow label="Ref. Transaction" value={order.transactionReference} mono />
-                  <DataRow label="IntentID" value={order.paymentIntentId} mono />
+                  <DataRow label="Passerelle" value={order.paymentProvider || (order as any).payment_provider} />
+                  <DataRow label="Ref. Transaction" value={order.transactionReference || (order as any).transaction_reference} mono />
+                  <DataRow label="IntentID" value={order.paymentIntentId || (order as any).payment_intent_id} mono />
                 </div>
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex flex-col justify-center">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-1 ml-2">Notes & Context</label>
@@ -350,12 +367,23 @@ export default function OrderDetailPage() {
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <DataRow icon={User} label="Nom / Prénom" value={`${order.customerName || ""} ${order.customerSurname || ""}`} />
-                <DataRow icon={Mail} label="Contact Email" value={order.customerEmail} />
-                <DataRow icon={Phone} label="Téléphone" value={order.customerPhone} />
+                <DataRow icon={User} label="Nom / Prénom" value={`${order.customerName || (order as any).customer_name || ""} ${order.customerSurname || (order as any).customer_surname || ""}`} />
+                <DataRow icon={Mail} label="Contact Email" value={order.customerEmail || (order as any).customer_email} />
+                <DataRow icon={Phone} label="Téléphone" value={order.customerPhone || (order as any).customer_phone} />
               </div>
               <div className="space-y-1">
-                <DataRow icon={MapPin} label="Localisation" value={`${order.customerCity || ''}${order.customerCity && order.customerCountry ? ', ' : ''}${order.customerCountry || ''}`} />
+                <DataRow icon={MapPin} label="Localisation" value={`${order.customerCity || (order as any).customer_city || ''}${(order.customerCity || (order as any).customer_city) && (order.customerCountry || (order as any).customer_country) ? ', ' : ''}${order.customerCountry || (order as any).customer_country || ''}`} />
+                
+                {/* B2B / Corporate Info */}
+                {((order.metadata as any)?.is_b2b || (order.lmsItemType || (order as any).lms_item_type) === 'package' || (order.metadata as any)?.b2b_purchase) && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3 ml-2">Informations Entreprise (B2B)</p>
+                    <DataRow label="Entreprise" value={(order.metadata as any)?.company_name || order.customerName || (order as any).customer_name || "—"} />
+                    <DataRow label="Secteur" value={(order.metadata as any)?.company_industry || "—"} />
+                    <DataRow label="Email Admin" value={(order.metadata as any)?.company_admin_email || order.customerEmail || (order as any).customer_email || "—"} />
+                  </div>
+                )}
+
                 {order.purchaseType === 'gift' && (
                   <>
                     <div className="mt-4 pt-4 border-t border-border/50">

@@ -28,86 +28,105 @@ export function Header() {
       const response = await b2bNotifications.getAll();
       return response.data.data;
     },
-    // We can fetch this less frequently or on interval
     refetchInterval: 60000,
   });
 
   const handleLogout = () => {
     localStorage.removeItem("b2b_token");
     toast.success("Déconnexion réussie");
-    window.location.href = "/fr/login";
+    window.location.href = "/[locale]/login";
   };
 
   const unreadCount = notificationsData?.filter((n: any) => !n.is_read).length || 0;
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-white/5 bg-surface/80 backdrop-blur-xl px-4 sm:px-6">
-      <div className="flex items-center gap-4">
-        {/* Mobile Toggle */}
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-sidebar-border bg-sidebar-bg/80 backdrop-blur-2xl px-4 sm:px-8 transition-all duration-300">
+      {/* Animated Top Accent - Subtler */}
+      <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-brand opacity-40" />
+
+      <div className="flex items-center gap-4 lg:gap-6">
+        {/* Mobile Toggle - Improved Design */}
         <button
           onClick={toggleMobile}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-surface text-text-light hover:text-text-main lg:hidden transition-all duration-300 shadow-sm"
+          className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-text-muted hover:text-primary lg:hidden transition-all duration-300 shadow-inner active:scale-90"
           aria-label="Toggle Menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />
         </button>
         
-        {/* Left: page title slot - filled by page */}
-        <div id="header-title" className="hidden sm:block" />
+        {/* Page Title Slot */}
+        <div id="header-title" className="hidden lg:block min-w-[100px]" />
       </div>
 
-      {/* Right: actions */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="hidden xs:flex items-center gap-2 sm:gap-3">
+      {/* Center: Brand or Search could go here if needed, but keeping it clean for now */}
+
+      {/* Right side: Modern Action Group */}
+      <div className="flex items-center gap-3 sm:gap-5">
+        
+        {/* Functional Toggles - ALWAYS VISIBLE */}
+        <div className="flex items-center gap-2 pr-2 sm:pr-4 border-r border-white/10">
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
 
-        {/* Notifications bell */}
-        <button
-          className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-surface text-text-light hover:text-text-main hover:bg-background transition-all duration-300 shadow-sm"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4.5 w-4.5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-danger text-[10px] font-black text-white shadow-glow-sm">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-
-        {/* User Info & Logout */}
-        <div className="flex items-center gap-2 sm:gap-3 ml-1 sm:ml-2 pl-2 sm:pl-4 border-l border-white/5">
-          <div className="flex flex-col items-end mr-1 hidden md:flex">
-            {userLoading ? (
-              <div className="h-4 w-20 bg-background animate-pulse rounded" />
-            ) : (
-              <>
-                <span className="text-sm font-bold text-text-main truncate max-w-[150px]">
-                  {userData?.first_name} {userData?.last_name}
-                </span>
-                <span className="text-[10px] text-text-muted font-medium uppercase tracking-wider">
-                  {userData?.role || 'Admin'}
-                </span>
-              </>
-            )}
-          </div>
-          
-          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-brand flex items-center justify-center text-white text-xs font-black shadow-glow-sm border border-white/10">
-            {userLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              getInitials(userData?.first_name || "Admin", userData?.last_name || "")
-            )}
-          </div>
-
+        {/* System Actions */}
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
-            onClick={handleLogout}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-text-muted hover:text-danger hover:bg-danger/10 transition-all duration-300"
-            title="Se déconnecter"
+            className="group relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-text-muted hover:text-primary hover:bg-white/10 transition-all duration-300 shadow-sm active:scale-95"
+            aria-label="Notifications"
           >
-            <LogOut className="h-4.5 w-4.5" />
+            <Bell className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[9px] font-black text-white shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)] border-2 border-surface animate-bounce-subtle">
+                {unreadCount}
+              </span>
+            )}
           </button>
+
+          {/* User Profile - Premium Feel */}
+          <div className="flex items-center gap-3 pl-2 sm:pl-4 border-l border-white/10">
+            <div className="hidden md:flex flex-col items-end">
+              {userLoading ? (
+                <div className="space-y-1">
+                  <div className="h-3 w-24 bg-white/5 animate-pulse rounded-full" />
+                  <div className="h-2 w-16 bg-white/5 animate-pulse rounded-full" />
+                </div>
+              ) : (
+                <>
+                  <span className="text-sm font-black text-text-main tracking-tight leading-none mb-1">
+                    {userData?.first_name} {userData?.last_name}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
+                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest leading-none">
+                      {userData?.role || 'Directeur'}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="group relative">
+               <div className="h-11 w-11 rounded-2xl bg-gradient-brand p-[1px] shadow-glow-sm transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
+                  <div className="h-full w-full rounded-[15px] bg-background flex items-center justify-center text-text-main text-xs font-black">
+                    {userLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      getInitials(userData?.first_name || "Admin", userData?.last_name || "")
+                    )}
+                  </div>
+               </div>
+               
+               {/* Quick Logout Mini Button overlay on profile */}
+               <button
+                  onClick={handleLogout}
+                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-lg bg-error text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-90 transition-all opacity-0 group-hover:opacity-100"
+                  title="Déconnexion"
+                >
+                  <LogOut size={12} />
+               </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>

@@ -9,7 +9,7 @@ export class OrderService {
      * @returns {Promise<Order>}
      */
     static async create(data) {
-        const reference = this.generateReference();
+        const reference = this.generateReference(data.lmsItemType || "course");
 
         const order = await Order.create({
             reference,
@@ -78,9 +78,10 @@ export class OrderService {
      * Generate a unique order reference
      * @returns {string}
      */
-    static generateReference() {
+    static generateReference(type = "course") {
+        const prefix = type === "package" ? "B2B" : "ORD";
         const timestamp = Date.now().toString(36).toUpperCase();
         const random = uuidv4().substring(0, 8).toUpperCase();
-        return `ORD-${timestamp}-${random}`;
+        return `${prefix}-${timestamp}-${random}`;
     }
 }

@@ -86,4 +86,45 @@ export class FormationsService {
             return null;
         }
     }
+
+    /**
+     * Get a single package by ID
+     */
+    static async getPackage(id) {
+        try {
+            const rows = await sequelize.query(
+                `SELECT 
+                    id,
+                    title,
+                    description,
+                    price,
+                    currency,
+                    image_url as thumbnail,
+                    created_at as createdAt
+                FROM sl_formation_packages
+                WHERE id = :id AND is_active = 1`,
+                { 
+                    replacements: { id },
+                    type: QueryTypes.SELECT 
+                }
+            );
+
+            if (!rows || rows.length === 0) return null;
+            const row = rows[0];
+
+            return {
+                id: String(row.id),
+                title: row.title,
+                description: row.description || '',
+                price: row.price ? parseFloat(row.price) : 0,
+                thumbnail: row.thumbnail || null,
+                currency: row.currency || 'XOF',
+                createdAt: row.createdAt,
+                isPackage: true
+            };
+        } catch (err) {
+            console.error("[FormationsService] getPackage error:", err.message);
+            return null;
+        }
+    }
 }
