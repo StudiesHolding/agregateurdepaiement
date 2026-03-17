@@ -19,6 +19,7 @@ import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
 import { NotificationController } from "../controllers/notification.controller.js";
 import { AdminNotificationController } from "../controllers/admin-notification.controller.js";
+import { AdminCompanyController } from "../controllers/admin-company.controller.js";
 
 const router = Router();
 
@@ -737,6 +738,34 @@ router.post(
  */
 router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
     await OrderController.getAuditHistory(req, res, next);
+}));
+
+// ═══════════════════════════════════════════════════════════
+// 🏢 COMPANIES & B2B MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/companies
+ * Liste toutes les entreprises clientes
+ */
+router.get("/companies", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.list(req, res, next);
+}));
+
+/**
+ * GET /api/admin/companies/:id
+ * Détail d'une entreprise avec ses admins et packages
+ */
+router.get("/companies/:id", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.getById(req, res, next);
+}));
+
+/**
+ * PUT /api/admin/companies/admins/:adminId/toggle
+ * Activer/Désactiver manuellement un admin entreprise
+ */
+router.put("/companies/admins/:adminId/toggle", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.toggleAdminStatus(req, res, next);
 }));
 
 export default router;

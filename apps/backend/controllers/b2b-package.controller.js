@@ -286,8 +286,11 @@ export const b2bPackageController = {
         paymentProvider: 'SIMULATED',
         metadata: {
           b2b_purchase: true,
+          is_b2b: true,
           company_id: companyId,
-          total_licenses
+          company_name: req.company_name, // If available in request
+          total_licenses,
+          source: 'b2b_dashboard'
         }
       }, { transaction });
 
