@@ -1,5 +1,6 @@
 import { Company, CompanyAdmin, CompanyPackage, Order, sequelize } from "../models/index.js";
 import { MailService } from "./mail.service.js";
+import { InvoiceService } from "./invoice.service.js";
 import { v4 as uuidv4 } from "../utils/uuid.js";
 import crypto from "crypto";
 
@@ -10,17 +11,17 @@ export class B2BProvisioningService {
    */
   static async handleB2BOrder(order) {
     console.log(`[B2BProvisioning] Starting fulfillment for Order ${order.reference}...`);
-    
+
     const transaction = await sequelize.transaction();
-    
+
     try {
       const metadata = order.metadata || {};
       const companyName = metadata.company_name || order.customerName || "Nouvelle Entreprise";
       const adminEmail = metadata.company_admin_email || order.customerEmail;
-      
+
       // 1. Create or Find Company (Idempotent)
       let company = await Company.findOne({ where: { email: adminEmail }, transaction });
-      
+
       if (!company) {
         company = await Company.create({
           name: companyName,
@@ -34,9 +35,11 @@ export class B2BProvisioningService {
 
       // 2. Create CompanyAdmin (Disabled, awaiting activation)
       let admin = await CompanyAdmin.findOne({ where: { email: adminEmail }, transaction });
-      
+
       const activationToken = crypto.randomBytes(32).toString('hex');
       const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+      console.log(`[B2BProvisioning] Creating activation token for ${adminEmail}: ${activationToken}`);
 
       if (!admin) {
         admin = await CompanyAdmin.create({
@@ -45,33 +48,59 @@ export class B2BProvisioningService {
           password_hash: "AWAITING_ACTIVATION_" + uuidv4(), // Temporary placeholder
           is_active: false,
           role: "admin",
-          // We'll use metadata for the token if there's no explicit field
-          // Or we can add a dedicated field if we want to be more professional
+          metadata: {
+            activation_token: activationToken,
+            token_expires: tokenExpires
+          }
+        }, { transaction });
+        console.log(`[B2BProvisioning] Admin created with metadata:`, admin.metadata);
+      } else {
+        // Admin exists - update with new activation token and ensure is_active is false
+        const updatedMetadata = {
+          ...(admin.metadata || {}),
+          activation_token: activationToken,
+          token_expires: tokenExpires
+        };
+        console.log(`[B2BProvisioning] Updating admin metadata:`, updatedMetadata);
+        await admin.update({
+          is_active: false,
+          metadata: updatedMetadata
+        }, { transaction });
+
+        // Reload to verify
+        await admin.reload({ transaction });
+        console.log(`[B2BProvisioning] Admin metadata after update:`, admin.metadata);
+      }
+
+      // 3. Provision the Package (Idempotent - update if exists)
+      const existingPackage = await CompanyPackage.findOne({
+        where: { company_id: company.id, package_id: order.formationId },
+        transaction
+      });
+
+      if (existingPackage) {
+        // Update existing package with new license count
+        await existingPackage.update({
+          total_licenses: metadata.licence_count || existingPackage.total_licenses,
+          status: 'active',
+          purchase_date: new Date()
+        }, { transaction });
+      } else {
+        // Create new package
+        await CompanyPackage.create({
+          company_id: company.id,
+          package_id: order.formationId,
+          total_licenses: metadata.licence_count || 1,
+          used_licenses: 0,
+          status: 'active',
+          purchase_date: new Date()
         }, { transaction });
       }
 
-      // Store activation token in metadata for now (to avoid DB migrations during this task)
-      const updatedMetadata = {
-        ...admin.metadata,
-        activation_token: activationToken,
-        token_expires: tokenExpires
-      };
-      await admin.update({ metadata: updatedMetadata }, { transaction });
-
-      // 3. Provision the Package
-      await CompanyPackage.create({
-        company_id: company.id,
-        package_id: order.formationId,
-        total_licenses: metadata.licence_count || 1,
-        used_licenses: 0,
-        status: 'active',
-        purchase_date: new Date()
-      }, { transaction });
-
       await transaction.commit();
 
-      // 4. Send Activation Email
-      await this.sendActivationEmail(admin, company, activationToken);
+      // 4. Send Activation Email with Invoice
+      await this.sendActivationEmail(admin, company, activationToken, order);
 
       console.log(`[B2BProvisioning] Successfully provisioned B2B account for ${adminEmail}`);
       return { success: true, companyId: company.id };
@@ -84,11 +113,27 @@ export class B2BProvisioningService {
   }
 
   /**
-   * Send the activation email with the secure link
+   * Send the activation email with the secure link and attach invoice
    */
-  static async sendActivationEmail(admin, company, token) {
-    const dashboardUrl = process.env.B2B_DASHBOARD_URL || "http://localhost:3001";
+  static async sendActivationEmail(admin, company, token, order = null) {
+    const dashboardUrl = process.env.B2B_DASHBOARD_URL || "http://localhost:3002";
     const activationLink = `${dashboardUrl}/auth/activate?token=${token}&email=${admin.email}`;
+
+    // Generate invoice PDF if order is provided
+    let attachment = null;
+    if (order) {
+      try {
+        const pdfBuffer = await InvoiceService.generateInvoiceBuffer(null, order);
+        if (pdfBuffer) {
+          attachment = {
+            filename: `facture-${order.reference}.pdf`,
+            content: pdfBuffer
+          };
+        }
+      } catch (error) {
+        console.warn("[B2BProvisioning] Failed to generate invoice PDF:", error.message);
+      }
+    }
 
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -121,8 +166,9 @@ export class B2BProvisioningService {
 
     return await MailService.sendEmail({
       to: admin.email,
-      subject: `🚀 Activez votre espace B2B - ${company.name}`,
-      html
+      subject: `Activez votre espace B2B - ${company.name}`,
+      html,
+      attachments: attachment ? [attachment] : []
     });
   }
 }

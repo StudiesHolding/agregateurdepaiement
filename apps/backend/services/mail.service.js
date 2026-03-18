@@ -322,6 +322,67 @@ export class MailService {
   // ============================================================================
 
   /**
+   * Email: Confirmation paiement B2B (SANS activation) - Phase 2
+   * Envoyé automatiquement après réception du paiement webhook
+   * L'entreprise reçoit la confirmation mais doit attendre la validation admin
+   */
+  static async sendB2BPaymentConfirmed(order) {
+    const metadata = order.metadata || {};
+    const companyName = metadata.company_name || order.customerName;
+    const licenseCount = metadata.licence_count || 1;
+    const packageName = metadata.packageName || 'Pack Formation';
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="background: #1d3557; padding: 40px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 24px;">Paiement Reçu</h1>
+          <p style="margin-top: 10px; opacity: 0.9;">${companyName}</p>
+        </div>
+        <div style="padding: 40px;">
+          <p>Bonjour,</p>
+          <p>Nous avons bien reçu votre paiement pour l'achat du <strong>${packageName}</strong>.</p>
+          
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 25px 0;">
+            <table style="width: 100%;">
+              <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Entreprise</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${companyName}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Package</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${packageName}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; padding-bottom: 8px;">Nombre de licences</td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; padding-bottom: 8px;">${licenseCount}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b;">Montant Réglé</td>
+                <td style="text-align: right; font-weight: 800; color: #10b981;">${order.totalAmount} ${order.currency}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin: 25px 0;">
+            <p style="margin: 0; color: #92400e;"><strong>En attente de validation</strong></p>
+            <p style="margin: 5px 0 0; color: #92400e; font-size: 14px;">Notre équipe vérifie actuellement votre paiement. La validation et l'activation de votre espace B2B interviendra sous 24 à 48 heures.</p>
+          </div>
+          
+          <p>Vous recevrez un email avec vos identifiants de connexion et votre facture dès que notre équipe aura finalisé la vérification.</p>
+          
+          <p>Cordialement,<br>L'équipe Studies Learning</p>
+        </div>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to: order.customerEmail,
+      subject: `[Studies Learning] Paiement reçu - ${order.reference}`,
+      html,
+    });
+  }
+
+  /**
    * Email: Confirmation paiement (SANS facture) - Phase 2
    * Envoyé automatiquement après réception du paiement
    */

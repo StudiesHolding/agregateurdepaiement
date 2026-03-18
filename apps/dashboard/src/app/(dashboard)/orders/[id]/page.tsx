@@ -248,6 +248,15 @@ export default function OrderDetailPage() {
     enabled: !!orderId,
   });
 
+  const { data: provisioningData } = useQuery({
+    queryKey: ["order-provisioning", orderId],
+    queryFn: async () => {
+      const response = await adminApi.getOrderProvisioning(orderId);
+      return response.data as { success: boolean; data: any };
+    },
+    enabled: !!orderId,
+  });
+
   const mutation = useMutation({
     mutationFn: (args: any) => args.type === "val" ? adminApi.validateOrder(orderId, args.data) : adminApi.completeOrder(orderId, args.data),
     onSuccess: () => {
@@ -281,8 +290,8 @@ export default function OrderDetailPage() {
               <OrderStatusBadge status={order.status} />
             </div>
             <p className="text-xs text-text-light mt-1 font-medium flex items-center gap-1.5">
-              <Calendar size={12} /> {order.createdAt || (order as any).created_at 
-                ? new Date(order.createdAt || (order as any).created_at).toLocaleDateString("fr-FR", { dateStyle: 'long' }) 
+              <Calendar size={12} /> {order.createdAt || (order as any).created_at
+                ? new Date(order.createdAt || (order as any).created_at).toLocaleDateString("fr-FR", { dateStyle: 'long' })
                 : "En attente"}
             </p>
           </div>
@@ -321,26 +330,32 @@ export default function OrderDetailPage() {
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
-                <DataRow 
-                  label={(order.lmsItemType || (order as any).lms_item_type) === 'package' ? "Package B2B" : "Formation"} 
-                  value={order.formationName || (order as any).formation_name || order.lmsItemId || (order as any).lms_item_id} 
+                <DataRow
+                  label={(order.lmsItemType || (order as any).lms_item_type) === 'package' ? "Package B2B" : "Formation"}
+                  value={order.formationName || (order as any).formation_name || order.lmsItemId || (order as any).lms_item_id}
                 />
                 <DataRow label="Type de Produit" value={<span className="capitalize font-bold text-primary">{(order.lmsItemType || (order as any).lms_item_type) === 'package' ? "PACK FORMATION" : "FORMATION INDIVIDUELLE"}</span>} />
                 {(order.lmsItemType || (order as any).lms_item_type) === 'package' && (
                   <>
-                    <DataRow 
-                      label="Total Licences" 
-                      value={<span className="font-bold text-primary text-lg">{(order.metadata as any)?.backendLicenceCount || (order.metadata as any)?.licence_count || 1}</span>} 
+                    <DataRow
+                      label="Total Licences"
+                      value={<span className="font-bold text-primary text-lg">{(order.metadata as any)?.backendLicenceCount || (order.metadata as any)?.licence_count || 1}</span>}
                     />
-                    <DataRow 
-                      label="Prix par Licence" 
-                      value={formatXAF(Number((order.metadata as any)?.backendUnitPrice || order.formationPrice || (order as any).formation_price || 0))} 
+                    <DataRow
+                      label="Prix par Licence"
+                      value={formatXAF(Number((order.metadata as any)?.backendUnitPrice || order.formationPrice || (order as any).formation_price || 0))}
                     />
                   </>
                 )}
                 <DataRow label="Montant Transaction" value={<span className="text-lg font-bold text-primary">{formatXAF(Number(order.totalAmount || (order as any).total_amount))}</span>} />
                 <DataRow label="Devise" value={order.currency} />
-                <DataRow label="Usage" value={(order.purchaseType || (order as any).purchase_type) === 'gift' ? '🎁 Cadeau' : '👤 Personnel'} />
+                <DataRow label="Usage" value={
+                  <span className="flex items-center gap-1">
+                    {(order.purchaseType || (order as any).purchase_type) === 'gift'
+                      ? <><Gift size={12} className="text-purple-500" /> Cadeau</>
+                      : <><User size={12} className="text-primary" /> Personnel</>}
+                  </span>
+                } />
                 <DataRow label="Confirmé le" value={(order.paidAt || (order as any).paid_at) ? new Date(order.paidAt || (order as any).paid_at).toLocaleString("fr-FR", { dateStyle: 'short', timeStyle: 'short' }) : "En attente"} />
               </div>
 
@@ -373,7 +388,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="space-y-1">
                 <DataRow icon={MapPin} label="Localisation" value={`${order.customerCity || (order as any).customer_city || ''}${(order.customerCity || (order as any).customer_city) && (order.customerCountry || (order as any).customer_country) ? ', ' : ''}${order.customerCountry || (order as any).customer_country || ''}`} />
-                
+
                 {/* B2B / Corporate Info */}
                 {((order.metadata as any)?.is_b2b || (order.lmsItemType || (order as any).lms_item_type) === 'package' || (order.metadata as any)?.b2b_purchase) && (
                   <div className="mt-4 pt-4 border-t border-border/50">
@@ -381,6 +396,26 @@ export default function OrderDetailPage() {
                     <DataRow label="Entreprise" value={(order.metadata as any)?.company_name || order.customerName || (order as any).customer_name || "—"} />
                     <DataRow label="Secteur" value={(order.metadata as any)?.company_industry || "—"} />
                     <DataRow label="Email Admin" value={(order.metadata as any)?.company_admin_email || order.customerEmail || (order as any).customer_email || "—"} />
+
+                    {/* Afficher les infos de provisioning si disponibles */}
+                    {provisioningData?.data?.isB2B && provisioningData?.data?.provisioning && (
+                      <>
+                        <DataRow label="Statut Provisioning" value={
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1",
+                            provisioningData.data.provisioning.status === 'completed' ? "bg-success-light text-success-dark" : "bg-warning-light text-warning-dark"
+                          )}>
+                            {provisioningData.data.provisioning.status === 'completed'
+                              ? <><CheckCircle size={10} /> Provisionné</>
+                              : <><Clock size={10} /> En cours</>}
+                          </span>
+                        } />
+                        <DataRow label="Licences" value={provisioningData.data.provisioning.totalLicenses} />
+                        {provisioningData.data.provisioning.companyId && (
+                          <DataRow label="Company ID" value={provisioningData.data.provisioning.companyId} />
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
 

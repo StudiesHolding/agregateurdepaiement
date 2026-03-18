@@ -78,7 +78,7 @@
     "email": "Email address",
     "password": "Password",
     "forgotPassword": "Forgot password?",
-    "loginButton": "Sign in",
+    "signIn": "Sign in",
     "loginSubtitle": "Access your company dashboard"
   }
 }

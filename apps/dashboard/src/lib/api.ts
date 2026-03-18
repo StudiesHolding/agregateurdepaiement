@@ -141,6 +141,8 @@ export const adminApi = {
     api.post(`/orders/${id}/complete`, data),
   getOrderAudit: (id: number, params: Record<string, number>) =>
     api.get(`/orders/${id}/audit`, { params }),
+  getOrderProvisioning: (id: number) =>
+    api.get(`/orders/${id}/provisioning`),
 
   // Test API (Formations + Orders)
   getTestFormations: () => api.get("/test/formations"),
@@ -166,4 +168,26 @@ export const adminApi = {
   simulateWebhook: (data: { orderId: number; provider: string; status: string }) =>
     api.post("/test/simulate-webhook", data),
   resetOrder: (id: number) => api.post(`/test/orders/${id}/reset`),
+
+  // Test API (B2B Packages)
+  getTestPackages: () => api.get("/test/packages"),
+  createTestB2BOrder: (data: {
+    packageId?: string;
+    packageName?: string;
+    packagePrice?: number;
+    customerEmail: string;
+    customerName: string;
+    customerPhone?: string;
+    customerCountry?: string;
+    amount?: number;
+    companyName?: string;
+    companyIndustry?: string;
+    companyAdminEmail?: string;
+    licenceCount?: number;
+    unitPrice?: number;
+  }) => api.post("/test/b2b-orders", data),
+  simulateB2BPayment: (id: number, status?: string) =>
+    api.post(`/test/b2b-orders/${id}/simulate-payment`, { status }),
+  provisionB2BOrder: (id: number) =>
+    api.post(`/test/b2b-orders/${id}/provision`),
 };

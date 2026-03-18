@@ -34,6 +34,7 @@ export class OrderController {
         dateTo,
         page = 1,
         limit = 50,
+        lmsItemType,
       } = req.query;
 
       const where = {};
@@ -42,6 +43,7 @@ export class OrderController {
       if (status) where.status = status;
       if (purchaseType) where.purchaseType = purchaseType;
       if (formationId) where.formationId = formationId;
+      if (lmsItemType) where.lmsItemType = lmsItemType;
 
       // Recherche
       if (search) {

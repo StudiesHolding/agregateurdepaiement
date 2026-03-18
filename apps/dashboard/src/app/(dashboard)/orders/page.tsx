@@ -4,7 +4,8 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminApi } from "@/lib/api";
 import { formatCurrency, cn } from "@/lib/utils";
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderStatus, PurchaseType } from "@/lib/types";
+import { isB2BOrder, getPurchaseTypeLabel, canValidateOrder, canCompleteOrder, getLicenseCount } from "@/lib/types";
 import {
   Search,
   Filter,
@@ -20,7 +21,12 @@ import {
   Package,
   Eye,
   Loader2,
-  CreditCard
+  CreditCard,
+  User,
+  Building2,
+  Gift,
+  GraduationCap,
+  Briefcase
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -82,10 +88,12 @@ function OrderStatusBadge({ status }: { status: OrderStatus | string }) {
 function PurchaseTypeBadge({ type }: { type: string }) {
   return (
     <span className={cn(
-      "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider",
-      type === "gift" ? "bg-info-light text-info-dark" : "bg-background text-text-light border border-border"
+      "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1",
+      type === "gift" ? "bg-purple-100 text-purple-700 border border-purple-200" :
+        type === "b2b" ? "bg-primary-light text-primary-dark border border-primary/20" :
+          "bg-background text-text-light border border-border"
     )}>
-      {type === "gift" ? "🎁 Cadeau" : "👤 Perso"}
+      {type === "gift" ? <><Gift size={10} /> Cadeau</> : type === "b2b" ? <><Building2 size={10} /> B2B</> : <><User size={10} /> Perso</>}
     </span>
   );
 }
@@ -94,10 +102,10 @@ function LmsItemTypeBadge({ type }: { type: string }) {
   const isPackage = type === 'package';
   return (
     <span className={cn(
-      "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ml-1",
+      "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1",
       isPackage ? "bg-primary-light text-primary-dark border border-primary/20" : "bg-background text-text-light border border-border"
     )}>
-      {isPackage ? "📦 Package" : "🎓 Formation"}
+      {isPackage ? <><Briefcase size={10} /> Package</> : <><GraduationCap size={10} /> Formation</>}
     </span>
   );
 }
@@ -141,6 +149,7 @@ export default function OrdersPage() {
     search: "",
     status: "",
     purchaseType: "",
+    lmsItemType: "",
   });
 
   const [actionOrderId, setActionOrderId] = useState<number | null>(null);
@@ -156,6 +165,7 @@ export default function OrdersPage() {
       };
       if (filters.status) params.status = filters.status;
       if (filters.purchaseType) params.purchaseType = filters.purchaseType;
+      if (filters.lmsItemType) params.lmsItemType = filters.lmsItemType;
       if (filters.search) params.search = filters.search;
 
       const response = await adminApi.getOrders(params);
@@ -215,7 +225,7 @@ export default function OrdersPage() {
         {[
           { label: "Total Commandes", value: meta.total, icon: Package, color: "text-primary bg-primary/10 border-primary/20" },
           { label: "En Confirmation", value: orders.filter(o => o.status === 'payment_confirmed').length, icon: CreditCard, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-          { label: "A Finaliser", value: orders.filter(o => o.status === 'validated').length, icon: Send, color: "text-info bg-info/10 border-info/20" },
+          { label: "A Finaliser", value: orders.filter(o => o.status === 'validated' && (o as any).lmsItemType !== 'package').length, icon: Send, color: "text-info bg-info/10 border-info/20" },
           { label: "Terminées", value: orders.filter(o => o.status === 'completed').length, icon: CheckCircle, color: "text-success bg-success/10 border-success/20" },
         ].map((stat, i) => (
           <div key={i} className="card p-6 border-b-4 border-b-primary shadow-sm group hover:scale-[1.02] transition-all duration-300">
@@ -256,6 +266,15 @@ export default function OrdersPage() {
           <option value="validated">Validée</option>
           <option value="completed">Terminée</option>
           <option value="rejected">Rejetée</option>
+        </select>
+        <select
+          className="input h-12 w-full md:w-48 bg-surface border-border/50"
+          value={filters.lmsItemType}
+          onChange={(e) => setFilters({ ...filters, lmsItemType: e.target.value, page: 1 })}
+        >
+          <option value="">Tous les produits</option>
+          <option value="course">Formations</option>
+          <option value="package">Packages B2B</option>
         </select>
         <select
           className="input h-12 w-full md:w-40 bg-surface border-border/50"
@@ -317,8 +336,8 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-1.5 text-text-light">
                         <Calendar size={12} />
                         <span className="text-xs font-medium">
-                          {order.createdAt || order.created_at 
-                            ? new Date(order.createdAt || order.created_at).toLocaleDateString("fr-FR") 
+                          {order.createdAt || order.created_at
+                            ? new Date(order.createdAt || order.created_at).toLocaleDateString("fr-FR")
                             : "—"}
                         </span>
                       </div>
@@ -326,31 +345,42 @@ export default function OrdersPage() {
                     <td><OrderStatusBadge status={order.status} /></td>
                     <td className="text-center">
                       <div className="flex items-center justify-center gap-2">
-                        {order.status.toLowerCase() === "payment_confirmed" && (
-                          <button
-                            onClick={() => { setActionOrderId(order.id); setActionType("validate"); }}
-                            className="p-2 rounded-xl bg-success-light text-success-dark hover:bg-success hover:text-white transition-all shadow-sm"
-                            title="Valider"
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                        )}
-                        {order.status.toLowerCase() === "validated" && (
-                          <button
-                            onClick={() => { setActionOrderId(order.id); setActionType("complete"); }}
-                            className="p-2 rounded-xl bg-primary-light text-primary-dark hover:bg-primary hover:text-white transition-all shadow-sm"
-                            title="Finaliser"
-                          >
-                            <Send size={16} />
-                          </button>
-                        )}
-                        <Link
-                          href={`/orders/${order.id}`}
-                          className="p-2 rounded-xl bg-background border border-border text-text-light hover:text-primary hover:border-primary transition-all"
-                          title="Détails"
-                        >
-                          <Eye size={16} />
-                        </Link>
+                        {(() => {
+                          const orderAny = order as any;
+                          const isPackage = orderAny.lmsItemType === 'package';
+                          const canValidate = order.status.toLowerCase() === 'payment_confirmed';
+                          const canComplete = order.status.toLowerCase() === 'validated' && !isPackage;
+
+                          return (
+                            <>
+                              {canValidate && (
+                                <button
+                                  onClick={() => { setActionOrderId(order.id); setActionType("validate"); }}
+                                  className="p-2 rounded-xl bg-success-light text-success-dark hover:bg-success hover:text-white transition-all shadow-sm"
+                                  title={isPackage ? "Valider & Provisionner" : "Valider"}
+                                >
+                                  <CheckCircle size={16} />
+                                </button>
+                              )}
+                              {canComplete && (
+                                <button
+                                  onClick={() => { setActionOrderId(order.id); setActionType("complete"); }}
+                                  className="p-2 rounded-xl bg-primary-light text-primary-dark hover:bg-primary hover:text-white transition-all shadow-sm"
+                                  title="Finaliser"
+                                >
+                                  <Send size={16} />
+                                </button>
+                              )}
+                              <Link
+                                href={`/orders/${order.id}`}
+                                className="p-2 rounded-xl bg-background border border-border text-text-light hover:text-primary hover:border-primary transition-all"
+                                title="Détails"
+                              >
+                                <Eye size={16} />
+                              </Link>
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>

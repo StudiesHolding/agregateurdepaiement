@@ -10,6 +10,9 @@ import {
     ProviderRoute,
     WebhookEvent,
     Order,
+    Company,
+    CompanyPackage,
+    CompanyAdmin,
 } from "../models/index.js";
 import { ProviderFactory } from "../providers/index.js";
 import { WebhookProcessor } from "../services/webhook-processor.service.js";
@@ -738,6 +741,71 @@ router.post(
  */
 router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
     await OrderController.getAuditHistory(req, res, next);
+}));
+
+/**
+ * GET /api/admin/orders/:id/provisioning
+ * Retourne le statut du provisioning B2B pour une commande
+ */
+router.get("/orders/:id/provisioning", catchAsync(async (req, res) => {
+    const { id } = req.params;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+        throw new NotFoundError("Commande non trouvée");
+    }
+
+    const metadata = order.metadata || {};
+    const isB2B = metadata.is_b2b === true || metadata.b2b_purchase === true;
+
+    if (!isB2B) {
+        return res.json({
+            status: "success",
+            data: {
+                isB2B: false,
+                message: "Cette commande n'est pas un achat B2B"
+            }
+        });
+    }
+
+    // Chercher la company associée
+    let company = null;
+    let admin = null;
+    let companyPackages = [];
+
+    if (metadata.company_id) {
+        company = await Company.findByPk(metadata.company_id);
+    } else {
+        // Chercher par email admin
+        const adminEmail = metadata.company_admin_email || order.customerEmail;
+        admin = await CompanyAdmin.findOne({ where: { email: adminEmail } });
+        if (admin) {
+            company = await Company.findByPk(admin.company_id);
+            admin = await CompanyAdmin.findAll({ where: { company_id: admin.company_id } });
+            companyPackages = await CompanyPackage.findAll({
+                where: { company_id: admin.company_id },
+                order: [["purchase_date", "DESC"]]
+            });
+        }
+    }
+
+    res.json({
+        status: "success",
+        data: {
+            isB2B: true,
+            provisioning: {
+                status: company ? "completed" : "pending",
+                companyId: company?.id || null,
+                companyName: company?.name || metadata.company_name || "Entreprise",
+                companyEmail: company?.email || metadata.company_admin_email || order.customerEmail,
+                industry: company?.metadata?.industry || metadata.company_industry || null,
+                totalLicenses: metadata.total_licenses || metadata.licence_count || 1,
+                adminCount: admin ? (Array.isArray(admin) ? admin.length : 1) : 0,
+                packagesCount: companyPackages.length,
+                createdAt: company?.created_at || null,
+            }
+        }
+    });
 }));
 
 // ═══════════════════════════════════════════════════════════

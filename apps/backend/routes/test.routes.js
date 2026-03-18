@@ -2,7 +2,7 @@ import { Router } from "express";
 import { catchAsync } from "../middlewares/error.middleware.js";
 import { protectAdmin } from "../middlewares/admin.middleware.js";
 import { FormationsService } from "../services/formations.service.js";
-import { Order } from "../models/index.js";
+import { Order, FormationPackage } from "../models/index.js";
 import sequelize from "../config/database.js";
 import { QueryTypes } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
@@ -10,6 +10,7 @@ import { WebhookProcessor } from "../services/webhook-processor.service.js";
 import { MailService } from "../services/mail.service.js";
 import { PaymentIntent, PaymentAttempt } from "../models/index.js";
 import { PaymentStatus } from "../enums/index.js";
+import { B2BProvisioningService } from "../services/b2b-provisioning.service.js";
 
 const router = Router();
 
@@ -240,7 +241,13 @@ router.post(
         null // No transaction needed for simple test
       );
 
-      await MailService.sendPaymentConfirmed(order);
+      // Use B2B specific email if this is a B2B order
+      const metadata = order.metadata || {};
+      if (metadata.is_b2b || metadata.b2b_purchase) {
+        await MailService.sendB2BPaymentConfirmed(order);
+      } else {
+        await MailService.sendPaymentConfirmed(order);
+      }
       await MailService.notifyLmsAdmins("success", order, intent);
     } else {
       attempt.paymentIntent = intent;
@@ -311,6 +318,205 @@ router.delete(
     res.json({
       success: true,
       message: "Commande supprimée",
+    });
+  }),
+);
+
+/**
+ * POST /api/admin/test/b2b-orders
+ * Create a test B2B package order
+ */
+router.post(
+  "/b2b-orders",
+  catchAsync(async (req, res) => {
+    const {
+      packageId,
+      packageName,
+      packagePrice,
+      customerEmail,
+      customerName,
+      customerPhone,
+      customerCountry,
+      amount,
+      // B2B specific
+      companyName,
+      companyIndustry,
+      companyAdminEmail,
+      licenceCount,
+      unitPrice,
+    } = req.body;
+
+    // Validation
+    if (!customerEmail || !customerName) {
+      return res.status(400).json({
+        success: false,
+        message: "customerEmail et customerName sont requis",
+      });
+    }
+
+    // Generate unique reference
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const shortUuid = uuidv4().split("-")[0].toUpperCase();
+    const reference = `B2B-${timestamp}-${shortUuid}`;
+
+    // Parse amount
+    const orderAmount = amount || packagePrice || (Number(licenceCount || 1) * Number(unitPrice || 50000));
+    const licenses = licenceCount || 1;
+    const pricePerLicense = unitPrice || packagePrice || 50000;
+
+    // Create order with B2B metadata
+    const order = await Order.create({
+      reference,
+      customerEmail: companyAdminEmail || customerEmail,
+      customerName: companyName || customerName,
+      customerSurname: null,
+      customerPhone: customerPhone || null,
+      customerCity: null,
+      currency: "XAF",
+      totalAmount: orderAmount,
+      status: "pending",
+      formationId: packageId || 1,
+      formationName: packageName || "Pack Formation Entreprise",
+      formationPrice: pricePerLicense,
+      lmsItemId: String(packageId || "PACK-B2B-001"),
+      lmsItemType: "package",
+      purchaseType: "self",
+      customerCountry: customerCountry || null,
+      metadata: {
+        is_b2b: true,
+        b2b_purchase: true,
+        packageId: packageId || "PACK-B2B-001",
+        packageName: packageName || "Pack Formation Entreprise",
+        source: "TEST_B2B_ORDER",
+        company_name: companyName || customerName,
+        company_industry: companyIndustry || "Technology",
+        company_admin_email: companyAdminEmail || customerEmail,
+        licence_count: licenses,
+        backendLicenceCount: licenses,
+        unit_price: pricePerLicense,
+        backendUnitPrice: pricePerLicense,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: order,
+    });
+  }),
+);
+
+/**
+ * POST /api/admin/test/b2b-orders/:id/simulate-payment
+ * Simulate payment for B2B order
+ */
+router.post(
+  "/b2b-orders/:id/simulate-payment",
+  catchAsync(async (req, res) => {
+    const orderId = req.params.id;
+    const statusParam = req.body?.status || "succeeded";
+
+    const newStatus = statusParam === "succeeded" ? "payment_confirmed" : "payment_failed";
+
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Commande non trouvée",
+      });
+    }
+
+    await order.update({
+      status: newStatus,
+      paidAt: newStatus === "payment_confirmed" ? new Date() : null,
+    });
+
+    // Send B2B payment confirmation email
+    if (newStatus === "payment_confirmed") {
+      await MailService.sendB2BPaymentConfirmed(order);
+    }
+
+    res.json({
+      success: true,
+      data: order,
+    });
+  }),
+);
+
+/**
+ * POST /api/admin/test/b2b-orders/:id/provision
+ * Simulate B2B provisioning (create company, admin, send activation email with invoice)
+ */
+router.post(
+  "/b2b-orders/:id/provision",
+  catchAsync(async (req, res) => {
+    const orderId = req.params.id;
+
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Commande non trouvée",
+      });
+    }
+
+    if (order.status !== "payment_confirmed") {
+      return res.status(400).json({
+        success: false,
+        message: "La commande doit être en statut payment_confirmed pour être provisionnée",
+      });
+    }
+
+    // Update order to validated status
+    await order.update({
+      status: "validated",
+      validatedAt: new Date(),
+    });
+
+    // Trigger B2B provisioning (this will send activation email with invoice)
+    try {
+      await B2BProvisioningService.handleB2BOrder(order);
+
+      res.json({
+        success: true,
+        message: "Provisioning B2B terminé. Email d'activation avec facture envoyé.",
+        data: order,
+      });
+    } catch (error) {
+      console.error("[Test B2B Provisioning] Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors du provisioning B2B: " + error.message,
+      });
+    }
+  }),
+);
+
+/**
+ * GET /api/admin/test/packages
+ * Get available B2B packages from database
+ */
+router.get(
+  "/packages",
+  catchAsync(async (req, res) => {
+    // Fetch packages from the FormationPackage table
+    const packages = await FormationPackage.findAll({
+      order: [['price', 'ASC']],
+    });
+
+    // Transform to expected format
+    const formattedPackages = packages.map(pkg => ({
+      id: String(pkg.id),
+      name: pkg.title,
+      description: pkg.description || '',
+      pricePerLicense: parseFloat(pkg.price) || 0,
+      currency: pkg.currency || 'EUR', // Default to EUR
+      targetAudience: pkg.target_audience,
+      status: pkg.status,
+    }));
+
+    res.json({
+      success: true,
+      data: formattedPackages,
     });
   }),
 );

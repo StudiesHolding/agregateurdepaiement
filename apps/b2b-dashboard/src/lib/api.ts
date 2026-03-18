@@ -44,6 +44,8 @@ api.interceptors.response.use(
 export const b2bAuth = {
   login: (email: string, password: string) =>
     api.post("/b2b/auth/login", { email, password }),
+  activate: (token: string, email: string, password: string) =>
+    api.post("/b2b/auth/activate", { token, email, password }),
   me: () => api.get("/b2b/auth/me"),
 };
 
@@ -89,7 +91,7 @@ export const b2bLicenses = {
 export const b2bRequests = {
   getAll: () => api.get("/b2b/requests"),
   getById: (id: number) => api.get(`/b2b/requests/${id}`),
-  updateStatus: (id: number, status: string) => 
+  updateStatus: (id: number, status: string) =>
     api.put(`/b2b/requests/${id}/status`, { status }),
 };
 
