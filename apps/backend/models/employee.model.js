@@ -1,7 +1,7 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
 
-export class Employee extends Model {}
+export class Employee extends Model { }
 
 Employee.init(
   {
@@ -32,6 +32,22 @@ Employee.init(
     },
     position: {
       type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    lms_username: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    lms_password: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    lms_access_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    lms_user_id: {
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     is_active: {

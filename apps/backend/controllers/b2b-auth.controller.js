@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { CompanyAdmin, Company } from "../models/index.js";
-import { UnauthorizedError, NotFoundError } from "../utils/errors.js";
+import { UnauthorizedError, NotFoundError, BadRequestError } from "../utils/errors.js";
 
 export const b2bAuthController = {
   /**
@@ -249,6 +249,84 @@ export const b2bAuthController = {
         data: {
           user: adminJson
         }
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * @route PUT /api/v1/b2b/auth/profile
+   * @desc Update current admin profile
+   */
+  updateProfile: async (req, res, next) => {
+    try {
+      const adminId = req.admin.id;
+      const { first_name, last_name } = req.body;
+
+      const admin = await CompanyAdmin.findByPk(adminId);
+
+      if (!admin) {
+        throw new NotFoundError("Administrateur introuvable.");
+      }
+
+      await admin.update({
+        first_name: first_name || admin.first_name,
+        last_name: last_name || admin.last_name
+      });
+
+      res.json({
+        status: "success",
+        message: "Profil mis à jour avec succès.",
+        data: {
+          id: admin.id,
+          email: admin.email,
+          first_name: admin.first_name,
+          last_name: admin.last_name
+        }
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * @route PUT /api/v1/b2b/auth/password
+   * @desc Change current admin password
+   */
+  changePassword: async (req, res, next) => {
+    try {
+      const adminId = req.admin.id;
+      const { current_password, new_password } = req.body;
+
+      if (!current_password || !new_password) {
+        throw new BadRequestError("Le mot de passe actuel et le nouveau mot de passe sont requis.");
+      }
+
+      if (new_password.length < 6) {
+        throw new BadRequestError("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+      }
+
+      const admin = await CompanyAdmin.findByPk(adminId);
+
+      if (!admin) {
+        throw new NotFoundError("Administrateur introuvable.");
+      }
+
+      // Verify current password
+      const isMatch = await admin.comparePassword(current_password);
+      if (!isMatch) {
+        throw new BadRequestError("Le mot de passe actuel est incorrect.");
+      }
+
+      // Update password
+      admin.password_hash = new_password;
+      admin.changed('password_hash', true);
+      await admin.save();
+
+      res.json({
+        status: "success",
+        message: "Mot de passe mis à jour avec succès."
       });
     } catch (err) {
       next(err);

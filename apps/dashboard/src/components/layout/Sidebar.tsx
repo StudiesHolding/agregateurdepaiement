@@ -15,6 +15,7 @@ import {
   Bell,
   ShoppingCart,
   Building2,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ const navItems = [
     items: [
       { href: "/transactions", label: "Transactions", icon: FileText },
       { href: "/orders", label: "Commandes LMS", icon: ShoppingCart },
+      { href: "/requests", label: "Demandes Accès B2B", icon: Users },
       { href: "/analytics", label: "Analytics LMS", icon: Zap },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
     ],

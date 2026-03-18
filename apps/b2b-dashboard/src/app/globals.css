@@ -134,6 +134,10 @@ body {
     @apply bg-danger text-white hover:bg-danger-dark;
   }
 
+  .btn-success {
+    @apply bg-success text-white hover:bg-success-dark;
+  }
+
   .btn-ghost {
     @apply text-text-light hover:bg-background hover:text-text-main;
   }
@@ -156,6 +160,7 @@ body {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -167,7 +172,18 @@ body {
 }
 
 /* Staggered animation delays */
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
+}

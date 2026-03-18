@@ -190,4 +190,17 @@ export const adminApi = {
     api.post(`/test/b2b-orders/${id}/simulate-payment`, { status }),
   provisionB2BOrder: (id: number) =>
     api.post(`/test/b2b-orders/${id}/provision`),
+
+  // Access Requests (B2B)
+  getRequests: (params?: Record<string, string | number>) =>
+    api.get("/requests", { params }),
+  getRequest: (id: number) => api.get(`/requests/${id}`),
+  approveRequest: (id: number, data: { username: string; password: string; admin_notes?: string }) =>
+    api.post(`/requests/${id}/approve`, data),
+  batchApproveRequests: (data: { request_ids: number[]; credentials: { username: string; password: string }; admin_notes?: string }) =>
+    api.post("/requests/batch-approve", data),
+  rejectRequest: (id: number, data: { reason?: string; admin_notes?: string }) =>
+    api.post(`/requests/${id}/reject`, data),
+  batchRejectRequests: (data: { request_ids: number[]; reason?: string; admin_notes?: string }) =>
+    api.post("/requests/batch-reject", data),
 };

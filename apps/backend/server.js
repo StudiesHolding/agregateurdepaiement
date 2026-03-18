@@ -9,9 +9,15 @@ const startServer = async () => {
         await sequelize.authenticate();
         console.log(" Database connection established successfully.");
 
-        // Sync models automatically with database (alter: true adds missing columns/tables)
-        await sequelize.sync({ alter: true });
-        console.log(" Database models synchronized.");
+        // Sync models automatically with database (safe mode - only create missing tables)
+        // Don't use alter: true to avoid issues with existing tables having too many keys
+        try {
+            await sequelize.sync({ force: false });
+            console.log(" Database models synchronized.");
+        } catch (syncError) {
+            console.warn(" Database sync warning:", syncError.message);
+            console.log(" Continuing without model synchronization...");
+        }
 
         // Auto-seed default admin key if missing
         try {

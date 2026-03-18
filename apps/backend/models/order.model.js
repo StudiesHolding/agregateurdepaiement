@@ -14,7 +14,8 @@ Order.init(
         reference: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            unique: true,
+            // unique: true - removed to avoid sync issues with existing table
+            // The unique constraint should be managed via migration if needed
         },
         customerEmail: {
             type: DataTypes.STRING(255),

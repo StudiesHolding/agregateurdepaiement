@@ -23,6 +23,7 @@ import { OrderController } from "../controllers/order.controller.js";
 import { NotificationController } from "../controllers/notification.controller.js";
 import { AdminNotificationController } from "../controllers/admin-notification.controller.js";
 import { AdminCompanyController } from "../controllers/admin-company.controller.js";
+import { AdminRequestController } from "../controllers/admin-request.controller.js";
 
 const router = Router();
 
@@ -835,5 +836,73 @@ router.get("/companies/:id", catchAsync(async (req, res, next) => {
 router.put("/companies/admins/:adminId/toggle", catchAsync(async (req, res, next) => {
     await AdminCompanyController.toggleAdminStatus(req, res, next);
 }));
+
+// ═══════════════════════════════════════════════════════════
+// 📋 ACCESS REQUESTS - Gestion des demandes d'accès B2B
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/requests
+ * Liste toutes les demandes d'accès (toutes entreprises)
+ */
+router.get("/requests", catchAsync(async (req, res, next) => {
+    await AdminRequestController.getAll(req, res, next);
+}));
+
+/**
+ * GET /api/admin/requests/:id
+ * Détail d'une demande d'accès
+ */
+router.get("/requests/:id", catchAsync(async (req, res, next) => {
+    await AdminRequestController.getById(req, res, next);
+}));
+
+/**
+ * POST /api/admin/requests/:id/approve
+ * Approuver une demande et créer les credentials LMS
+ */
+router.post(
+    "/requests/:id/approve",
+    auditLog("APPROVE_REQUEST", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.approve(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/batch-approve
+ * Approuver plusieurs demandes à la fois
+ */
+router.post(
+    "/requests/batch-approve",
+    auditLog("BATCH_APPROVE_REQUESTS", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.batchApprove(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/:id/reject
+ * Rejeter une demande d'accès
+ */
+router.post(
+    "/requests/:id/reject",
+    auditLog("REJECT_REQUEST", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.reject(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/batch-reject
+ * Rejeter plusieurs demandes à la fois
+ */
+router.post(
+    "/requests/batch-reject",
+    auditLog("BATCH_REJECT_REQUESTS", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.batchReject(req, res, next);
+    })
+);
 
 export default router;
