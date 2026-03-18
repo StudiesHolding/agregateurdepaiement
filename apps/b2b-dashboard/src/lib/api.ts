@@ -47,6 +47,14 @@ export const b2bAuth = {
   activate: (token: string, email: string, password: string) =>
     api.post("/b2b/auth/activate", { token, email, password }),
   me: () => api.get("/b2b/auth/me"),
+  logout: () => {
+    localStorage.removeItem("b2b_token");
+    return Promise.resolve();
+  },
+  updateProfile: (data: { first_name?: string; last_name?: string }) =>
+    api.put("/b2b/auth/profile", data),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.put("/b2b/auth/password", data),
 };
 
 // --- Dashboard Stats ---
@@ -91,8 +99,7 @@ export const b2bLicenses = {
 export const b2bRequests = {
   getAll: () => api.get("/b2b/requests"),
   getById: (id: number) => api.get(`/b2b/requests/${id}`),
-  updateStatus: (id: number, status: string) =>
-    api.put(`/b2b/requests/${id}/status`, { status }),
+  // Note: approve/reject are admin-only actions handled in Admin Dashboard
 };
 
 // --- Notifications ---
@@ -100,4 +107,14 @@ export const b2bNotifications = {
   getAll: () => api.get("/b2b/notifications"),
   markRead: (id: number) => api.patch(`/b2b/notifications/${id}/read`),
   markAllRead: () => api.patch("/b2b/notifications/read-all"),
+};
+
+// --- Orders ---
+export const b2bOrders = {
+  getAll: () => api.get("/b2b/orders"),
+  getById: (id: number) => api.get(`/b2b/orders/${id}`),
+  getInvoice: (id: number) =>
+    api.get(`/b2b/orders/${id}/invoice`, { responseType: 'blob' }),
+  initiatePayment: (data: { package_id: number; total_licenses: number; paymentMethod?: string; countryCode?: string; currency?: string }) =>
+    api.post("/b2b/orders/initiate-payment", data),
 };

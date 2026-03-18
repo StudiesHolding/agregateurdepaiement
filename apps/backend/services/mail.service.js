@@ -713,4 +713,108 @@ export class MailService {
       html
     });
   }
+
+  // ============================================================================
+  // EMPLOYEE ACCESS EMAILS - B2B Access Requests
+  // ============================================================================
+
+  /**
+   * Send access credentials to employee when request is approved
+   */
+  static async sendEmployeeAccessEmail(email, data) {
+    const { firstName, lastName, companyName, username, password, packageName } = data;
+    const campusUrl = process.env.LMS_URL || "https://campus.studieslearning.com";
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+          <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+        </div>
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">🎉 Accès Activé !</h1>
+          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Votre accès au campus est désormais actif</p>
+        </div>
+        
+        <div style="padding: 40px;">
+          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${firstName} ${lastName}</strong>,</p>
+          
+          <p>Nous avons le plaisir de vous informer que votre demande d'accès à la formation <strong>${packageName}</strong> pour l'entreprise <strong>${companyName}</strong> a été <strong>approuvée</strong> !</p>
+          
+          <div style="background: #eff6ff; padding: 30px; border-radius: 16px; border: 1px solid #dbeafe; margin: 30px 0; text-align: center;">
+            <h3 style="margin: 0 0 20px 0; color: #1e40af; font-size: 18px;">🔐 Vos Identifiants de Connexion</h3>
+            <div style="display: inline-block; text-align: left; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Nom d'utilisateur :</p>
+              <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${username}</p>
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b;">Mot de passe :</p>
+              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; font-family: monospace;">${password}</p>
+            </div>
+            <p style="margin: 20px 0 0 0; font-size: 12px; color: #3b82f6; font-weight: 600;">⚠️ Pour votre sécurité, changez votre mot de passe dès votre première connexion.</p>
+          </div>
+          
+          <div style="text-align: center; margin: 35px 0;">
+            <a href="${campusUrl}" style="background: #2563eb; color: white; padding: 18px 35px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; display: inline-block;">
+              Accéder au Campus
+            </a>
+          </div>
+          
+          <p style="background: #f0fdf4; color: #166534; padding: 15px; border-radius: 8px; font-size: 14px; text-align: center; font-weight: 600;">
+            📚 Nous vous souhaitez un excellent parcours d'apprentissage !
+          </p>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <p style="margin: 0; color: #64748b; font-size: 13px;">L'équipe Studies Learning</p>
+            <p style="margin: 5px 0 0; color: #94a3b8; font-size: 11px;">${companyName} - Accès entreprise</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `[Studies Learning] 🎉 Vos accès au campus sont activés - ${packageName}`,
+      html,
+    });
+  }
+
+  /**
+   * Send rejection notification to employee
+   */
+  static async sendEmployeeRejectionEmail(email, data) {
+    const { firstName, lastName, reason } = data;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px; margin-bottom: 30px;">
+          <img src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png" style="width: 150px; height: auto;" alt="Studies Learning">
+        </div>
+        <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -1px;">Information Importante</h1>
+          <p style="margin: 5px 0 0; opacity: 0.9; font-weight: 600;">Concernant votre demande d'accès</p>
+        </div>
+        
+        <div style="padding: 40px;">
+          <p style="font-size: 16px; margin-top: 0;">Bonjour <strong>${firstName} ${lastName}</strong>,</p>
+          
+          <p>Nous avons le regret de vous informer que votre demande d'accès au campus n'a pas pu être approuvée.</p>
+          
+          <div style="background-color: #fef2f2; padding: 20px; border-left: 4px solid #ef4444; border-radius: 4px; margin: 25px 0;">
+            <p style="margin: 0; color: #991b1b; font-weight: 600;">Motif :</p>
+            <p style="margin: 5px 0 0; color: #b91c1c;">${reason || 'Votre demande a été rejetée par l\'administrateur.'}</p>
+          </div>
+          
+          <p>Pour toute question ou pour plus d'informations, veuillez contacter l'administrateur de votre entreprise.</p>
+          
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <p style="margin: 0; color: #64748b; font-size: 13px;">L'équipe Studies Learning</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return await this.sendEmail({
+      to: email,
+      subject: `[Studies Learning] Statut de votre demande d'accès`,
+      html,
+    });
+  }
 }

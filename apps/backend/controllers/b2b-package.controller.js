@@ -1,14 +1,14 @@
-import { 
-  CompanyPackage, 
-  FormationPackage, 
-  AccessRequest, 
-  Employee, 
-  Course, 
-  PostMeta, 
-  PackageFormation, 
-  SpecificFormation, 
+import {
+  CompanyPackage,
+  FormationPackage,
+  AccessRequest,
+  Employee,
+  Course,
+  PostMeta,
+  PackageFormation,
+  SpecificFormation,
   Order,
-  sequelize 
+  sequelize
 } from "../models/index.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 
@@ -22,16 +22,16 @@ export const b2bPackageController = {
       const companyId = req.company_id;
       const packages = await CompanyPackage.findAll({
         where: { company_id: companyId },
-        include: [{ 
-          model: FormationPackage, 
+        include: [{
+          model: FormationPackage,
           as: 'package',
           include: [
             {
               model: PackageFormation,
               as: 'packageFormations',
               include: [
-                { 
-                  model: Course, 
+                {
+                  model: Course,
                   as: 'globalCourse',
                   include: [{ model: PostMeta, as: 'meta' }]
                 },
@@ -41,7 +41,7 @@ export const b2bPackageController = {
           ]
         }]
       });
-      
+
       res.json({
         status: "success",
         data: packages
@@ -64,8 +64,8 @@ export const b2bPackageController = {
             model: PackageFormation,
             as: 'packageFormations',
             include: [
-              { 
-                model: Course, 
+              {
+                model: Course,
                 as: 'globalCourse',
                 include: [{ model: PostMeta, as: 'meta' }]
               },
@@ -79,7 +79,7 @@ export const b2bPackageController = {
       if (!pkg) {
         throw new NotFoundError("Package introuvable.");
       }
-      
+
       res.json({
         status: "success",
         data: pkg
@@ -102,8 +102,8 @@ export const b2bPackageController = {
             model: PackageFormation,
             as: 'packageFormations',
             include: [
-              { 
-                model: Course, 
+              {
+                model: Course,
                 as: 'globalCourse',
                 include: [{ model: PostMeta, as: 'meta' }]
               },
@@ -113,7 +113,7 @@ export const b2bPackageController = {
           { model: SpecificFormation, as: 'specificFormations' }
         ]
       });
-      
+
       res.json({
         status: "success",
         data: catalog
@@ -144,8 +144,10 @@ export const b2bPackageController = {
         throw new NotFoundError("Le package spécifié est introuvable ou inactif.");
       }
 
+      // First security check: Verify license availability before creating request
+      // This prevents resource exhaustion and ensures proper license management
       if (companyPackage.used_licenses >= companyPackage.total_licenses) {
-        throw new BadRequestError("Toutes les licences de ce package ont été attribuées.");
+        throw new BadRequestError("Toutes les licences de ce package ont été attribuées. Veuillez contacter votre administrateur pour obtenir des licences supplémentaires.");
       }
 
       // 2. Verify Employee
@@ -160,8 +162,8 @@ export const b2bPackageController = {
 
       // 3. Check for existing request or activation
       const existingRequest = await AccessRequest.findOne({
-        where: { 
-          employee_id, 
+        where: {
+          employee_id,
           company_package_id,
           status: ['pending', 'processing', 'activated']
         },
@@ -180,10 +182,23 @@ export const b2bPackageController = {
         status: 'pending'
       }, { transaction });
 
-      // 5. Update used count
+      // RESERVE: Increment used_licenses to reserve the license
+      // This ensures the license is reserved for this request
       await companyPackage.increment('used_licenses', { by: 1, transaction });
 
       await transaction.commit();
+
+      // Send notification to platform admin
+      try {
+        const { AdminNotificationService } = await import("../services/admin-notification.service.js");
+        await AdminNotificationService.notifyNewAccessRequest(newRequest.id, {
+          companyId,
+          employeeId: employee_id,
+          packageId: company_package_id
+        });
+      } catch (notifError) {
+        console.warn("[b2bPackageController] Failed to send notification:", notifError.message);
+      }
 
       res.status(201).json({
         status: "success",
@@ -215,12 +230,13 @@ export const b2bPackageController = {
       }
 
       if (request.status === 'rejected') {
-         throw new BadRequestError("Cette demande est déjà rejetée.");
+        throw new BadRequestError("Cette demande est déjà rejetée.");
       }
 
       const companyPackage = await CompanyPackage.findByPk(request.company_package_id, { transaction });
 
       // Decrement used count if it was previously counted (pending, processing, activated)
+      // This ensures proper license tracking even if request was created before license was available
       if (['pending', 'processing', 'activated'].includes(request.status)) {
         await companyPackage.decrement('used_licenses', { by: 1, transaction });
       }
@@ -270,7 +286,7 @@ export const b2bPackageController = {
       // 3. Create simulated Order
       const totalAmount = (pkg.price || 0) * 1; // Price per package or per license? 
       // In B2B often it's a fixed price for the package with a set number of licenses.
-      
+
       await Order.create({
         reference: `B2B-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         customerEmail: req.company_email || 'b2b@enterprise.com',
