@@ -138,21 +138,21 @@ AccessRequest.belongsTo(CompanyPackage, { foreignKey: "company_package_id", as: 
 // TRAINING PACKAGES & LEARNPRESS
 // ============================================
 
-// Course <-> PostMeta (1:N)
-Course.hasMany(PostMeta, { foreignKey: "post_id", as: "meta" });
-PostMeta.belongsTo(Course, { foreignKey: "post_id", as: "course" });
+// Course <-> PostMeta (1:N) - Legacy WordPress tables, no FK constraint
+Course.hasMany(PostMeta, { foreignKey: "post_id", as: "meta", constraints: false });
+PostMeta.belongsTo(Course, { foreignKey: "post_id", as: "course", constraints: false });
 
 // FormationPackage <-> PackageFormation (1:N)
-FormationPackage.hasMany(PackageFormation, { foreignKey: "package_id", as: "packageFormations" });
-PackageFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+FormationPackage.hasMany(PackageFormation, { foreignKey: "package_id", as: "packageFormations", constraints: false });
+PackageFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package", constraints: false });
 
 // PackageFormation <-> Course (N:1, can be global or specific)
-PackageFormation.belongsTo(Course, { foreignKey: "global_formation_id", as: "globalCourse" });
-PackageFormation.belongsTo(SpecificFormation, { foreignKey: "package_formation_id", as: "specificCourse" });
+PackageFormation.belongsTo(Course, { foreignKey: "global_formation_id", as: "globalCourse", constraints: false });
+PackageFormation.belongsTo(SpecificFormation, { foreignKey: "package_formation_id", as: "specificCourse", constraints: false });
 
 // FormationPackage <-> SpecificFormation (1:N)
-FormationPackage.hasMany(SpecificFormation, { foreignKey: "package_id", as: "specificFormations" });
-SpecificFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+FormationPackage.hasMany(SpecificFormation, { foreignKey: "package_id", as: "specificFormations", constraints: false });
+SpecificFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package", constraints: false });
 
 export {
   sequelize,

@@ -195,7 +195,7 @@ export type OrderStatus =
   | "expired"
   | "refunded";
 
-export type PurchaseType = "self" | "gift";
+export type PurchaseType = "self" | "gift" | "b2b";
 
 export interface Order {
   id: number;
@@ -407,4 +407,98 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   meta?: PaginationMeta;
+}
+
+// ── Order Helper Functions ───────────────────────────────────────────────────────
+
+/**
+ * Check if order is a B2B purchase
+ */
+export function isB2BOrder(order: Order): boolean {
+  if (order.metadata) {
+    return order.metadata.is_b2b === true || order.metadata.b2b_purchase === true;
+  }
+  return order.lmsItemType === 'package' || order.purchaseType === 'b2b';
+}
+
+/**
+ * Get display label for purchase type
+ */
+export function getPurchaseTypeLabel(type: PurchaseType): string {
+  switch (type) {
+    case 'self':
+      return '👤 Personnel';
+    case 'gift':
+      return '🎁 Cadeau';
+    case 'b2b':
+      return '🏢 Entreprise';
+    default:
+      return '👤 Personnel';
+  }
+}
+
+/**
+ * Get display label for LMS item type
+ */
+export function getLmsItemTypeLabel(type: string): string {
+  switch (type) {
+    case 'course':
+      return 'Formation';
+    case 'package':
+      return 'Package';
+    case 'subscription':
+      return 'Abonnement';
+    default:
+      return 'Formation';
+  }
+}
+
+/**
+ * Check if order can be validated
+ */
+export function canValidateOrder(order: Order): boolean {
+  return order.status === 'payment_confirmed';
+}
+
+/**
+ * Check if order can be completed (manual completion only for formations, not B2B)
+ */
+export function canCompleteOrder(order: Order): boolean {
+  // B2B orders are automatically provisioned, no manual completion needed
+  if (order.lmsItemType === 'package' || order.purchaseType === 'b2b') {
+    return false;
+  }
+  return order.status === 'validated';
+}
+
+/**
+ * Get license count from order
+ */
+export function getLicenseCount(order: Order): number {
+  if (order.metadata) {
+    const meta = order.metadata as Record<string, any>;
+    return meta.total_licenses || meta.licence_count || meta.backendLicenceCount || 1;
+  }
+  return 1;
+}
+
+/**
+ * Get company info from order
+ */
+export function getCompanyInfo(order: Order): { name: string; industry: string; adminEmail: string } | null {
+  if (!order.metadata) {
+    return null;
+  }
+  const meta = order.metadata as Record<string, any>;
+  const isB2B = meta.is_b2b === true || meta.b2b_purchase === true;
+
+  if (!isB2B && order.lmsItemType !== 'package' && order.purchaseType !== 'b2b') {
+    return null;
+  }
+
+  return {
+    name: String(meta.company_name || order.customerName || 'Entreprise'),
+    industry: String(meta.company_industry || 'N/A'),
+    adminEmail: String(meta.company_admin_email || order.customerEmail || ''),
+  };
 }

@@ -17,6 +17,7 @@ const router = Router();
 
 // Authentification
 router.post("/auth/login", validateB2B(B2BValidators.loginSchema), b2bAuthController.login);
+router.post("/auth/activate", b2bAuthController.activate);
 
 
 // ============================================

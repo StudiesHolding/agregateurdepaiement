@@ -78,7 +78,7 @@
     "email": "Adresse e-mail",
     "password": "Mot de passe",
     "forgotPassword": "Mot de passe oublié ?",
-    "loginButton": "Se connecter",
+    "signIn": "Se connecter",
     "loginSubtitle": "Accédez au tableau de bord de votre entreprise"
   }
 }

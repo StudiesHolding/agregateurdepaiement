@@ -5,14 +5,13 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
     try {
-        console.log("⏳ Connecting to database...");
+        console.log(" Connecting to database...");
         await sequelize.authenticate();
-        console.log("✅ Database connection established successfully.");
+        console.log(" Database connection established successfully.");
 
-        // In development, you might want to sync models
-        // Reverted to alter: false after successful B2B migration
-        await sequelize.sync({ alter: false });
-        console.log("✅ Database models synchronized.");
+        // Sync models automatically with database (alter: true adds missing columns/tables)
+        await sequelize.sync({ alter: true });
+        console.log(" Database models synchronized.");
 
         // Auto-seed default admin key if missing
         try {
@@ -32,21 +31,21 @@ const startServer = async () => {
         }
 
         const server = app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-            console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+            console.log(` Server running on http://0.0.0.0:${PORT}`);
+            console.log(` Health check: http://localhost:${PORT}/health`);
         });
 
         server.on('error', (err) => {
             if (err.code === 'EADDRINUSE') {
-                console.error(`❌ Port ${PORT} is already in use.`);
+                console.error(` Port ${PORT} is already in use.`);
             } else {
-                console.error("❌ Server error:", err);
+                console.error(" Server error:", err);
             }
             process.exit(1);
         });
 
     } catch (error) {
-        console.error("❌ Unable to connect to the database:", error);
+        console.error(" Unable to connect to the database:", error);
         process.exit(1);
     }
 };

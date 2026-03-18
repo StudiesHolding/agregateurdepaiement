@@ -9,11 +9,13 @@ import {
     Activity,
     AlertTriangle,
     CheckCircle2,
+    CheckCircle,
     Power,
     ExternalLink,
     ChevronDown,
     ChevronUp,
     BarChart3,
+    ShieldCheck
 } from "lucide-react";
 import {
     LineChart,
@@ -127,8 +129,8 @@ function ProviderErrors({ providerId }: { providerId: number }) {
 
     if (isLoading) return <div className="skeleton h-20 rounded-xl mt-4" />;
     if (!data.length) return (
-        <p className="text-xs text-text-light mt-4 text-center py-4 bg-background rounded-xl">
-            ✅ Aucune erreur sur les 24 dernières heures
+        <p className="text-xs text-text-light mt-4 text-center py-4 bg-background rounded-xl flex items-center justify-center gap-2">
+            <ShieldCheck size={14} className="text-success" /> Aucune erreur sur les 24 dernières heures
         </p>
     );
 
