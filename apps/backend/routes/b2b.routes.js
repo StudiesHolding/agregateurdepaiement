@@ -20,7 +20,6 @@ const router = Router();
 router.post("/auth/login", validateB2B(B2BValidators.loginSchema), b2bAuthController.login);
 router.post("/auth/activate", b2bAuthController.activate);
 
-
 // ============================================
 // PROTECTED ROUTES (Requires B2B Admin JWT)
 // ============================================
@@ -45,6 +44,7 @@ router.get("/packages", b2bPackageController.getPackages);
 router.get("/packages/catalog", b2bPackageController.getCatalog);
 router.get("/packages/:id", b2bPackageController.getPackageById);
 router.post("/packages/purchase", validateB2B(B2BValidators.purchaseSchema), b2bPackageController.purchasePackage);
+router.post("/packages/:id/add-licenses", b2bPackageController.addLicenses); // NOUVEAU: Ajouter des licences
 router.post("/licenses/assign", validateB2B(B2BValidators.assignLicenseSchema), b2bPackageController.assignLicense);
 router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 

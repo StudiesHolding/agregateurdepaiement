@@ -256,8 +256,138 @@ export const b2bPackageController = {
   },
 
   /**
+   * @route POST /api/v1/b2b/packages/:id/add-licenses
+   * @desc Add more licenses to an existing package
+   */
+  addLicenses: async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+      const { id } = req.params;
+      const { additional_licenses, paymentMethod, countryCode, currency } = req.body;
+      const companyId = req.company_id;
+      
+      // Fallback: If company info not in request, fetch from database
+      let companyEmail = req.company_email;
+      let companyName = req.company_name;
+      
+      if (!companyEmail || !companyName) {
+        const { Company, CompanyAdmin } = await import("../models/index.js");
+        const company = await Company.findByPk(companyId);
+        if (company) {
+          companyName = company.name;
+          companyEmail = company.email;
+        }
+        // Fallback to admin email if company email not found
+        if (!companyEmail && req.admin?.id) {
+          const admin = await CompanyAdmin.findByPk(req.admin.id);
+          if (admin) {
+            companyEmail = admin.email;
+          }
+        }
+      }
+
+      // 1. Find existing company package
+      const companyPackage = await CompanyPackage.findOne({
+        where: { id, company_id: companyId, status: 'active' },
+        include: [{ model: FormationPackage, as: 'package' }],
+        transaction
+      });
+
+      if (!companyPackage) {
+        throw new NotFoundError("Package actif introuvable.");
+      }
+
+      // 2. Validate number of licenses
+      const additionalCount = parseInt(additional_licenses) || 0;
+      if (additionalCount < 1) {
+        throw new BadRequestError("Le nombre de licences doit être au moins 1.");
+      }
+
+      if (additionalCount > 1000) {
+        throw new BadRequestError("Nombre maximum de licences: 1000.");
+      }
+
+      // 3. Calculate price
+      const pkg = companyPackage.package;
+      const unitPrice = Number(pkg.price) || 0;
+      const totalAmount = unitPrice * additionalCount;
+
+      if (totalAmount <= 0) {
+        throw new BadRequestError("Prix invalide pour ce package.");
+      }
+
+      // 4. Prepare payment data
+      const paymentData = {
+        customerEmail: companyEmail,
+        customerName: companyName,
+        lmsItemId: pkg.id.toString(),
+        lmsItemType: 'package', // Use valid enum value - 'package_add_licenses' info goes in metadata
+        paymentMethod: paymentMethod || 'card',
+        countryCode: countryCode || 'CM',
+        currency: currency || pkg.currency || 'XOF',
+        amount: totalAmount,
+        successUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/packages?payment=success&action=add_licenses`,
+        cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/packages?payment=cancelled`,
+        failedUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/packages?payment=failed`,
+        metadata: {
+          is_b2b: true,
+          b2b_purchase: true,
+          purchase_type: 'add_licenses', // Detailed type in metadata
+          company_id: companyId,
+          company_name: companyName,
+          company_admin_email: companyEmail,
+          company_package_id: id,
+          licence_count: additionalCount,
+          unit_price: unitPrice,
+          previous_total_licenses: companyPackage.total_licenses,
+          source: 'b2b_dashboard_add_licenses'
+        }
+      };
+
+      // 5. Call payment orchestrator
+      const { OrchestratorService } = await import("../services/orchestrator.service.js");
+      const result = await OrchestratorService.initializePayment(paymentData);
+
+      if (!result.success) {
+        throw new BadRequestError(result.error || "Erreur lors de l'initialisation du paiement.");
+      }
+
+      // Store pending license addition in metadata for later processing
+      const pendingAddition = {
+        company_package_id: id,
+        additional_licenses: additionalCount,
+        order_reference: result.orderReference,
+        status: 'pending_payment'
+      };
+
+      await transaction.commit();
+
+      res.status(201).json({
+        status: "success",
+        data: {
+          orderReference: result.orderReference,
+          paymentIntentId: result.paymentIntentId,
+          redirectUrl: result.redirectUrl,
+          widgetParams: result.widgetParams,
+          provider: result.provider,
+          clientSecret: result.clientSecret,
+          amount: totalAmount,
+          currency: currency || pkg.currency || 'XOF',
+          additional_licenses: additionalCount,
+          current_licenses: companyPackage.total_licenses,
+          new_total_licenses: companyPackage.total_licenses + additionalCount,
+          package_name: pkg.title
+        }
+      });
+    } catch (err) {
+      await transaction.rollback();
+      next(err);
+    }
+  },
+
+  /**
    * @route POST /api/v1/b2b/packages/purchase
-   * @desc Purchase a package (Simulation)
+   * @desc Purchase a new package (Simulation)
    */
   purchasePackage: async (req, res, next) => {
     const transaction = await sequelize.transaction();

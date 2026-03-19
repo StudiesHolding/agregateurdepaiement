@@ -12,7 +12,7 @@ interface ModalProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = "lg" }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -42,24 +42,24 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "md" }: Mod
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-      <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
-        onClick={onClose} 
+      <div
+        className="absolute inset-0 z-[9999] bg-background/90 backdrop-blur-3xl"
+        onClick={onClose}
       />
       <div className={cn(
-        "relative w-full bg-surface border border-white/5 rounded-3xl shadow-2xl animate-scale-in overflow-hidden",
+        "relative z-[10000] w-full bg-surface border border-white/5 rounded-3xl shadow-2xl animate-scale-in overflow-hidden max-h-[80vh] flex flex-col",
         maxWidthClasses[maxWidth]
       )}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
           <h2 className="text-xl font-bold text-text-main">{title}</h2>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-xl text-text-muted hover:text-text-main hover:bg-white/5 transition-all"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           {children}
         </div>
       </div>
