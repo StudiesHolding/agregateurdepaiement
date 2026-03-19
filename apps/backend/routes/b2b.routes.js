@@ -51,6 +51,7 @@ router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 
 // Demandes d'accès
 router.get("/requests", b2bRequestController.getAll);
+router.get("/requests/export-pdf", PdfExportController.exportRequestsPDF);
 router.get("/requests/:id", b2bRequestController.getById);
 router.put("/requests/:id/status", validateB2B(B2BValidators.updateRequestStatusSchema), b2bRequestController.updateStatus);
 router.post("/requests/:id/approve", b2bRequestController.approve);
@@ -65,10 +66,7 @@ router.patch("/notifications/read-all", b2bNotificationController.markAllRead);
 router.get("/orders", b2bOrderController.getAll);
 router.get("/orders/:id", b2bOrderController.getById);
 router.get("/orders/:id/invoice", b2bOrderController.getInvoice);
-router.post("/orders/initiate-payment", b2bOrderController.initiatePayment);
-
-// PDF Export
-router.get("/requests/export-pdf", PdfExportController.exportRequestsPDF);
 router.get("/orders/:id/export-invoice", PdfExportController.exportInvoicePDF);
+router.post("/orders/initiate-payment", b2bOrderController.initiatePayment);
 
 export default router;
