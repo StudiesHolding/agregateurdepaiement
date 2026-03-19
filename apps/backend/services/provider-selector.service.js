@@ -24,7 +24,8 @@ export class ProviderSelectorService {
         const rawRoutes = await ProviderRouterService.findAvailableRoutes(
             countryCode,
             this.paymentIntent.currency,
-            this.paymentIntent.amount
+            this.paymentIntent.amount,
+            paymentMethod  // Pass payment method for smart routing
         );
 
         let routes = ProviderRouterService.filterByPaymentMethod(
@@ -36,16 +37,16 @@ export class ProviderSelectorService {
         const healthyRoutes = [];
         for (const route of routes) {
             const providerCode = route.provider?.code?.toLowerCase();
-            
+
             // Skip health check for non-widget providers (redirect-based)
             if (!providerHealthService.needsHealthCheck(providerCode)) {
                 healthyRoutes.push(route);
                 continue;
             }
-            
+
             // Health check for widget providers (like Kkiapay)
             const health = await providerHealthService.checkProviderHealth(providerCode);
-            
+
             if (health.available) {
                 healthyRoutes.push(route);
                 console.log(`[ProviderSelector] ✓ ${route.provider.name} is AVAILABLE`);
@@ -55,7 +56,7 @@ export class ProviderSelectorService {
         }
 
         this.routes = healthyRoutes;
-        
+
         if (this.routes.length === 0) {
             console.warn(`[ProviderSelector] No available providers after health check for ${paymentMethod}`);
         }

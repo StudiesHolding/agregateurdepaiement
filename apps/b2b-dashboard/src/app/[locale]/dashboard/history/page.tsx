@@ -17,6 +17,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   paid: { bg: "bg-success-light", text: "text-success-dark", label: "Payé" },
   failed: { bg: "bg-danger-light", text: "text-danger-dark", label: "Échoué" },
   cancelled: { bg: "bg-danger-light", text: "text-danger-dark", label: "Annulé" },
+  validated: { bg: "bg-success-light", text: "text-success-dark", label: "Validé" },
 };
 
 export default function HistoryPage() {
@@ -94,7 +95,7 @@ export default function HistoryPage() {
             <tbody className="divide-y divide-white/5">
               {transactions.map((tx: any, index: number) => {
                 const status = statusConfig[tx.status] || statusConfig.pending;
-                const canDownload = tx.status === "completed" || tx.status === "paid";
+                const canDownload = tx.status === "completed" || tx.status === "paid" || tx.status === "validated";
 
                 return (
                   <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
@@ -105,20 +106,21 @@ export default function HistoryPage() {
                         </div>
                         <div>
                           <span className="font-bold text-text-main group-hover:text-primary transition-colors block">
-                            {tx.formationName || tx.formationPackage?.title || "Package Formation"}
+                            {tx.formationName || tx.formationPackage?.title || tx.metadata?.packageName || tx.metadata?.package_name || "Package Formation"}
                           </span>
                           <span className="text-xs text-text-muted">{tx.reference}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-sm text-text-light">
-                      {tx.createdAt ? format(new Date(tx.createdAt), "d MMMM yyyy", { locale: fr }) : "-"}
+                      {tx.created_at ? format(new Date(tx.created_at), "d MMMM yyyy", { locale: fr }) :
+                        tx.createdAt ? format(new Date(tx.createdAt), "d MMMM yyyy", { locale: fr }) : "-"}
                     </td>
                     <td className="px-6 py-5 font-bold text-text-main">
-                      {Number(tx.totalAmount || 0).toLocaleString()} {tx.currency || "€"}
+                      {Number(tx.total_amount || tx.totalAmount || 0).toLocaleString()} {tx.currency || "€"}
                     </td>
                     <td className="px-6 py-5 text-sm text-text-main font-medium">
-                      {tx.metadata?.licence_count || tx.total_licenses || "-"}
+                      {tx.metadata?.licence_count || tx.metadata?.total_licenses || tx.total_licenses || tx.metadata?.backendLicenceCount || "-"}
                     </td>
                     <td className="px-6 py-5">
                       <span className={cn("badge font-bold py-1 px-3", status.bg, status.text)}>

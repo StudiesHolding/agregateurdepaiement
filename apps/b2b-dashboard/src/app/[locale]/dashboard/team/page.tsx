@@ -16,6 +16,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { b2bEmployees } from "@/lib/api";
 import { AddEmployeeModal } from "@/components/modals/AddEmployeeModal";
+import { EditEmployeeModal } from "@/components/modals/EditEmployeeModal";
 import { toast } from "sonner";
 
 const avatarColors = [
@@ -33,6 +34,7 @@ export default function TeamPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
 
   const { data: employees, isLoading, error } = useQuery({
     queryKey: ["b2b-employees"],
@@ -43,7 +45,7 @@ export default function TeamPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string | number) => b2bEmployees.delete(id),
+    mutationFn: (id: number) => b2bEmployees.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["b2b-employees"] });
       toast.success("Collaborateur supprimé");
@@ -68,6 +70,10 @@ export default function TeamPage() {
     }
   };
 
+  const handleEdit = (employee: any) => {
+    setEditingEmployee(employee);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
@@ -83,7 +89,7 @@ export default function TeamPage() {
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t("title")}</h1>
           <p className="mt-1 text-sm text-text-light">{t("subtitle")}</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAddModalOpen(true)}
           className="btn btn-primary shadow-glow"
         >
@@ -134,10 +140,13 @@ export default function TeamPage() {
               </div>
 
               <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 rounded-xl text-text-muted hover:text-primary hover:bg-primary/10 transition-colors">
+                <button
+                  onClick={() => handleEdit(emp)}
+                  className="p-2 rounded-xl text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+                >
                   <Edit2 className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(emp.id)}
                   disabled={deleteMutation.isPending}
                   className="p-2 rounded-xl text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
@@ -168,7 +177,10 @@ export default function TeamPage() {
                   {emp.licenses || 0} <span className="text-text-light font-normal">{t("licensesAssigned").toLowerCase()}</span>
                 </span>
               </div>
-              <button className="text-xs font-bold text-primary hover:text-primary-700 hover:underline transition-all">
+              <button
+                onClick={() => handleEdit(emp)}
+                className="text-xs font-bold text-primary hover:text-primary-700 hover:underline transition-all"
+              >
                 {t("editEmployee")}
               </button>
             </div>
@@ -186,9 +198,14 @@ export default function TeamPage() {
         </div>
       )}
 
-      <AddEmployeeModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
+      <AddEmployeeModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
+      <EditEmployeeModal
+        isOpen={!!editingEmployee}
+        onClose={() => setEditingEmployee(null)}
+        employee={editingEmployee}
       />
     </div>
   );

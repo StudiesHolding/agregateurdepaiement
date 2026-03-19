@@ -9,6 +9,7 @@ import { b2bOrderController } from "../controllers/b2b-order.controller.js";
 import { isCompanyAdmin } from "../middlewares/b2b-admin.middleware.js";
 import { validateB2B } from "../middlewares/b2b-validator.middleware.js";
 import * as B2BValidators from "../validators/b2b.validator.js";
+import { PdfExportController } from "../controllers/pdf-export.controller.js";
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 
 // Demandes d'accès
 router.get("/requests", b2bRequestController.getAll);
+router.get("/requests/export-pdf", PdfExportController.exportRequestsPDF);
 router.get("/requests/:id", b2bRequestController.getById);
 router.put("/requests/:id/status", validateB2B(B2BValidators.updateRequestStatusSchema), b2bRequestController.updateStatus);
 router.post("/requests/:id/approve", b2bRequestController.approve);
@@ -64,6 +66,7 @@ router.patch("/notifications/read-all", b2bNotificationController.markAllRead);
 router.get("/orders", b2bOrderController.getAll);
 router.get("/orders/:id", b2bOrderController.getById);
 router.get("/orders/:id/invoice", b2bOrderController.getInvoice);
+router.get("/orders/:id/export-invoice", PdfExportController.exportInvoicePDF);
 router.post("/orders/initiate-payment", b2bOrderController.initiatePayment);
 
 export default router;

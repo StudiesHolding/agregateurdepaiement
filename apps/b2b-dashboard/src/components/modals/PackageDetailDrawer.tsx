@@ -17,12 +17,14 @@ import {
   FileText,
   Minus,
   Plus,
-  CreditCard
+  CreditCard,
+  Smartphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { b2bOrders } from "@/lib/api";
 import { toast } from "sonner";
+import { CountryCurrencySelector, COUNTRIES, type CountryConfig } from "@/components/ui/CountryCurrencySelector";
 
 interface PackageDetailDrawerProps {
   isOpen: boolean;
@@ -36,6 +38,8 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
   const [showContent, setShowContent] = useState(false);
   const [expandedCurriculum, setExpandedCurriculum] = useState(true);
   const [displayCurrency, setDisplayCurrency] = useState<"XAF" | "EUR" | "USD">("XAF");
+  const [selectedCountry, setSelectedCountry] = useState("CM");
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "mobile_money">("card");
   const [licenseCount, setLicenseCount] = useState(5);
   const [step, setStep] = useState<"details" | "purchase">("details");
 
@@ -87,27 +91,55 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
   const basePrice = (pkg.price || pkg.package?.price || 0);
   const baseCurrency = (pkg.currency || pkg.package?.currency || "EUR");
 
-  // Conversion rates
-  const rates = {
+  // Extended conversion rates (to EUR as base)
+  const ratesToEUR: Record<string, number> = {
     XAF: 655.957,
+    XOF: 655.957,
     EUR: 1,
-    USD: 1.08
+    USD: 1.08,
+    GBP: 0.856,
+    CHF: 0.942,
+    CAD: 1.465,
+    JPY: 162.45,
+    CNY: 7.85,
+    KRW: 1462.5,
+    INR: 90.25,
+    BRL: 5.42,
+    MXN: 18.45,
+    ZAR: 20.85,
+    NGN: 890.5,
+    GHS: 12.85,
+    KES: 164.5,
+    MAD: 10.85,
   };
 
   const convertPrice = (price: number, from: string, to: string) => {
-    const priceInEur = from === "XAF" ? price / rates.XAF : from === "USD" ? price / rates.USD : price;
-    return priceInEur * rates[to as keyof typeof rates];
+    // If same currency, no conversion needed
+    if (from === to) return price;
+
+    // Get rate to EUR (base), default to 1 if unknown
+    const fromRate = ratesToEUR[from] || 1;
+    const toRate = ratesToEUR[to] || 1;
+
+    // Convert: price -> EUR -> target currency
+    const priceInEur = price / fromRate;
+    return priceInEur * toRate;
   };
 
   const unitPrice = convertPrice(basePrice, baseCurrency, displayCurrency);
   const totalPrice = unitPrice * licenseCount;
+
+  // Get current country config
+  const currentCountry = COUNTRIES.find(c => c.code === selectedCountry) || COUNTRIES[0];
 
   const handlePurchase = () => {
     // Use intelligent payment orchestrator - it will handle provider routing automatically
     checkoutMutation.mutate({
       package_id: pkg.id,
       total_licenses: licenseCount,
-      currency: displayCurrency
+      currency: displayCurrency,
+      countryCode: selectedCountry,
+      paymentMethod
     });
   };
 
@@ -294,8 +326,86 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-3xl bg-primary/10 text-primary mb-4">
                   <CreditCard className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-black text-text-main">Finaliser votre achat</h3>
-                <p className="text-text-muted mt-2">Sélectionnez le nombre de licences dont vous avez besoin</p>
+                <h3 className="text-2xl font-black text-text-main">
+                  {isCatalog ? "Finaliser votre achat" : "Ajouter des licences"}
+                </h3>
+                <p className="text-text-muted mt-2">
+                  {isCatalog
+                    ? "Sélectionnez le nombre de licences dont vous avez besoin"
+                    : `${pkg.total_licenses || 0} licences actuelles • Ajoutez-en davantage`
+                  }
+                </p>
+              </div>
+
+              {/* Country & Currency Selection */}
+              <CountryCurrencySelector
+                selectedCountry={selectedCountry}
+                selectedCurrency={displayCurrency}
+                onCountryChange={(country: CountryConfig) => {
+                  setSelectedCountry(country.code);
+                  setDisplayCurrency(country.defaultCurrency as "XAF" | "EUR" | "USD");
+                  if (!country.supportMobileMoney && paymentMethod === "mobile_money") {
+                    setPaymentMethod("card");
+                  }
+                }}
+                onCurrencyChange={(curr) => setDisplayCurrency(curr as "XAF" | "EUR" | "USD")}
+              />
+
+              {/* Payment Method Selection */}
+              <div>
+                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">
+                  Mode de paiement
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("card")}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all",
+                      paymentMethod === "card"
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
+                    )}
+                  >
+                    <CreditCard className="h-6 w-6" />
+                    <span className="text-xs font-bold">Carte</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!currentCountry.supportMobileMoney) {
+                        toast.error(
+                          `Le Mobile Money n'est pas disponible pour ${currentCountry.nameFr}. Veuillez choisir le paiement par carte.`
+                        );
+                        return;
+                      }
+                      setPaymentMethod("mobile_money");
+                    }}
+                    disabled={!currentCountry.supportMobileMoney}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all",
+                      paymentMethod === "mobile_money"
+                        ? "bg-primary/10 border-primary text-primary"
+                        : currentCountry.supportMobileMoney
+                          ? "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
+                          : "bg-white/5 border-white/5 text-text-muted/50 cursor-not-allowed"
+                    )}
+                  >
+                    <Smartphone className="h-6 w-6" />
+                    <span className="text-xs font-bold">Mobile Money</span>
+                  </button>
+                </div>
+                {paymentMethod === "card" ? (
+                  <p className="text-[10px] text-text-muted mt-2 flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" />
+                    Paiement sécurisé par Stripe (Visa, Mastercard)
+                  </p>
+                ) : currentCountry.supportMobileMoney ? (
+                  <p className="text-[10px] text-success mt-2 flex items-center gap-1">
+                    <Smartphone className="h-3 w-3" />
+                    {currentCountry.mobileMoneyProviders?.join(", ")} disponibles pour {currentCountry.nameFr}
+                  </p>
+                ) : null}
               </div>
 
               {/* License Selection */}
@@ -403,29 +513,41 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                   <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-0.5">Contrat</p>
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck size={12} className="text-success" />
-                    <span className="text-[11px] font-bold text-text-main whitespace-nowrap">Enterprise</span>
+                    <span className="text-[11px] font-bold text-text-main whitespace-nowrap">
+                      {isCatalog ? "Catalogue" : "Enterprise"}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
                 <button
-                  disabled={!isCatalog || checkoutMutation.isPending}
-                  onClick={() => isCatalog && setStep("purchase")}
+                  disabled={checkoutMutation.isPending}
+                  onClick={() => setStep("purchase")}
                   className={cn(
                     "btn h-12 px-10 text-xs font-black shadow-glow group relative overflow-hidden rounded-xl w-full sm:w-auto",
-                    isCatalog ? "btn-primary" : "btn-secondary opacity-50 cursor-not-allowed"
+                    isCatalog ? "btn-primary" : "btn-secondary"
                   )}
                 >
-                  {isCatalog ? (
+                  {checkoutMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isCatalog ? (
                     <>
                       Acheter des licences
                       <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   ) : (
-                    "Package déjà acquis"
+                    <>
+                      Ajouter des licences
+                      <Plus className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </>
                   )}
                 </button>
+                {!isCatalog && (
+                  <p className="text-[10px] text-text-muted">
+                    Package acquis • {pkg.total_licenses || 0} licences totales
+                  </p>
+                )}
               </div>
             </div>
           </div>
