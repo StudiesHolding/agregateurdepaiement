@@ -113,19 +113,19 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - highest z-index to cover sidebar and header */}
       <div
         className={cn(
-          "fixed inset-0 z-[100] bg-background/60 backdrop-blur-xl transition-all duration-700 ease-out",
+          "fixed inset-0 z-[9999] bg-background/90 backdrop-blur-3xl transition-all duration-700 ease-out",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
       />
 
-      {/* Main Overlay */}
+      {/* Main Overlay - z-index higher than backdrop */}
       <div
         className={cn(
-          "fixed z-[101] left-1/2 top-1/2 -translate-x-1/2 w-[95%] max-w-4xl h-[85vh] bg-surface rounded-[40px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex flex-col",
+          "fixed z-[10000] left-1/2 top-1/2 -translate-x-1/2 w-[95%] max-w-4xl h-[85vh] bg-surface rounded-[40px] border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex flex-col",
           isOpen && showContent ? "scale-100 opacity-100 -translate-y-1/2" : "scale-90 opacity-0 translate-y-[-40%]"
         )}
       >

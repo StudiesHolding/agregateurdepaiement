@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
+import { Company, CompanyAdmin } from "../models/index.js";
 
 /**
  * Middleware de vérification pour les admins B2B
  * S'assure que le token JWT est valide ET qu'il appartient à un admin B2B (type === 'b2b_admin')
  */
-export const isCompanyAdmin = (req, res, next) => {
+export const isCompanyAdmin = async (req, res, next) => {
   // Get token from header
   const authHeader = req.header("Authorization");
   
@@ -35,6 +36,23 @@ export const isCompanyAdmin = (req, res, next) => {
     // Bind admin details to request object for downstream controllers
     req.admin = decoded.admin;
     req.company_id = decoded.admin.company_id;
+    
+    // Fetch company details to get email and name
+    if (decoded.admin.company_id) {
+      const company = await Company.findByPk(decoded.admin.company_id);
+      if (company) {
+        req.company_name = company.name;
+        req.company_email = company.email;
+      }
+      
+      // Also try to get admin email from CompanyAdmin if not found in Company
+      if (!req.company_email && decoded.admin.id) {
+        const admin = await CompanyAdmin.findByPk(decoded.admin.id);
+        if (admin) {
+          req.company_email = admin.email;
+        }
+      }
+    }
     
     next();
   } catch (err) {

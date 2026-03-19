@@ -1,20 +1,22 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Package, Key, Users, MoreVertical, Plus, Eye, Loader2 } from "lucide-react";
+import { Package, Key, Users, MoreVertical, Plus, Eye, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { b2bPackages } from "@/lib/api";
 import { useState } from "react";
 import { AssignLicenseModal } from "@/components/modals/AssignLicenseModal";
 import { PackageDetailDrawer } from "@/components/modals/PackageDetailDrawer";
+import { AddLicenseModal } from "@/components/modals/AddLicenseModal";
 import Link from "next/link";
 
 export default function PackagesPage() {
   const t = useTranslations("packages");
   const locale = useLocale();
-  const [selectedPkgForAssign, setSelectedPkgForAssign] = useState<{id: number, name: string} | null>(null);
+  const [selectedPkgForAssign, setSelectedPkgForAssign] = useState<{ id: number, name: string } | null>(null);
   const [viewingPkg, setViewingPkg] = useState<any>(null);
+  const [selectedPkgForAddLicenses, setSelectedPkgForAddLicenses] = useState<any>(null);
 
   const { data: packagesData, isLoading, error } = useQuery({
     queryKey: ["b2b-packages"],
@@ -114,9 +116,23 @@ export default function PackagesPage() {
                     <Package className="h-7 w-7" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-text-main group-hover:text-primary transition-colors">
-                      {title}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-text-main group-hover:text-primary transition-colors">
+                        {title}
+                      </h3>
+                      {/* ALERTE: Badge d'avertissement si >= 70% d'utilisation */}
+                      {pct >= 70 && (
+                        <span className={cn(
+                          "flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse",
+                          pct >= 90
+                            ? "bg-danger/20 text-danger border border-danger/30"
+                            : "bg-warning/20 text-warning border border-warning/30"
+                        )}>
+                          <AlertTriangle className="h-3 w-3" />
+                          {pct >= 90 ? "Licences critiques" : "Licences basses"}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-sm text-text-light line-clamp-2 italic leading-relaxed">
                       {pkg.package?.description || pkg.description}
                     </p>
@@ -144,8 +160,8 @@ export default function PackagesPage() {
                       pct >= 90
                         ? "bg-gradient-to-r from-danger to-rose-400"
                         : pct >= 70
-                        ? "bg-gradient-to-r from-warning to-amber-400"
-                        : "bg-gradient-to-r from-primary to-primary-400"
+                          ? "bg-gradient-to-r from-warning to-amber-400"
+                          : "bg-gradient-to-r from-primary to-primary-400"
                     )}
                     style={{ width: `${pct}%` }}
                   />
@@ -175,20 +191,36 @@ export default function PackagesPage() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                    className="btn btn-ghost text-xs py-2 px-4 hover:bg-white/5 transition-colors"
-                    onClick={() => setViewingPkg(pkg)}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {t("viewDetails")}
-                  </button>
-                  <button 
-                    disabled={available <= 0}
-                    onClick={() => setSelectedPkgForAssign({ id: pkg.id, name: title })}
-                    className="btn btn-primary text-xs py-2 px-4 shadow-glow-sm"
-                  >
-                    {t("assignLicense")}
-                  </button>
+                    <button
+                      className="btn btn-ghost text-xs py-2 px-4 hover:bg-white/5 transition-colors"
+                      onClick={() => setViewingPkg(pkg)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      {t("viewDetails")}
+                    </button>
+                    {/* BOUTON: Ajouter des licences */}
+                    <button
+                      onClick={() => setSelectedPkgForAddLicenses({
+                        id: pkg.id,
+                        name: title,
+                        title: title,
+                        total_licenses: pkg.total_licenses,
+                        used_licenses: pkg.used_licenses,
+                        price: pkg.package?.price,
+                        currency: pkg.package?.currency
+                      })}
+                      className="btn btn-secondary text-xs py-2 px-4"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Acheter
+                    </button>
+                    <button
+                      disabled={available <= 0}
+                      onClick={() => setSelectedPkgForAssign({ id: pkg.id, name: title })}
+                      className="btn btn-primary text-xs py-2 px-4 shadow-glow-sm"
+                    >
+                      {t("assignLicense")}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -223,6 +255,13 @@ export default function PackagesPage() {
         isOpen={!!viewingPkg}
         onClose={() => setViewingPkg(null)}
         pkg={viewingPkg}
+      />
+
+      {/* NOUVEAU: Modal pour ajouter des licences */}
+      <AddLicenseModal
+        isOpen={!!selectedPkgForAddLicenses}
+        onClose={() => setSelectedPkgForAddLicenses(null)}
+        packageData={selectedPkgForAddLicenses}
       />
     </div>
   );

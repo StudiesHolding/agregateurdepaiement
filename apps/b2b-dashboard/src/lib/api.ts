@@ -69,6 +69,9 @@ export const b2bPackages = {
   getCatalog: () => api.get("/b2b/packages/catalog"),
   purchase: (data: { package_id: number; total_licenses: number }) =>
     api.post("/b2b/packages/purchase", data),
+  // NOUVEAU: Ajouter des licences à un package existant
+  addLicenses: (packageId: number, data: { additional_licenses: number; paymentMethod?: string; countryCode?: string; currency?: string }) =>
+    api.post(`/b2b/packages/${packageId}/add-licenses`, data),
 };
 
 // --- Employees ---
