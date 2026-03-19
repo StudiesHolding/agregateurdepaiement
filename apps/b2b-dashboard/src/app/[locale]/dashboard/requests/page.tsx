@@ -1,12 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Search, Clock, CheckCircle2, XCircle, Loader2, Eye, Info } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, Loader2, Eye, Info, Download } from "lucide-react";
 import { useState } from "react";
 import { cn, formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { b2bRequests } from "@/lib/api";
+import { b2bRequests, b2bExport } from "@/lib/api";
 import { Modal } from "@/components/ui/Modal";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   pending: {
@@ -60,6 +61,60 @@ export default function RequestsPage() {
     rejected: requests.filter((r: any) => r.status === "rejected").length,
   };
 
+  const downloadCSV = () => {
+    // CSV Header
+    const headers = ['Collaborateur', 'Email', 'Département', 'Poste', 'Package', 'Statut', 'Date de création'];
+
+    // CSV Rows from filtered data
+    const rows: string[][] = filtered.map((req: any) => [
+      `${req.employee?.first_name || ''} ${req.employee?.last_name || ''}`.trim(),
+      req.employee?.email || '',
+      req.employee?.department || '',
+      req.employee?.position || '',
+      req.companyPackage?.package?.title || req.package || 'Package',
+      req.status,
+      req.created_at
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row: string[]) => row.map((cell: string) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `demandes-acces-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast.success('Téléchargement CSV réussi');
+  };
+
+  const downloadPDF = async () => {
+    try {
+      const response = await b2bExport.exportRequestsPDF();
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `demandes-acces-${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Téléchargement PDF réussi');
+    } catch (error: any) {
+      console.error('PDF export error:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors du téléchargement PDF');
+    }
+  };
+
   const openRequestDetails = (request: any) => {
     setSelectedRequest(request);
   };
@@ -74,9 +129,29 @@ export default function RequestsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-text-main tracking-tight">{t("title")}</h1>
-        <p className="mt-1 text-sm text-text-light">{t("subtitle")}</p>
+      <div className="flex items-center justify-between w-full">
+        <div>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight">{t("title")}</h1>
+          <p className="mt-1 text-sm text-text-light">{t("subtitle")}</p>
+        </div>
+        {filtered.length > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={downloadCSV}
+              className="btn btn-secondary flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              CSV
+            </button>
+            <button
+              onClick={downloadPDF}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              PDF
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Info Banner - B2B admins cannot approve/reject */}

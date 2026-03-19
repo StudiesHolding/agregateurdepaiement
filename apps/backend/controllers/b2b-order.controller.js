@@ -11,18 +11,91 @@ export const b2bOrderController = {
   getAll: async (req, res, next) => {
     try {
       const companyId = req.company_id;
+      console.log('[B2B GET ORDERS] companyId from req:', companyId);
 
-      // Get all orders and filter by company_id in metadata
+      let companyEmail = null;
+      let companyName = null;
+
+      if (companyId) {
+        const company = await Company.findByPk(companyId);
+        companyEmail = company?.email;
+        companyName = company?.name;
+        console.log('[B2B GET ORDERS] Company found:', { companyId, companyEmail, companyName });
+      } else {
+        console.log('[B2B GET ORDERS] WARNING: No companyId in request!');
+      }
+
+      // Get all orders
       const allOrders = await Order.findAll({
         order: [['created_at', 'DESC']],
         limit: 100
       });
+      console.log('[B2B GET ORDERS] Total orders in DB:', allOrders.length);
 
-      // Filter orders that belong to this company via metadata
+      // Debug: Log metadata for first few orders
+      if (allOrders.length > 0) {
+        console.log('[B2B GET ORDERS] Sample order metadata:');
+        allOrders.slice(0, 3).forEach((o, i) => {
+          console.log(`  Order ${i + 1}:`, o.reference, 'metadata:', JSON.stringify(o.metadata).substring(0, 200));
+        });
+      }
+
+      // Filter orders that belong to this company via multiple criteria:
+      // 1. metadata.company_id (handle both string and integer)
+      // 2. customer_email matching company email
+      // 3. customer_name matching company name
+      // 4. metadata.company_name matching company name
       const companyOrders = allOrders.filter(order => {
-        const metadata = order.metadata || {};
-        return metadata.company_id === companyId;
+        // Parse metadata if it's a string (MySQL JSON stored as string)
+        let metadata = order.metadata || {};
+        if (typeof metadata === 'string') {
+          try {
+            metadata = JSON.parse(metadata);
+          } catch (e) {
+            metadata = {};
+          }
+        }
+
+        // Check company_id in metadata (handle string/int comparison)
+        const metaCompanyId = metadata.company_id;
+        const matchesCompanyId = metaCompanyId !== undefined &&
+          (String(metaCompanyId) === String(companyId) || metaCompanyId === companyId);
+
+        // Check customer_email matches company email
+        const matchesEmail = companyEmail &&
+          order.customerEmail === companyEmail;
+
+        // Check customer_name matches company name
+        const matchesName = companyName &&
+          order.customerName === companyName;
+
+        // Check metadata.company_name
+        const matchesMetaName = metadata.company_name &&
+          metadata.company_name.toLowerCase() === companyName?.toLowerCase();
+
+        // Check if it's a B2B order with company info
+        const isB2BOrder = metadata.is_b2b === true || metadata.b2b_purchase === true;
+
+        // Debug log for each order
+        if (isB2BOrder) {
+          console.log('[B2B GET ORDERS] B2B Order:', order.reference, {
+            orderEmail: order.customerEmail,
+            orderName: order.customerName,
+            metaCompanyId,
+            companyId,
+            companyEmail,
+            companyName,
+            matchesCompanyId,
+            matchesEmail,
+            matchesName,
+            matchesMetaName
+          });
+        }
+
+        return isB2BOrder && (matchesCompanyId || matchesEmail || matchesName || matchesMetaName);
       });
+
+      console.log('[B2B GET ORDERS] Filtered orders count:', companyOrders.length);
 
       // Enrich with formation data
       const enrichedOrders = await Promise.all(companyOrders.map(async (order) => {
@@ -135,6 +208,9 @@ export const b2bOrderController = {
     try {
       const { id } = req.params;
       const companyId = req.company_id;
+      const company = await Company.findByPk(companyId);
+      const companyEmail = company?.email;
+      const companyName = company?.name;
 
       const order = await Order.findByPk(id);
 
@@ -142,14 +218,32 @@ export const b2bOrderController = {
         throw new NotFoundError("Commande introuvable.");
       }
 
-      // Verify ownership
-      const metadata = order.metadata || {};
-      if (metadata.company_id !== companyId) {
+      // Parse metadata if string
+      let metadata = order.metadata || {};
+      if (typeof metadata === 'string') {
+        try {
+          metadata = JSON.parse(metadata);
+        } catch (e) {
+          metadata = {};
+        }
+      }
+
+      // Verify ownership - check multiple criteria
+      const metaCompanyId = metadata.company_id;
+      const matchesCompanyId = metaCompanyId !== undefined &&
+        (String(metaCompanyId) === String(companyId) || metaCompanyId === companyId);
+      const matchesEmail = companyEmail && order.customerEmail === companyEmail;
+      const matchesName = companyName && order.customerName === companyName;
+      const matchesMetaName = metadata.company_name &&
+        metadata.company_name.toLowerCase() === companyName?.toLowerCase();
+      const isB2BOrder = metadata.is_b2b === true || metadata.b2b_purchase === true;
+
+      if (!isB2BOrder || !(matchesCompanyId || matchesEmail || matchesName || matchesMetaName)) {
         throw new NotFoundError("Commande introuvable.");
       }
 
-      if (order.status !== 'completed' && order.status !== 'paid') {
-        throw new BadRequestError("La facture n'est disponible que pour les commandes payées.");
+      if (order.status !== 'completed' && order.status !== 'paid' && order.status !== 'validated') {
+        throw new BadRequestError("La facture n'est disponible que pour les commandes validées ou payées.");
       }
 
       // Generate PDF

@@ -77,12 +77,48 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
     const currentLicenses = packageData.total_licenses;
     const usedLicenses = packageData.used_licenses;
 
-    // Conversion rates
-    const rates = { XAF: 655.957, EUR: 1, USD: 1.08 };
+    // Extended conversion rates (to EUR as base)
+    const ratesToEUR: Record<string, number> = {
+        XAF: 655.957,    // CFA Franc BEAC
+        XOF: 655.957,    // CFA Franc BCEAO
+        EUR: 1,
+        USD: 1.08,
+        GBP: 0.856,
+        CHF: 0.942,
+        CAD: 1.465,
+        JPY: 162.45,
+        CNY: 7.85,
+        KRW: 1462.5,
+        INR: 90.25,
+        BRL: 5.42,
+        MXN: 18.45,
+        ZAR: 20.85,
+        NGN: 890.5,
+        GHS: 12.85,
+        KES: 164.5,
+        MAD: 10.85,
+        TND: 3.42,
+        EGP: 33.25,
+        AED: 3.97,
+        SAR: 4.05,
+        QAR: 3.94,
+        KWD: 0.334,
+        BHD: 0.407,
+        OMR: 0.416,
+        // Add more as needed
+    };
 
     const convertPrice = (price: number, from: string, to: string) => {
-        const priceInEur = from === "XAF" ? price / rates.XAF : from === "USD" ? price / rates.USD : price;
-        return priceInEur * rates[to as keyof typeof rates];
+        // If same currency, no conversion needed
+        if (from === to) return price;
+        
+        // Get rate to EUR (base), default to 1 if unknown
+        const fromRate = ratesToEUR[from] || 1;
+        const toRate = ratesToEUR[to] || 1;
+        
+        // Convert: price -> EUR -> target currency
+        const priceInEur = price / fromRate;
+        return priceInEur * toRate;
     };
 
     const unitPrice = convertPrice(basePrice, packageData.currency || "EUR", displayCurrency);

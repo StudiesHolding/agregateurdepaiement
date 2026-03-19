@@ -1,10 +1,11 @@
-import { Employee } from "../models/index.js";
+import { Employee, AccessRequest } from "../models/index.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
+import sequelize from "../config/database.js";
 
 export const b2bEmployeeController = {
   /**
    * @route GET /api/v1/b2b/employees
-   * @desc Get all employees for the company
+   * @desc Get all employees for the company with license count
    */
   getAll: async (req, res, next) => {
     try {
@@ -13,10 +14,39 @@ export const b2bEmployeeController = {
         where: { company_id: companyId },
         order: [['last_name', 'ASC'], ['first_name', 'ASC']]
       });
-      
+
+      // Get license count for each employee (count of activated access requests)
+      const employeeIds = employees.map(e => e.id);
+      let licenseCounts = {};
+
+      if (employeeIds.length > 0) {
+        const accessCounts = await AccessRequest.findAll({
+          where: {
+            employee_id: employeeIds,
+            status: 'activated'
+          },
+          attributes: [
+            'employee_id',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'license_count']
+          ],
+          group: ['employee_id']
+        });
+
+        // Build a map of employee_id -> license_count
+        accessCounts.forEach((record) => {
+          licenseCounts[record.employee_id] = parseInt(record.dataValues.license_count) || 0;
+        });
+      }
+
+      // Add license_count to each employee
+      const employeesWithLicenses = employees.map(emp => ({
+        ...emp.toJSON(),
+        licenses: licenseCounts[emp.id] || 0
+      }));
+
       res.json({
         status: "success",
-        data: employees
+        data: employeesWithLicenses
       });
     } catch (err) {
       next(err);
@@ -69,8 +99,8 @@ export const b2bEmployeeController = {
       const { first_name, last_name, email, department, position, is_active } = req.body;
       const companyId = req.company_id;
 
-      const employee = await Employee.findOne({ 
-        where: { id, company_id: companyId } 
+      const employee = await Employee.findOne({
+        where: { id, company_id: companyId }
       });
 
       if (!employee) {
@@ -104,8 +134,8 @@ export const b2bEmployeeController = {
       const { id } = req.params;
       const companyId = req.company_id;
 
-      const employee = await Employee.findOne({ 
-        where: { id, company_id: companyId } 
+      const employee = await Employee.findOne({
+        where: { id, company_id: companyId }
       });
 
       if (!employee) {

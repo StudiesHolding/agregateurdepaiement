@@ -118,6 +118,13 @@ export const b2bOrders = {
   getById: (id: number) => api.get(`/b2b/orders/${id}`),
   getInvoice: (id: number) =>
     api.get(`/b2b/orders/${id}/invoice`, { responseType: 'blob' }),
+  exportInvoice: (id: number) =>
+    api.get(`/b2b/orders/${id}/export-invoice`, { responseType: 'blob' }),
   initiatePayment: (data: { package_id: number; total_licenses: number; paymentMethod?: string; countryCode?: string; currency?: string }) =>
     api.post("/b2b/orders/initiate-payment", data),
+};
+
+// --- PDF Export ---
+export const b2bExport = {
+  exportRequestsPDF: () => api.get("/b2b/requests/export-pdf", { responseType: 'blob' }),
 };
