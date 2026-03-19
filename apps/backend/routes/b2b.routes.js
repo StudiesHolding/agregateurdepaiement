@@ -9,6 +9,7 @@ import { b2bOrderController } from "../controllers/b2b-order.controller.js";
 import { isCompanyAdmin } from "../middlewares/b2b-admin.middleware.js";
 import { validateB2B } from "../middlewares/b2b-validator.middleware.js";
 import * as B2BValidators from "../validators/b2b.validator.js";
+import { PdfExportController } from "../controllers/pdf-export.controller.js";
 
 const router = Router();
 
@@ -65,5 +66,9 @@ router.get("/orders", b2bOrderController.getAll);
 router.get("/orders/:id", b2bOrderController.getById);
 router.get("/orders/:id/invoice", b2bOrderController.getInvoice);
 router.post("/orders/initiate-payment", b2bOrderController.initiatePayment);
+
+// PDF Export
+router.get("/requests/export-pdf", PdfExportController.exportRequestsPDF);
+router.get("/orders/:id/export-invoice", PdfExportController.exportInvoicePDF);
 
 export default router;
