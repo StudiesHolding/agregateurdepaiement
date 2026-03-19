@@ -137,8 +137,9 @@ export const AdminRequestController = {
             if (!company) {
                 throw new BadRequestError("Entreprise introuvable pour cette demande.");
             }
-            if (company.status !== 'active') {
-                throw new BadRequestError(`Entreprise non active (statut: ${company.status}). Veuillez vérifier le statut de l'entreprise.`);
+            // Company model uses is_active (boolean), not status
+            if (company.is_active !== true) {
+                throw new BadRequestError("Entreprise non active. Veuillez vérifier le statut de l'entreprise.");
             }
 
             // SECURITY CHECK 2: Verify package is valid and active
@@ -287,8 +288,8 @@ export const AdminRequestController = {
                     continue;
                 }
 
-                // SKIP: Company not active
-                if (!request.company || request.company.status !== 'active') {
+                // SKIP: Company not active (Company uses is_active boolean, not status)
+                if (!request.company || request.company.is_active !== true) {
                     results.push({
                         request_id: request.id,
                         status: 'failed',
