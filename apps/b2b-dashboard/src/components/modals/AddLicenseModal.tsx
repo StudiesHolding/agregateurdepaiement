@@ -7,13 +7,14 @@ import {
     Minus,
     Loader2,
     CreditCard,
-    Package,
+    Smartphone,
     Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { b2bPackages } from "@/lib/api";
 import { toast } from "sonner";
+import { CountryCurrencySelector, COUNTRIES, type CountryConfig } from "@/components/ui/CountryCurrencySelector";
 
 interface AddLicenseModalProps {
     isOpen: boolean;
@@ -33,6 +34,8 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
     const [mounted, setMounted] = useState(false);
     const [licenseCount, setLicenseCount] = useState(5);
     const [displayCurrency, setDisplayCurrency] = useState<"XAF" | "EUR" | "USD">("XAF");
+    const [selectedCountry, setSelectedCountry] = useState("CM");
+    const [paymentMethod, setPaymentMethod] = useState<"card" | "mobile_money">("card");
 
     useEffect(() => {
         setMounted(true);
@@ -50,7 +53,7 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
     }, [isOpen]);
 
     const addLicensesMutation = useMutation({
-        mutationFn: (data: { additional_licenses: number; currency: string }) =>
+        mutationFn: (data: { additional_licenses: number; currency: string; countryCode?: string; paymentMethod?: string }) =>
             b2bPackages.addLicenses(packageData?.id || 0, data),
         onSuccess: (response) => {
             const { redirectUrl, paymentUrl } = response.data.data || {};
@@ -85,10 +88,15 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
     const unitPrice = convertPrice(basePrice, packageData.currency || "EUR", displayCurrency);
     const totalPrice = unitPrice * licenseCount;
 
+    // Get current country config
+    const currentCountry = COUNTRIES.find(c => c.code === selectedCountry) || COUNTRIES[0];
+
     const handlePurchase = () => {
         addLicensesMutation.mutate({
             additional_licenses: licenseCount,
-            currency: displayCurrency
+            currency: displayCurrency,
+            countryCode: selectedCountry,
+            paymentMethod
         });
     };
 
@@ -191,27 +199,76 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
                         </div>
                     </div>
 
-                    {/* Currency Selection */}
+                    {/* Country & Currency Selection */}
+                    <CountryCurrencySelector
+                        selectedCountry={selectedCountry}
+                        selectedCurrency={displayCurrency}
+                        onCountryChange={(country: CountryConfig) => {
+                            setSelectedCountry(country.code);
+                            setDisplayCurrency(country.defaultCurrency as "XAF" | "EUR" | "USD");
+                            // Reset payment method when country changes if MM not supported
+                            if (!country.supportMobileMoney && paymentMethod === "mobile_money") {
+                                setPaymentMethod("card");
+                            }
+                        }}
+                        onCurrencyChange={(curr) => setDisplayCurrency(curr as "XAF" | "EUR" | "USD")}
+                    />
+
+                    {/* Payment Method Selection */}
                     <div>
                         <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">
-                            Devise
+                            Mode de paiement
                         </label>
-                        <div className="flex gap-2">
-                            {(["XAF", "EUR", "USD"] as const).map((curr) => (
-                                <button
-                                    key={curr}
-                                    onClick={() => setDisplayCurrency(curr)}
-                                    className={cn(
-                                        "flex-1 py-2 rounded-lg text-xs font-bold transition-all",
-                                        displayCurrency === curr
-                                            ? "bg-primary text-white"
-                                            : "bg-white/5 text-text-muted hover:bg-white/10"
-                                    )}
-                                >
-                                    {curr}
-                                </button>
-                            ))}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setPaymentMethod("card")}
+                                className={cn(
+                                    "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all",
+                                    paymentMethod === "card"
+                                        ? "bg-primary/10 border-primary text-primary"
+                                        : "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
+                                )}
+                            >
+                                <CreditCard className="h-6 w-6" />
+                                <span className="text-xs font-bold">Carte</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!currentCountry.supportMobileMoney) {
+                                        toast.error(
+                                            `Le Mobile Money n'est pas disponible pour ${currentCountry.nameFr}. Veuillez choisir le paiement par carte.`
+                                        );
+                                        return;
+                                    }
+                                    setPaymentMethod("mobile_money");
+                                }}
+                                disabled={!currentCountry.supportMobileMoney}
+                                className={cn(
+                                    "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all",
+                                    paymentMethod === "mobile_money"
+                                        ? "bg-primary/10 border-primary text-primary"
+                                        : currentCountry.supportMobileMoney
+                                            ? "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
+                                            : "bg-white/5 border-white/5 text-text-muted/50 cursor-not-allowed"
+                                )}
+                            >
+                                <Smartphone className="h-6 w-6" />
+                                <span className="text-xs font-bold">Mobile Money</span>
+                            </button>
                         </div>
+                        {paymentMethod === "card" ? (
+                            <p className="text-[10px] text-text-muted mt-2 flex items-center gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                Paiement sécurisé par Stripe (Visa, Mastercard)
+                            </p>
+                        ) : currentCountry.supportMobileMoney ? (
+                            <p className="text-[10px] text-success mt-2 flex items-center gap-1">
+                                <Smartphone className="h-3 w-3" />
+                                {currentCountry.mobileMoneyProviders?.join(", ")} disponibles pour {currentCountry.nameFr}
+                            </p>
+                        ) : null}
                     </div>
 
                     {/* Price Summary */}
