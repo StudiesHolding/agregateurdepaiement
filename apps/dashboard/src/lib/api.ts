@@ -141,6 +141,8 @@ export const adminApi = {
     api.post(`/orders/${id}/complete`, data),
   getOrderAudit: (id: number, params: Record<string, number>) =>
     api.get(`/orders/${id}/audit`, { params }),
+  getOrderProvisioning: (id: number) =>
+    api.get(`/orders/${id}/provisioning`),
 
   // Test API (Formations + Orders)
   getTestFormations: () => api.get("/test/formations"),
@@ -166,4 +168,39 @@ export const adminApi = {
   simulateWebhook: (data: { orderId: number; provider: string; status: string }) =>
     api.post("/test/simulate-webhook", data),
   resetOrder: (id: number) => api.post(`/test/orders/${id}/reset`),
+
+  // Test API (B2B Packages)
+  getTestPackages: () => api.get("/test/packages"),
+  createTestB2BOrder: (data: {
+    packageId?: string;
+    packageName?: string;
+    packagePrice?: number;
+    customerEmail: string;
+    customerName: string;
+    customerPhone?: string;
+    customerCountry?: string;
+    amount?: number;
+    companyName?: string;
+    companyIndustry?: string;
+    companyAdminEmail?: string;
+    licenceCount?: number;
+    unitPrice?: number;
+  }) => api.post("/test/b2b-orders", data),
+  simulateB2BPayment: (id: number, status?: string) =>
+    api.post(`/test/b2b-orders/${id}/simulate-payment`, { status }),
+  provisionB2BOrder: (id: number) =>
+    api.post(`/test/b2b-orders/${id}/provision`),
+
+  // Access Requests (B2B)
+  getRequests: (params?: Record<string, string | number>) =>
+    api.get("/requests", { params }),
+  getRequest: (id: number) => api.get(`/requests/${id}`),
+  approveRequest: (id: number, data: { username: string; password: string; admin_notes?: string }) =>
+    api.post(`/requests/${id}/approve`, data),
+  batchApproveRequests: (data: { request_ids: number[]; credentials: { username: string; password: string }; admin_notes?: string }) =>
+    api.post("/requests/batch-approve", data),
+  rejectRequest: (id: number, data: { reason?: string; admin_notes?: string }) =>
+    api.post(`/requests/${id}/reject`, data),
+  batchRejectRequests: (data: { request_ids: number[]; reason?: string; admin_notes?: string }) =>
+    api.post("/requests/batch-reject", data),
 };

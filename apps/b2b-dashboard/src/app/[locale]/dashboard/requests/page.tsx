@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Search, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, Loader2, Eye, Info } from "lucide-react";
 import { useState } from "react";
 import { cn, formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { b2bRequests } from "@/lib/api";
+import { Modal } from "@/components/ui/Modal";
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   pending: {
@@ -34,6 +35,7 @@ export default function RequestsPage() {
   const t = useTranslations("requests");
   const tCommon = useTranslations("common");
   const [filter, setFilter] = useState<string>("all");
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   const { data: requestsData, isLoading } = useQuery({
     queryKey: ["b2b-requests"],
@@ -58,6 +60,10 @@ export default function RequestsPage() {
     rejected: requests.filter((r: any) => r.status === "rejected").length,
   };
 
+  const openRequestDetails = (request: any) => {
+    setSelectedRequest(request);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
@@ -71,6 +77,18 @@ export default function RequestsPage() {
       <div>
         <h1 className="text-2xl font-bold text-text-main tracking-tight">{t("title")}</h1>
         <p className="mt-1 text-sm text-text-light">{t("subtitle")}</p>
+      </div>
+
+      {/* Info Banner - B2B admins cannot approve/reject */}
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-start gap-3">
+        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold text-text-main text-sm">Gestion des demandes</p>
+          <p className="text-xs text-text-muted mt-1">
+            Les demandes d'accès aux formations sont traitées par notre équipe administrative.
+            Vous pouvez suivre le statut de chaque demande ci-dessous.
+          </p>
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -132,6 +150,9 @@ export default function RequestsPage() {
                 <th className="py-4 px-6 text-left text-[10px] font-black text-text-muted uppercase tracking-[0.1em]">
                   {tCommon("date")}
                 </th>
+                <th className="py-4 px-6 text-left text-[10px] font-black text-text-muted uppercase tracking-[0.1em]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -156,7 +177,7 @@ export default function RequestsPage() {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-text-light font-medium italic">
-                      {req.package}
+                      {req.companyPackage?.package?.title || req.package || "Package"}
                     </td>
                     <td className="py-4 px-6">
                       <span
@@ -178,6 +199,15 @@ export default function RequestsPage() {
                     <td className="py-4 px-6 text-text-muted text-xs font-medium">
                       {formatDate(req.created_at)}
                     </td>
+                    <td className="py-4 px-6">
+                      <button
+                        onClick={() => openRequestDetails(req)}
+                        className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        title="Voir les détails"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -195,7 +225,106 @@ export default function RequestsPage() {
           </div>
         )}
       </div>
+
+      {/* Request Details Modal */}
+      <Modal
+        isOpen={!!selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        title="Détails de la demande"
+      >
+        {selectedRequest && (
+          <div className="space-y-6">
+            {/* Status */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted">Statut</span>
+              {(() => {
+                const sc = statusConfig[selectedRequest.status] || statusConfig.pending;
+                const StatusIcon = sc.icon;
+                return (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm",
+                      sc.bg,
+                      sc.color
+                    )}
+                  >
+                    <StatusIcon className="h-3 w-3" />
+                    {t(selectedRequest.status as any)}
+                  </span>
+                );
+              })()}
+            </div>
+
+            {/* Employee Info */}
+            <div className="bg-background rounded-2xl p-4 border border-white/5">
+              <h4 className="text-xs font-black text-text-muted uppercase tracking-wider mb-3">Collaborateur</h4>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary border border-primary/10">
+                  {selectedRequest.employee?.first_name?.charAt(0)}{selectedRequest.employee?.last_name?.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-bold text-text-main">
+                    {selectedRequest.employee?.first_name} {selectedRequest.employee?.last_name}
+                  </p>
+                  <p className="text-sm text-text-muted">{selectedRequest.employee?.email}</p>
+                </div>
+              </div>
+              {selectedRequest.employee?.department && (
+                <p className="text-sm text-text-muted mt-2">
+                  Département: <span className="text-text-main">{selectedRequest.employee.department}</span>
+                </p>
+              )}
+              {selectedRequest.employee?.position && (
+                <p className="text-sm text-text-muted">
+                  Poste: <span className="text-text-main">{selectedRequest.employee.position}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Package Info */}
+            <div className="bg-background rounded-2xl p-4 border border-white/5">
+              <h4 className="text-xs font-black text-text-muted uppercase tracking-wider mb-3">Package</h4>
+              <p className="font-bold text-text-main">
+                {selectedRequest.companyPackage?.package?.title || selectedRequest.package || "Package"}
+              </p>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-background rounded-2xl p-4 border border-white/5">
+                <h4 className="text-xs font-black text-text-muted uppercase tracking-wider mb-1">Créé le</h4>
+                <p className="font-semibold text-text-main text-sm">
+                  {formatDate(selectedRequest.created_at)}
+                </p>
+              </div>
+              {selectedRequest.updated_at && (
+                <div className="bg-background rounded-2xl p-4 border border-white/5">
+                  <h4 className="text-xs font-black text-text-muted uppercase tracking-wider mb-1">Modifié le</h4>
+                  <p className="font-semibold text-text-main text-sm">
+                    {formatDate(selectedRequest.updated_at)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Notes (if any) */}
+            {selectedRequest.admin_notes && (
+              <div className="bg-warning/5 rounded-2xl p-4 border border-warning/20">
+                <h4 className="text-xs font-black text-warning-dark uppercase tracking-wider mb-2">Notes admin</h4>
+                <p className="text-sm text-text-main">{selectedRequest.admin_notes}</p>
+              </div>
+            )}
+
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedRequest(null)}
+              className="btn btn-secondary w-full"
+            >
+              Fermer
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
-

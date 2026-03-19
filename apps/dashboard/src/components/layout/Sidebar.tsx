@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Bell,
   ShoppingCart,
+  Building2,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,7 @@ const navItems = [
     items: [
       { href: "/transactions", label: "Transactions", icon: FileText },
       { href: "/orders", label: "Commandes LMS", icon: ShoppingCart },
+      { href: "/requests", label: "Demandes Accès B2B", icon: Users },
       { href: "/analytics", label: "Analytics LMS", icon: Zap },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
     ],
@@ -45,6 +48,7 @@ const navItems = [
       { href: "/audit", label: "Journal d'Audit", icon: ShieldCheck },
       { href: "/settings/notifications", label: "Notifications", icon: Bell },
       { href: "/test-order", label: "Test Commande", icon: ShoppingCart },
+      { href: "/test-b2b", label: "Test B2B", icon: Building2 },
     ],
   },
 ];

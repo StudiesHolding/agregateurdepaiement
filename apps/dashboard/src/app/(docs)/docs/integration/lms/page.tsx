@@ -6,6 +6,11 @@ import {
   Users,
   CheckCircle2,
   ExternalLink,
+  CreditCard,
+  Link2,
+  CheckCircle,
+  GraduationCap,
+  Mail
 } from "lucide-react";
 import Link from "next/link";
 
@@ -15,32 +20,32 @@ const workflowSteps = [
     title: "Customer Makes Payment",
     description:
       "Customer completes payment on your site using the payment aggregator",
-    icon: "💳",
+    icon: CreditCard,
   },
   {
     step: 2,
     title: "Webhook Received",
     description: "Backend receives payment confirmation webhook from provider",
-    icon: "🔗",
+    icon: Link2,
   },
   {
     step: 3,
     title: "Order Validated",
     description: "Admin reviews and validates the order in the dashboard",
-    icon: "✓",
+    icon: CheckCircle,
   },
   {
     step: 4,
     title: "LMS Access Granted",
     description:
       "System automatically creates WordPress user and enrolls in course",
-    icon: "🎓",
+    icon: GraduationCap,
   },
   {
     step: 5,
     title: "Credentials Sent",
     description: "Email sent to customer with WordPress login credentials",
-    icon: "📧",
+    icon: Mail,
   },
 ];
 
@@ -142,7 +147,7 @@ export default function LMSIntegrationPage() {
               </div>
               <div className="flex-1 bg-white border border-slate-200 rounded-xl p-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{item.icon}</span>
+                  <item.icon size={20} className="text-primary" />
                   <h3 className="font-bold text-slate-900">{item.title}</h3>
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
@@ -252,13 +257,12 @@ export default function LMSIntegrationPage() {
                 <tr key={idx} className="border-t border-slate-200">
                   <td className="p-3">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-bold ${
-                        action.status === "completed"
+                      className={`px-2 py-1 rounded text-xs font-bold ${action.status === "completed"
                           ? "bg-green-100 text-green-700"
                           : action.status === "validated"
                             ? "bg-blue-100 text-blue-700"
                             : "bg-amber-100 text-amber-700"
-                      }`}
+                        }`}
                     >
                       {action.status}
                     </span>

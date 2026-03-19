@@ -10,6 +10,9 @@ import {
     ProviderRoute,
     WebhookEvent,
     Order,
+    Company,
+    CompanyPackage,
+    CompanyAdmin,
 } from "../models/index.js";
 import { ProviderFactory } from "../providers/index.js";
 import { WebhookProcessor } from "../services/webhook-processor.service.js";
@@ -19,6 +22,8 @@ import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
 import { NotificationController } from "../controllers/notification.controller.js";
 import { AdminNotificationController } from "../controllers/admin-notification.controller.js";
+import { AdminCompanyController } from "../controllers/admin-company.controller.js";
+import { AdminRequestController } from "../controllers/admin-request.controller.js";
 
 const router = Router();
 
@@ -738,5 +743,166 @@ router.post(
 router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
     await OrderController.getAuditHistory(req, res, next);
 }));
+
+/**
+ * GET /api/admin/orders/:id/provisioning
+ * Retourne le statut du provisioning B2B pour une commande
+ */
+router.get("/orders/:id/provisioning", catchAsync(async (req, res) => {
+    const { id } = req.params;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+        throw new NotFoundError("Commande non trouvée");
+    }
+
+    const metadata = order.metadata || {};
+    const isB2B = metadata.is_b2b === true || metadata.b2b_purchase === true;
+
+    if (!isB2B) {
+        return res.json({
+            status: "success",
+            data: {
+                isB2B: false,
+                message: "Cette commande n'est pas un achat B2B"
+            }
+        });
+    }
+
+    // Chercher la company associée
+    let company = null;
+    let admin = null;
+    let companyPackages = [];
+
+    if (metadata.company_id) {
+        company = await Company.findByPk(metadata.company_id);
+    } else {
+        // Chercher par email admin
+        const adminEmail = metadata.company_admin_email || order.customerEmail;
+        admin = await CompanyAdmin.findOne({ where: { email: adminEmail } });
+        if (admin) {
+            company = await Company.findByPk(admin.company_id);
+            admin = await CompanyAdmin.findAll({ where: { company_id: admin.company_id } });
+            companyPackages = await CompanyPackage.findAll({
+                where: { company_id: admin.company_id },
+                order: [["purchase_date", "DESC"]]
+            });
+        }
+    }
+
+    res.json({
+        status: "success",
+        data: {
+            isB2B: true,
+            provisioning: {
+                status: company ? "completed" : "pending",
+                companyId: company?.id || null,
+                companyName: company?.name || metadata.company_name || "Entreprise",
+                companyEmail: company?.email || metadata.company_admin_email || order.customerEmail,
+                industry: company?.metadata?.industry || metadata.company_industry || null,
+                totalLicenses: metadata.total_licenses || metadata.licence_count || 1,
+                adminCount: admin ? (Array.isArray(admin) ? admin.length : 1) : 0,
+                packagesCount: companyPackages.length,
+                createdAt: company?.created_at || null,
+            }
+        }
+    });
+}));
+
+// ═══════════════════════════════════════════════════════════
+// 🏢 COMPANIES & B2B MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/companies
+ * Liste toutes les entreprises clientes
+ */
+router.get("/companies", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.list(req, res, next);
+}));
+
+/**
+ * GET /api/admin/companies/:id
+ * Détail d'une entreprise avec ses admins et packages
+ */
+router.get("/companies/:id", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.getById(req, res, next);
+}));
+
+/**
+ * PUT /api/admin/companies/admins/:adminId/toggle
+ * Activer/Désactiver manuellement un admin entreprise
+ */
+router.put("/companies/admins/:adminId/toggle", catchAsync(async (req, res, next) => {
+    await AdminCompanyController.toggleAdminStatus(req, res, next);
+}));
+
+// ═══════════════════════════════════════════════════════════
+// 📋 ACCESS REQUESTS - Gestion des demandes d'accès B2B
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/requests
+ * Liste toutes les demandes d'accès (toutes entreprises)
+ */
+router.get("/requests", catchAsync(async (req, res, next) => {
+    await AdminRequestController.getAll(req, res, next);
+}));
+
+/**
+ * GET /api/admin/requests/:id
+ * Détail d'une demande d'accès
+ */
+router.get("/requests/:id", catchAsync(async (req, res, next) => {
+    await AdminRequestController.getById(req, res, next);
+}));
+
+/**
+ * POST /api/admin/requests/:id/approve
+ * Approuver une demande et créer les credentials LMS
+ */
+router.post(
+    "/requests/:id/approve",
+    auditLog("APPROVE_REQUEST", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.approve(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/batch-approve
+ * Approuver plusieurs demandes à la fois
+ */
+router.post(
+    "/requests/batch-approve",
+    auditLog("BATCH_APPROVE_REQUESTS", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.batchApprove(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/:id/reject
+ * Rejeter une demande d'accès
+ */
+router.post(
+    "/requests/:id/reject",
+    auditLog("REJECT_REQUEST", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.reject(req, res, next);
+    })
+);
+
+/**
+ * POST /api/admin/requests/batch-reject
+ * Rejeter plusieurs demandes à la fois
+ */
+router.post(
+    "/requests/batch-reject",
+    auditLog("BATCH_REJECT_REQUESTS", "access_request"),
+    catchAsync(async (req, res, next) => {
+        await AdminRequestController.batchReject(req, res, next);
+    })
+);
 
 export default router;
