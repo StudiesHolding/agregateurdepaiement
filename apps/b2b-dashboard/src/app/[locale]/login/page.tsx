@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { GraduationCap, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { b2bAuth } from "@/lib/api";
@@ -10,6 +11,10 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string || "fr";
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,13 +27,15 @@ export default function LoginPage() {
       const response = await b2bAuth.login(email, password);
       const { token } = response.data.data;
       
-      // Store token
+      // Store token in localStorage (legacy) and Cookie (for Middleware)
       localStorage.setItem("b2b_token", token);
+      document.cookie = `b2b_token=${token}; path=/; max-age=86400; SameSite=Lax`;
       
       toast.success("Connexion réussie !");
       
-      // Hard refresh to clear any state and ensure interceptors are updated
-      window.location.href = "/fr/dashboard";
+      // Use router.push for better performance (SPA transition)
+      router.push(`/${locale}/dashboard`);
+      router.refresh();
     } catch (error: any) {
       console.error("Login error:", error);
       const message = error.response?.data?.message || "Identifiants invalides.";
