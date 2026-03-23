@@ -3,7 +3,6 @@
 import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Package, Search, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { b2bPackages } from "@/lib/api";
 import { PackageDetailDrawer } from "@/components/modals/PackageDetailDrawer";
@@ -67,20 +66,20 @@ export default function CatalogPage() {
           >
             {/* Header Image/Background */}
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden mb-5 bg-surface border border-white/5 shadow-inner">
-               {pkg.image_url ? (
-                 <img src={pkg.image_url} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-               ) : (
-                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
-                    <Package className="h-12 w-12 text-primary/20" />
-                 </div>
-               )}
-               <div className="absolute top-3 right-3">
-                 <span className="badge badge-primary shadow-glow-sm">
-                   {pkg.price} {pkg.currency || "€"}
-                 </span>
-               </div>
+              {pkg.image_url ? (
+                <img src={pkg.image_url} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
+                  <Package className="h-12 w-12 text-primary/20" />
+                </div>
+              )}
+              <div className="absolute top-3 right-3">
+                <span className="badge badge-primary shadow-glow-sm">
+                  {pkg.price} {pkg.currency || "€"}
+                </span>
+              </div>
             </div>
-            
+
             <div className="flex-1 flex flex-col space-y-4">
               <div>
                 <h3 className="text-xl font-bold text-text-main group-hover:text-primary transition-colors line-clamp-1">
@@ -116,7 +115,7 @@ export default function CatalogPage() {
                   <span className="text-[10px] text-text-muted font-bold uppercase tracking-tight">Accès Entreprise</span>
                   <span className="text-xs font-semibold text-text-main">Licences illimitées*</span>
                 </div>
-                <button 
+                <button
                   className="btn btn-primary h-10 px-4 shadow-glow-sm group/btn"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -132,18 +131,18 @@ export default function CatalogPage() {
         ))}
       </div>
 
-      <PackageDetailDrawer 
-        isOpen={!!selectedPkg} 
-        onClose={() => setSelectedPkg(null)} 
-        pkg={selectedPkg} 
+      <PackageDetailDrawer
+        isOpen={!!selectedPkg}
+        onClose={() => setSelectedPkg(null)}
+        pkg={selectedPkg}
       />
 
       {filtered.length === 0 && (
-         <div className="flex flex-col items-center justify-center py-24 text-center glass-dark rounded-3xl border border-white/5">
-           <Search className="h-12 w-12 text-text-muted mb-4" />
-           <p className="text-text-main font-bold">Aucun résultat</p>
-           <p className="text-sm text-text-light">Essayez d'autres termes de recherche.</p>
-         </div>
+        <div className="flex flex-col items-center justify-center py-24 text-center glass-dark rounded-3xl border border-white/5">
+          <Search className="h-12 w-12 text-text-muted mb-4" />
+          <p className="text-text-main font-bold">Aucun résultat</p>
+          <p className="text-sm text-text-light">Essayez d'autres termes de recherche.</p>
+        </div>
       )}
     </div>
   );
