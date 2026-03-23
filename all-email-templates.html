@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studies Learning - Tous les Templates Email</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0a0a0f;
+      color: #fff;
+      padding: 40px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 50px;
+      font-size: 14px;
+    }
+
+    .template-section {
+      margin-bottom: 80px;
+      background: #12121a;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid #1e1e2e;
+    }
+
+    .template-header {
+      background: #16161f;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    .template-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .template-badge {
+      background: linear-gradient(135deg, #00D4AA 0%, #00A080 100%);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .template-badge.warning {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #000;
+    }
+
+    .template-badge.error {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+      color: #fff;
+    }
+
+    .template-badge.info {
+      background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+      color: #fff;
+    }
+
+    .template-badge.neutral {
+      background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+      color: #fff;
+    }
+
+    .template-preview {
+      padding: 0;
+      background: #fff;
+    }
+
+    .email-frame {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    .premium-header {
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+      padding: 32px 40px;
+      position: relative;
+    }
+
+    .premium-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: #ffffff;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 120px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-tagline {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .hero-section {
+      padding: 40px 40px 30px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #00D4AA 0%, #00A080 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 15px 40px rgba(0, 212, 170, 0.25);
+    }
+
+    .hero-icon svg {
+      width: 40px;
+      height: 40px;
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    .hero-icon.warning {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      box-shadow: 0 15px 40px rgba(245, 158, 11, 0.25);
+    }
+
+    .hero-icon.error {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+      box-shadow: 0 15px 40px rgba(239, 68, 68, 0.25);
+    }
+
+    .hero-icon.info {
+      background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+      box-shadow: 0 15px 40px rgba(59, 130, 246, 0.25);
+    }
+
+    .hero-icon.neutral {
+      background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+      box-shadow: 0 15px 40px rgba(107, 114, 128, 0.25);
+    }
+
+    .hero-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f0f1a;
+      margin-bottom: 8px;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .email-body {
+      padding: 30px 40px 40px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .greeting {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .greeting strong {
+      font-weight: 700;
+      color: #0f0f1a;
+    }
+
+    .intro-text {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .amount-card {
+      background: linear-gradient(135deg, #f0fdf9 0%, #e6faf5 100%);
+      border: 2px solid #00D4AA;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .amount-card.warning {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+      border-color: #F59E0B;
+    }
+
+    .amount-card.error {
+      background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+      border-color: #EF4444;
+    }
+
+    .amount-card.info {
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border-color: #3B82F6;
+    }
+
+    .amount-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #00A080;
+      margin-bottom: 8px;
+    }
+
+    .amount-card-label.warning {
+      color: #D97706;
+    }
+
+    .amount-card-label.error {
+      color: #DC2626;
+    }
+
+    .amount-card-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #0f0f1a;
+    }
+
+    .amount-card-value .currency {
+      font-size: 18px;
+      font-weight: 600;
+      color: #00A080;
+    }
+
+    .amount-card-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #00D4AA;
+      color: #000;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .order-details {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 24px 0;
+    }
+
+    .order-detail {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .order-detail-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .order-detail-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .next-steps {
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f5 100%);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .next-steps-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 16px;
+    }
+
+    .next-steps-title svg {
+      width: 20px;
+      height: 20px;
+      color: #00D4AA;
+    }
+
+    .next-steps-list {
+      list-style: none;
+    }
+
+    .next-steps-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      font-size: 14px;
+      color: #555;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .next-steps-list li:last-child {
+      border-bottom: none;
+    }
+
+    .step-icon {
+      width: 24px;
+      height: 24px;
+      background: #00D4AA;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-icon svg {
+      width: 12px;
+      height: 12px;
+      stroke: #000;
+      stroke-width: 3;
+    }
+
+    .step-icon.error {
+      background: #EF4444;
+    }
+
+    .step-icon.error svg {
+      stroke: #fff;
+    }
+
+    .cta-premium {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+      color: #fff;
+      padding: 16px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+      margin: 20px 0;
+    }
+
+    .cta-premium svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .cta-premium.error {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    }
+
+    .cta-premium.info {
+      background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    }
+
+    .cta-wrapper {
+      text-align: center;
+      margin: 24px 0;
+    }
+
+    .invoice-notice {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 18px;
+      margin: 20px 0;
+    }
+
+    .invoice-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #f0fdf9 0%, #e6faf5 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #00D4AA;
+    }
+
+    .invoice-icon svg {
+      width: 22px;
+      height: 22px;
+      color: #00A080;
+    }
+
+    .credentials-card {
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border: 2px solid #3B82F6;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .credentials-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1D4ED8;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .credentials-title svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .credentials-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      display: inline-block;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .credentials-row {
+      margin-bottom: 12px;
+    }
+
+    .credentials-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .credentials-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .credentials-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f0f1a;
+      font-family: monospace;
+    }
+
+    .alert-box {
+      background: #FEF2F2;
+      border-left: 4px solid #EF4444;
+      padding: 20px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+    }
+
+    .alert-box.warning {
+      background: #FFFBEB;
+      border-color: #F59E0B;
+    }
+
+    .alert-box.info {
+      background: #EFF6FF;
+      border-color: #3B82F6;
+    }
+
+    .alert-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #991B1B;
+      margin-bottom: 8px;
+    }
+
+    .alert-text {
+      font-size: 14px;
+      color: #B91C1C;
+      line-height: 1.6;
+    }
+
+    .installment-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .installment-table th {
+      background: #f8f9fa;
+      padding: 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      border-bottom: 2px solid #e5e5e5;
+    }
+
+    .installment-table td {
+      padding: 14px 12px;
+      font-size: 14px;
+      color: #1a1a2e;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .installment-table .amount {
+      font-weight: 700;
+      color: #00A080;
+    }
+
+    .verification-code {
+      background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f5 100%);
+      border: 2px dashed #00D4AA;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin: 24px 0;
+    }
+
+    .verification-code-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #00A080;
+      margin-bottom: 12px;
+    }
+
+    .verification-code-value {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 12px;
+      color: #0f0f1a;
+    }
+
+    .verification-code-expiry {
+      font-size: 12px;
+      color: #888;
+      margin-top: 12px;
+    }
+
+    .email-footer-premium {
+      background: #0f0f1a;
+      padding: 28px 40px;
+      text-align: center;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .footer-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #00D4AA 0%, #00A080 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #000;
+    }
+
+    .footer-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .footer-contact {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 10px;
+    }
+
+    .footer-contact a {
+      color: #00D4AA;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer-copyright {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0f0f1a;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .admin-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .order-details {
+        grid-template-columns: 1fr;
+      }
+
+      .premium-header {
+        padding: 24px;
+      }
+
+      .email-body {
+        padding: 24px;
+      }
+
+      .brand-logo {
+        width: 100px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Tous les Templates Email</h1>
+  <p class="subtitle">Design systeme coherent - 16 types d'emails</p>
+
+  <!-- 1. Confirmation de Paiement -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">1. Confirmation de Paiement</span><span
+        class="template-badge">PAIEMENT</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg></div>
+          <h2 class="hero-title">Paiement Reussi</h2>
+          <p class="hero-subtitle">Votre inscription est en cours de traitement</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Jean Dupont</strong>,</p>
+          <p class="intro-text">Votre paiement a ete enregistre avec succes. Notre equipe traite actuellement votre
+            dossier et vous contactera sous 24-48 heures.</p>
+          <div class="amount-card">
+            <div class="amount-card-label">Montant verse</div>
+            <div class="amount-card-value">50,000 <span class="currency">XAF</span></div>
+            <div class="amount-card-status">Transaction validee</div>
+          </div>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Reference</div>
+              <div class="order-detail-value">ORD-2026-001234</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Formation</div>
+              <div class="order-detail-value">Marketing Digital</div>
+            </div>
+          </div>
+          <div class="next-steps">
+            <div class="next-steps-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>Prochaines etapes</div>
+            <ul class="next-steps-list">
+              <li>
+                <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg></div><span><strong>24-48h :</strong> Validation de votre inscription</span>
+              </li>
+              <li>
+                <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                  </svg></div><span><strong>48-72h :</strong> Envoi de vos identifiants campus</span>
+              </li>
+            </ul>
+          </div>
+          <div class="invoice-notice">
+            <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <path d="M14 2v6h6" />
+              </svg></div>
+            <div class="invoice-text"><strong>Votre facture arrive</strong><span>Envoyee sous 24-72h en piece
+                jointe</span></div>
+          </div>
+          <div class="cta-wrapper"><a href="#" class="cta-premium"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              </svg>Suivre ma commande</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Paiement Refuse -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">2. Paiement Refuse</span><span
+        class="template-badge error">ECHEC</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg></div>
+          <h2 class="hero-title" style="color:#DC2626;">Paiement refuse</h2>
+          <p class="hero-subtitle">Votre transaction n'a pas abouti</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Jean Dupont</strong>,</p>
+          <p class="intro-text">Votre paiement a ete refuse par notre prestataire de paiement. Votre commande n'a pas
+            ete enregistree.</p>
+          <div class="amount-card" style="background:#FEF2F2;border-color:#EF4444;">
+            <div class="amount-card-label" style="color:#DC2626;">Montant vise</div>
+            <div class="amount-card-value" style="color:#DC2626;">50,000 <span class="currency"
+                style="color:#EF4444;">XAF</span></div>
+            <div class="amount-card-status" style="background:#EF4444;color:#fff;">Transaction refusee</div>
+          </div>
+          <div class="next-steps">
+            <div class="next-steps-title" style="color:#991B1B;"><svg viewBox="0 0 24 24" fill="none" stroke="#EF4444"
+                stroke-width="2">
+                <path
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>Que faire ?</div>
+            <ul class="next-steps-list">
+              <li>
+                <div class="step-icon" style="background:#EF4444;"><svg viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor">
+                    <path
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+                  </svg></div><span><strong>Reessayer :</strong> Choisissez un autre moyen de paiement</span>
+              </li>
+              <li>
+                <div class="step-icon" style="background:#EF4444;"><svg viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                  </svg></div><span><strong>Contacter le support :</strong> Nous pouvons vous aider</span>
+              </li>
+            </ul>
+          </div>
+          <div class="cta-wrapper"><a href="#" class="cta-premium"
+              style="background:linear-gradient(135deg,#EF4444,#DC2626);"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+              </svg>Reessayer le paiement</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Paiement Recu -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">3. Paiement Recu (en attente validation)</span><span
+        class="template-badge warning">ATTENTE</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title">Paiement Recu</h2>
+          <p class="hero-subtitle">En attente de validation</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Marie Kouatchou</strong>,</p>
+          <p class="intro-text">Nous avons bien recu votre paiement. Notre equipe verifie actuellement votre dossier. La
+            validation interviendra sous 24 a 48 heures.</p>
+          <div class="amount-card warning">
+            <div class="amount-card-label warning">Montant regle</div>
+            <div class="amount-card-value warning">75,000 <span class="currency">XAF</span></div>
+            <div class="amount-card-status" style="background:#F59E0B;color:#000;">En attente</div>
+          </div>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Reference</div>
+              <div class="order-detail-value">ORD-2026-001235</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Formation</div>
+              <div class="order-detail-value">Developpement Web</div>
+            </div>
+          </div>
+          <div class="alert-box warning">
+            <div class="alert-title" style="color:#92400E;">Verification en cours</div>
+            <div class="alert-text" style="color:#B45309;">Notre equipe verifie votre paiement. Vous recevrez un email
+              avec vos identifiants des que la validation sera terminee.</div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Validation Commande -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">4. Validation de Commande + Facture</span><span
+        class="template-badge">VALIDATION</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title">Felicitations</h2>
+          <p class="hero-subtitle">Votre inscription est validee</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Pierre Ngah</strong>,</p>
+          <p class="intro-text">Nous avons le plaisir de vous informer que votre inscription a la formation
+            <strong>Marketing Digital</strong> a ete officiellement validee.</p>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Reference</div>
+              <div class="order-detail-value">ORD-2026-001234</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Formation</div>
+              <div class="order-detail-value">Marketing Digital</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Montant</div>
+              <div class="order-detail-value">50,000 XAF</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Statut</div>
+              <div class="order-detail-value" style="color:#00A080;">Validee</div>
+            </div>
+          </div>
+          <div class="invoice-notice">
+            <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <path d="M14 2v6h6" />
+              </svg></div>
+            <div class="invoice-text"><strong>Facture jointe</strong><span>Votre facture officielle en piece jointe
+                PDF</span></div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Rejet de Commande -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">5. Rejet de Commande</span><span
+        class="template-badge error">REJET</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title" style="color:#DC2626;">Information d'Inscription</h2>
+          <p class="hero-subtitle">Concernant votre commande</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Jean Client</strong>,</p>
+          <p class="intro-text">Nous vous informons qu'apres examen, votre paiement pour la formation <strong>Marketing
+              Digital</strong> n'a pas pu etre valide par nos services.</p>
+          <div class="alert-box error">
+            <div class="alert-title">Motif du rejet</div>
+            <div class="alert-text">Preuve de paiement illisible ou transaction non confirmee.</div>
+          </div>
+          <div class="cta-wrapper"><a href="mailto:support@studieslearning.com" class="cta-premium"
+              style="background:linear-gradient(135deg,#EF4444,#DC2626);"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>Contacter le support</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Acces Campus -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">6. Commande Terminee - Acces Campus</span><span
+        class="template-badge info">ACCES</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg></div>
+          <h2 class="hero-title">Pret a apprendre</h2>
+          <p class="hero-subtitle">Vos acces au campus sont actives</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Marie Etudiante</strong>,</p>
+          <p class="intro-text">Felicitations ! Votre inscription est maintenant terminee. Voici vos identifiants de
+            connexion au campus.</p>
+          <div class="credentials-card">
+            <div class="credentials-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>Vos Identifiants</div>
+            <div class="credentials-box">
+              <div class="credentials-row">
+                <div class="credentials-label">Nom d'utilisateur</div>
+                <div class="credentials-value">marie.etudiante</div>
+              </div>
+              <div class="credentials-row">
+                <div class="credentials-label">Mot de passe</div>
+                <div class="credentials-value">Sl#2026xyz</div>
+              </div>
+            </div>
+          </div>
+          <div class="alert-box info">
+            <div class="alert-title" style="color:#1E40AF;">Securite</div>
+            <div class="alert-text" style="color:#1E3A8A;">Changez votre mot de passe des votre premiere connexion.
+            </div>
+          </div>
+          <div class="cta-wrapper"><a href="https://campus.studieslearning.com" class="cta-premium info"><svg
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              </svg>Acceder au Campus</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Code Verification -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">7. Code de Verification Email</span><span
+        class="template-badge neutral">SECURITE</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg></div>
+          <h2 class="hero-title">Verification de votre Email</h2>
+          <p class="hero-subtitle">Securisez votre compte</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Utilisateur</strong>,</p>
+          <p class="intro-text">Pour securiser votre achat sur Studies Learning, utilisez le code de verification
+            suivant :</p>
+          <div class="verification-code">
+            <div class="verification-code-label">Votre code</div>
+            <div class="verification-code-value">847291</div>
+            <div class="verification-code-expiry">Valable pendant 15 minutes</div>
+          </div>
+          <div class="alert-box info">
+            <div class="alert-title" style="color:#1E40AF;">Important</div>
+            <div class="alert-text" style="color:#1E3A8A;">Si vous n'avez pas initiate cette demande, ignorez cet email.
+            </div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Echeancier -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">8. Echeancier de Paiement Active</span><span
+        class="template-badge warning">PAIEMENT</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg></div>
+          <h2 class="hero-title">Echeancier Active</h2>
+          <p class="hero-subtitle">Plan de paiement en 3 fois</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Paul Client</strong>,</p>
+          <p class="intro-text">Conformement a votre demande, un plan de paiement en <strong>3 fois</strong> a ete
+            active.</p>
+          <table class="installment-table">
+            <thead>
+              <tr>
+                <th>Echeance</th>
+                <th>Date</th>
+                <th>Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>N 1</td>
+                <td>15/04/2026</td>
+                <td class="amount">25,000 XAF</td>
+              </tr>
+              <tr>
+                <td>N 2</td>
+                <td>15/05/2026</td>
+                <td class="amount">25,000 XAF</td>
+              </tr>
+              <tr>
+                <td>N 3</td>
+                <td>15/06/2026</td>
+                <td class="amount">25,000 XAF</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="alert-box warning">
+            <div class="alert-title" style="color:#92400E;">Rappel</div>
+            <div class="alert-text" style="color:#B45309;">Un rappel vous sera envoye 3 jours avant chaque echeance.
+            </div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Rappel Echeance -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">9. Rappel d'Echeance</span><span
+        class="template-badge warning">RAPPEL</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg></div>
+          <h2 class="hero-title">Rappel d'Echeance</h2>
+          <p class="hero-subtitle">Prochain paiement a venir</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Paul Client</strong>,</p>
+          <p class="intro-text">Ceci est un rappel concernant votre prochaine echeance pour la commande
+            <strong>ORD-2026-001236</strong>.</p>
+          <div class="amount-card warning">
+            <div class="amount-card-label warning">Echeance N 2</div>
+            <div class="amount-card-value warning">25,000 <span class="currency">XAF</span></div>
+            <div class="amount-card-status" style="background:#F59E0B;color:#000;">Date limite: 15/05/2026</div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Alerte Admin -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">10. Alerte Validation Admin</span><span
+        class="template-badge error">ADMIN</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg></div>
+          <h2 class="hero-title" style="color:#DC2626;">Action Requise</h2>
+          <p class="hero-subtitle">Une commande attend votre validation</p>
+        </div>
+        <div class="email-body">
+          <div class="admin-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>Notification Admin</div>
+          <p class="greeting">Bonjour <strong>Administrateur</strong>,</p>
+          <p class="intro-text">La commande <strong>ORD-2026-001234</strong> attend votre validation manuelle.</p>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Client</div>
+              <div class="order-detail-value">jean.dupont@email.com</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Montant</div>
+              <div class="order-detail-value">50,000 XAF</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Formation</div>
+              <div class="order-detail-value">Marketing Digital</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Date</div>
+              <div class="order-detail-value">23/03/2026</div>
+            </div>
+          </div>
+          <div class="cta-wrapper"><a href="#" class="cta-premium"
+              style="background:linear-gradient(135deg,#EF4444,#DC2626);"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              </svg>Acceder a la Commande</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Notification Systeme -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">11. Notification Admin Systeme</span><span
+        class="template-badge neutral">SYSTEME</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg></div>
+          <h2 class="hero-title">Alerte Systeme</h2>
+          <p class="hero-subtitle">Monitoring automatique</p>
+        </div>
+        <div class="email-body">
+          <div class="admin-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>PSP Backend Monitor</div>
+          <p class="greeting"><strong>Alerte: Paiement suspect detecte</strong></p>
+          <div class="alert-box info">
+            <div class="alert-title" style="color:#1E40AF;">Details</div>
+            <div class="alert-text" style="color:#1E3A8A;">Transaction: txn_abc123 - Montant: 150,000 XAF - Score: eleve
+            </div>
+          </div>
+          <p style="font-size:12px;color:#888;text-align:center;margin-top:20px;">Genere le 23/03/2026 a 10:00:00</p>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Paiement B2B -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">12. Paiement B2B Recu</span><span
+        class="template-badge">B2B</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title">Paiement Recu</h2>
+          <p class="hero-subtitle">Entreprise TechCorp</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Responsable TechCorp</strong>,</p>
+          <p class="intro-text">Nous avons bien recu votre paiement pour l'achat du <strong>Pack Formation
+              Premium</strong>.</p>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Entreprise</div>
+              <div class="order-detail-value">TechCorp</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Package</div>
+              <div class="order-detail-value">Pack Formation Premium</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Licences</div>
+              <div class="order-detail-value">10</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Montant</div>
+              <div class="order-detail-value" style="color:#00A080;">500,000 XAF</div>
+            </div>
+          </div>
+          <div class="alert-box warning">
+            <div class="alert-title" style="color:#92400E;">En attente de validation</div>
+            <div class="alert-text" style="color:#B45309;">La validation interviendra sous 24 a 48 heures.</div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. Acces Employe Approuve -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">13. Acces Employe Approuve</span><span
+        class="template-badge info">B2B</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title">Acces Active</h2>
+          <p class="hero-subtitle">Votre acces au campus est actif</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Jean Employe</strong>,</p>
+          <p class="intro-text">Votre demande d'acces a la formation <strong>Pack Marketing</strong> pour
+            <strong>TechCorp</strong> a ete approuvee !</p>
+          <div class="credentials-card">
+            <div class="credentials-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>Vos Identifiants</div>
+            <div class="credentials-box">
+              <div class="credentials-row">
+                <div class="credentials-label">Nom d'utilisateur</div>
+                <div class="credentials-value">j.employe@techcorp</div>
+              </div>
+              <div class="credentials-row">
+                <div class="credentials-label">Mot de passe</div>
+                <div class="credentials-value">Tc#2026xyz</div>
+              </div>
+            </div>
+          </div>
+          <div class="cta-wrapper"><a href="https://campus.studieslearning.com" class="cta-premium info"><svg
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              </svg>Acceder au Campus</a></div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. Acces Employe Rejete -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">14. Acces Employe Rejete</span><span
+        class="template-badge error">B2B</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg></div>
+          <h2 class="hero-title" style="color:#DC2626;">Information Importante</h2>
+          <p class="hero-subtitle">Concernant votre demande d'acces</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Jean Employe</strong>,</p>
+          <p class="intro-text">Votre demande d'acces au campus n'a pas pu etre approuvee.</p>
+          <div class="alert-box error">
+            <div class="alert-title">Motif</div>
+            <div class="alert-text">Rejetee par l'administrateur de votre entreprise.</div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. Cadeau Beneficiaire -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">15. Cadeau Valide - Beneficiaire</span><span
+        class="template-badge info">CADEAU</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg></div>
+          <h2 class="hero-title">Une surprise pour vous</h2>
+          <p class="hero-subtitle">Votre formation a ete validee</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Marie Beneficiaire</strong>,</p>
+          <p class="intro-text"><strong>Pierre Acheteur</strong> vous a offert l'acces a la formation <strong>Marketing
+              Digital</strong>.</p>
+          <div class="order-details">
+            <div class="order-detail">
+              <div class="order-detail-label">Offert par</div>
+              <div class="order-detail-value">Pierre Acheteur</div>
+            </div>
+            <div class="order-detail">
+              <div class="order-detail-label">Formation</div>
+              <div class="order-detail-value">Marketing Digital</div>
+            </div>
+          </div>
+          <p class="intro-text">Vous recevrez tres prochainnement vos identifiants de connexion.</p>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. Cadeau Acheteur -->
+  <div class="template-section">
+    <div class="template-header"><span class="template-title">16. Cadeau Finalise - Confirmation</span><span
+        class="template-badge">CADEAU</span></div>
+    <div class="template-preview">
+      <div class="email-frame">
+        <div class="premium-header">
+          <div class="header-content"><img
+              src="https://new.studieslearning.com/Studies-learning/Back-Office-Formateurs/admin/assets/images/logosl.png"
+              alt="Studies Learning" class="brand-logo">
+            <div class="brand-text"><span class="brand-name">Studies Learning</span><span
+                class="brand-tagline">Excellence Educative</span></div>
+          </div>
+        </div>
+        <div class="hero-section">
+          <div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg></div>
+          <h2 class="hero-title">Cadeau Finalise</h2>
+          <p class="hero-subtitle">Les acces ont ete envoyes</p>
+        </div>
+        <div class="email-body">
+          <p class="greeting">Bonjour <strong>Pierre Acheteur</strong>,</p>
+          <p class="intro-text">Nous vous confirmons que les acces pour <strong>Marie Beneficiaire</strong> ont ete
+            envoyes avec succes.</p>
+          <div class="credentials-card">
+            <div class="credentials-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>Copie des Identifiants</div>
+            <div class="credentials-box">
+              <div class="credentials-row">
+                <div class="credentials-label">Beneficiaire</div>
+                <div class="credentials-value">Marie Beneficiaire</div>
+              </div>
+              <div class="credentials-row">
+                <div class="credentials-label">Nom d'utilisateur</div>
+                <div class="credentials-value">m.beneficiaire</div>
+              </div>
+              <div class="credentials-row">
+                <div class="credentials-label">Mot de passe</div>
+                <div class="credentials-value">Mb#2026xyz</div>
+              </div>
+            </div>
+          </div>
+          <div class="invoice-notice">
+            <div class="invoice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <path d="M14 2v6h6" />
+              </svg></div>
+            <div class="invoice-text"><strong>Rappel facture</strong><span>Facture jointe a l'email de validation</span>
+            </div>
+          </div>
+        </div>
+        <div class="email-footer-premium">
+          <div class="footer-brand">
+            <div class="footer-logo">SL</div><span class="footer-name">Studies Learning</span>
+          </div>
+          <p class="footer-contact">Excellence Educative &bull; <a
+              href="mailto:support@studieslearning.com">support@studieslearning.com</a></p>
+          <p class="footer-copyright">2026 Studies Learning. Tous droits reserves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p
+    style="text-align:center;margin-top:40px;color:#666;font-size:14px;max-width:600px;margin-left:auto;margin-right:auto;">
+    <strong>Design Systeme:</strong> 16 templates - DM Sans, #00D4AA, Logo reel, Icons SVG uniquement
+  </p>
+</body>
+
+</html>
