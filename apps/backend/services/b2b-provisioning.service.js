@@ -116,7 +116,7 @@ export class B2BProvisioningService {
    * Send the activation email with the secure link and attach invoice
    */
   static async sendActivationEmail(admin, company, token, order = null) {
-    const dashboardUrl = process.env.B2B_DASHBOARD_URL || "http://localhost:3002";
+    const dashboardUrl = process.env.B2B_DASHBOARD_URL || "https://sl-business.studieslearning.com";
     const activationLink = `${dashboardUrl}/auth/activate?token=${token}&email=${admin.email}`;
 
     // Generate invoice PDF if order is provided
