@@ -2,9 +2,11 @@ import axios from "axios";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+// Fixed: Ensure the URL always ends with /api if not provided in env
+const FINAL_API_URL = API_BASE_URL.endsWith("/api") ? API_BASE_URL : `${API_BASE_URL}/api`;
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: FINAL_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -29,7 +31,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("b2b_token");
-        window.location.href = "/fr/login";
+        document.cookie = "b2b_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        const locale = window.location.pathname.split("/")[1] || "fr";
+        window.location.href = `/${locale}/login`;
       }
     }
     return Promise.reject(error);
@@ -49,6 +53,7 @@ export const b2bAuth = {
   me: () => api.get("/b2b/auth/me"),
   logout: () => {
     localStorage.removeItem("b2b_token");
+    document.cookie = "b2b_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     return Promise.resolve();
   },
   updateProfile: (data: { first_name?: string; last_name?: string }) =>

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Settings, Building, Shield, Bell, Save, Loader2, LogOut, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { b2bAuth } from "@/lib/api";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ type TabType = "profile" | "security" | "notifications";
 
 export default function SettingsPage() {
   const t = useTranslations("common");
+  const params = useParams();
+  const locale = params.locale as string || "fr";
   const [activeTab, setActiveTab] = useState<TabType>("profile");
 
   // Profile form
@@ -83,7 +86,8 @@ export default function SettingsPage() {
   const logoutMutation = useMutation({
     mutationFn: () => b2bAuth.logout(),
     onSuccess: () => {
-      window.location.href = "/fr/login";
+      document.cookie = "b2b_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      window.location.href = `/${locale}/login`;
     },
   });
 

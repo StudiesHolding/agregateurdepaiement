@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, LogOut, Loader2, Menu, X } from "lucide-react";
+import { useParams } from "next/navigation";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useTranslations } from "next-intl";
@@ -12,6 +13,8 @@ import { useSidebar } from "@/components/providers/SidebarProvider";
 
 export function Header() {
   const t = useTranslations("common");
+  const params = useParams();
+  const locale = params.locale as string || "fr";
   const { toggleMobile } = useSidebar();
 
   const { data: userData, isLoading: userLoading } = useQuery({
@@ -33,8 +36,9 @@ export function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("b2b_token");
+    document.cookie = "b2b_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     toast.success("Déconnexion réussie");
-    window.location.href = "/[locale]/login";
+    window.location.href = `/${locale}/login`;
   };
 
   const unreadCount = notificationsData?.filter((n: any) => !n.is_read).length || 0;

@@ -7,10 +7,13 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { b2bAuth } from "@/lib/api";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, useParams } from "next/navigation";
 
 function ActivateContent() {
     const t = useTranslations("auth");
+    const router = useRouter();
+    const params = useParams();
+    const locale = params.locale as string || "fr";
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
     const email = searchParams.get("email");
@@ -53,7 +56,7 @@ function ActivateContent() {
 
             // Redirect to login after 3 seconds
             setTimeout(() => {
-                window.location.href = `/fr/login?activated=true`;
+                router.push(`/${locale}/login?activated=true`);
             }, 3000);
         } catch (error: any) {
             console.error("Activation error:", error);
@@ -96,7 +99,7 @@ function ActivateContent() {
                         </p>
 
                         <a
-                            href={`/fr/login?activated=true`}
+                            href={`/${locale}/login?activated=true`}
                             className="btn btn-primary w-full h-12 text-base font-bold shadow-glow"
                         >
                             Se connecter
@@ -133,7 +136,7 @@ function ActivateContent() {
                         </div>
 
                         <a
-                            href="/fr/login"
+                            href={`/${locale}/login`}
                             className="btn btn-primary w-full h-12 text-base font-bold shadow-glow"
                         >
                             Retour à la connexion
