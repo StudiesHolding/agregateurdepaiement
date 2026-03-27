@@ -106,7 +106,7 @@ export default function RequestsPage() {
             setShowApproveModal(false);
             setSelectedRequests([]);
             setCredentials({ username: "", password: "" });
-            alert(res.message || "Demandes approuvées avec succès !");
+            alert(res.data.message || "Demandes approuvées avec succès !");
         },
         onError: (error: any) => {
             alert(error.message || "Erreur lors de l'approbation");
@@ -159,12 +159,12 @@ export default function RequestsPage() {
             rejectMutation.mutate({ id: selectedRequests[0], data: { reason: rejectReason } });
         } else {
             adminApi.batchRejectRequests({ request_ids: selectedRequests, reason: rejectReason })
-                .then(() => {
+                .then((res) => {
                     queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
                     setShowRejectModal(false);
                     setRejectReason("");
                     setSelectedRequests([]);
-                    alert("Demandes rejetées !");
+                    alert(res.data.message || "Demandes rejetées !");
                 })
                 .catch((error: any) => {
                     alert(error.message || "Erreur lors du rejet");
