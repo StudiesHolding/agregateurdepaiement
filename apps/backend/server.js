@@ -10,10 +10,15 @@ const startServer = async () => {
         console.log(" Database connection established successfully.");
 
         // Sync models automatically with database (safe mode - only create missing tables)
-        // Don't use alter: true to avoid issues with existing tables having too many keys
+        // In production, prefer running migration scripts separately
         try {
-            await sequelize.sync({ force: false });
-            console.log(" Database models synchronized.");
+            if (process.env.NODE_ENV !== 'production') {
+                await sequelize.sync({ force: false });
+                console.log(" Database models synchronized.");
+            } else {
+                console.log(" Production mode: skipping auto-sync. Run migration scripts manually.");
+                console.log("   npm run migrate:prod");
+            }
         } catch (syncError) {
             console.warn(" Database sync warning:", syncError.message);
             console.log(" Continuing without model synchronization...");

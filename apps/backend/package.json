@@ -11,7 +11,10 @@
     "db:check-indexes": "node scripts/check-indexes.js",
     "db:cleanup-indexes": "node scripts/cleanup-indexes.js",
     "db:safe-sync": "node scripts/safe-sync.js",
-    "db:fix-duplicates": "node scripts/fix-duplicate-indexes.js"
+    "db:fix-duplicates": "node scripts/fix-duplicate-indexes.js",
+    "migrate:prod": "node scripts/migrate-production.js",
+    "seed:prod": "node scripts/seed-production.js",
+    "deploy:setup": "npm run migrate:prod && npm run seed:prod"
   },
   "dependencies": {
     "@kkiapay-org/nodejs-sdk": "^1.0.7",

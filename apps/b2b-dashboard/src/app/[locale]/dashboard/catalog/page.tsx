@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Package, Search, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import { b2bPackages } from "@/lib/api";
 import { PackageDetailDrawer } from "@/components/modals/PackageDetailDrawer";
 
@@ -67,7 +68,13 @@ export default function CatalogPage() {
             {/* Header Image/Background */}
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden mb-5 bg-surface border border-white/5 shadow-inner">
               {pkg.image_url ? (
-                <img src={pkg.image_url} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <Image 
+                  src={pkg.image_url} 
+                  alt={pkg.title} 
+                  width={400}
+                  height={225}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
                   <Package className="h-12 w-12 text-primary/20" />
