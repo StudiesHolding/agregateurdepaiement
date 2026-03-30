@@ -1,3 +1,4 @@
+
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
 
@@ -37,7 +38,7 @@ FormationPackage.init(
       defaultValue: "draft",
     },
     formations: {
-      type: DataTypes.JSON, // Fallback JSON field if join table is empty
+      type: DataTypes.JSON,
       allowNull: true,
     },
     image_url: {
@@ -49,14 +50,21 @@ FormationPackage.init(
       defaultValue: true,
       field: "featured",
     },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
   },
   {
     sequelize,
     modelName: "FormationPackage",
     tableName: "course_packages",
-    timestamps: true,
-    createdAt: "created_at",
-    updatedAt: "updated_at",
+    timestamps: false,
+    underscored: true,
   }
 );
 
