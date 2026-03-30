@@ -13,6 +13,7 @@ FormationPackage.init(
     title: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      field: "name",
     },
     description: {
       type: DataTypes.TEXT,
@@ -46,12 +47,13 @@ FormationPackage.init(
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+      field: "featured",
     },
   },
   {
     sequelize,
     modelName: "FormationPackage",
-    tableName: "sl_formation_packages",
+    tableName: "course_packages",
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
