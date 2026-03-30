@@ -17,8 +17,15 @@
     "db:diagnose": "node scripts/diagnose-db.js",
     "db:fix-formation-packages": "node scripts/fix-formation-packages.js",
     "db:fix-formations-column": "node scripts/fix-formation-packages-column.js",
+    "db:full-diagnostic": "node scripts/db-full-diagnostic.js",
+    "db:conservative-sync": "node scripts/db-conservative-sync.js",
+    "db:validate-all": "node scripts/db-validate-all.js",
+    "db:health-check": "node scripts/db-health-check.js",
+    "db:weekly-report": "node scripts/db-weekly-report.js",
+    "db:monitoring-setup": "node scripts/db-monitoring-setup.js",
     "seed:prod": "node scripts/seed-production.js",
-    "deploy:setup": "npm run db:diagnose && npm run db:fix-formation-packages && npm run db:fix-formations-column && npm run migrate:prod-fixed && npm run seed:prod"
+    "db:complete-fix": "npm run db:full-diagnostic && npm run db:conservative-sync && npm run db:validate-all",
+    "deploy:setup": "npm run db:full-diagnostic && npm run db:conservative-sync && npm run db:validate-all && npm run db:monitoring-setup && npm run seed:prod"
   },
   "dependencies": {
     "@kkiapay-org/nodejs-sdk": "^1.0.7",
