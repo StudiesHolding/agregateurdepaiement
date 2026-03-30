@@ -15,8 +15,10 @@
     "migrate:prod": "node scripts/migrate-production.js",
     "migrate:prod-fixed": "node scripts/migrate-production-fixed.js",
     "db:diagnose": "node scripts/diagnose-db.js",
+    "db:fix-formation-packages": "node scripts/fix-formation-packages.js",
+    "db:fix-formations-column": "node scripts/fix-formation-packages-column.js",
     "seed:prod": "node scripts/seed-production.js",
-    "deploy:setup": "npm run db:diagnose && npm run migrate:prod-fixed && npm run seed:prod"
+    "deploy:setup": "npm run db:diagnose && npm run db:fix-formation-packages && npm run db:fix-formations-column && npm run migrate:prod-fixed && npm run seed:prod"
   },
   "dependencies": {
     "@kkiapay-org/nodejs-sdk": "^1.0.7",
