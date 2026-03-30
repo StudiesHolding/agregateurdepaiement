@@ -22,6 +22,8 @@
     "db:conservative-sync-fixed": "node scripts/db-conservative-sync-fixed.js",
     "db:conservative-sync-final": "node scripts/db-conservative-sync-final.js",
     "db:smart-sync": "node scripts/db-smart-sync.js",
+    "db:fix-package-formation": "node scripts/fix-package-formation.js",
+    "debug-packages": "node scripts/debug-packages-endpoint.js",
     "db:validate-all": "node scripts/db-validate-all.js",
     "db:health-check": "node scripts/db-health-check.js",
     "db:weekly-report": "node scripts/db-weekly-report.js",
