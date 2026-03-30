@@ -20,6 +20,7 @@ import {
   CreditCard,
   Smartphone
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { b2bOrders } from "@/lib/api";
@@ -200,9 +201,11 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                 <div className="lg:col-span-2 space-y-6">
                   <div className="relative aspect-square rounded-[32px] overflow-hidden border border-white/10 shadow-2xl group ring-1 ring-white/5">
                     {pkg.image_url || pkg.package?.image_url ? (
-                      <img
+                      <Image
                         src={pkg.image_url || pkg.package?.image_url}
                         alt="Package Hero"
+                        width={500}
+                        height={500}
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       />
                     ) : (
