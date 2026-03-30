@@ -31,6 +31,7 @@
     "add-missing-columns-only": "node scripts/add-missing-columns-only.js",
     "restore-and-add-columns": "node scripts/restore-and-add-columns.js",
     "robust-restore-and-add": "node scripts/robust-restore-and-add.js",
+    "fix-orders-table": "node scripts/fix-orders-table.js",
     "restart-and-test": "node scripts/restart-and-test.js",
     "test-updated-model": "node scripts/test-updated-model.js",
     "test-model-simple": "node scripts/test-model-simple.js",
