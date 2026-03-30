@@ -13,8 +13,10 @@
     "db:safe-sync": "node scripts/safe-sync.js",
     "db:fix-duplicates": "node scripts/fix-duplicate-indexes.js",
     "migrate:prod": "node scripts/migrate-production.js",
+    "migrate:prod-fixed": "node scripts/migrate-production-fixed.js",
+    "db:diagnose": "node scripts/diagnose-db.js",
     "seed:prod": "node scripts/seed-production.js",
-    "deploy:setup": "npm run migrate:prod && npm run seed:prod"
+    "deploy:setup": "npm run db:diagnose && npm run migrate:prod-fixed && npm run seed:prod"
   },
   "dependencies": {
     "@kkiapay-org/nodejs-sdk": "^1.0.7",
