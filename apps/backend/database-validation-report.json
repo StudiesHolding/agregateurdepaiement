@@ -1,0 +1,462 @@
+{
+  "totalModels": 25,
+  "successCount": 23,
+  "errorCount": 2,
+  "models": [
+    {
+      "model": "Order",
+      "table": "aggp_orders",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 6,
+        "findOneTime": 9
+      }
+    },
+    {
+      "model": "PaymentProvider",
+      "table": "aggp_payment_providers",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "PaymentIntent",
+      "table": "aggp_payment_intents",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 4
+      }
+    },
+    {
+      "model": "PaymentAttempt",
+      "table": "aggp_payment_attempts",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 2,
+        "findOneTime": 4
+      }
+    },
+    {
+      "model": "ProviderRoute",
+      "table": "aggp_provider_routes",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 3,
+        "findOneTime": 4
+      }
+    },
+    {
+      "model": "WebhookEvent",
+      "table": "aggp_webhook_events",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "InstallmentPlan",
+      "table": "aggp_installment_plans",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 2,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "InstallmentPayment",
+      "table": "aggp_installment_payments",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "ApiKey",
+      "table": "aggp_api_keys",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "VerifiedEmail",
+      "table": "aggp_verified_emails",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 2,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "AdminAuditLog",
+      "table": "aggp_admin_audit_logs",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "ProviderStatsCache",
+      "table": "aggp_provider_stats_cache",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 2,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "NotificationSettings",
+      "table": "aggp_notification_settings",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "OrderAuditLog",
+      "table": "aggp_order_audit_logs",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "AdminNotification",
+      "table": "aggp_admin_notifications",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 2,
+        "findOneTime": 1
+      }
+    },
+    {
+      "model": "Company",
+      "table": "sl_companies",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "CompanyAdmin",
+      "table": "sl_company_admins",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "Employee",
+      "table": "sl_employees",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "FormationPackage",
+      "table": "course_packages",
+      "status": "error",
+      "severity": "critical",
+      "error": "Unknown column 'name' in 'field list'",
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": false,
+        "create": false,
+        "structure": false
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 0
+      }
+    },
+    {
+      "model": "CompanyPackage",
+      "table": "sl_company_packages",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "AccessRequest",
+      "table": "sl_access_requests",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "Course",
+      "table": "kyd4_posts",
+      "status": "error",
+      "severity": "critical",
+      "error": "Colonnes manquantes: id",
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": false
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "PostMeta",
+      "table": "kyd4_postmeta",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 6,
+        "findOneTime": 2
+      }
+    },
+    {
+      "model": "PackageFormation",
+      "table": "sl_package_formations",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": false,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 3
+      }
+    },
+    {
+      "model": "SpecificFormation",
+      "table": "sl_package_specific_formations",
+      "status": "success",
+      "severity": "info",
+      "error": null,
+      "tests": {
+        "connection": true,
+        "count": true,
+        "findOne": true,
+        "create": true,
+        "structure": true
+      },
+      "performance": {
+        "countTime": 1,
+        "findOneTime": 1
+      }
+    }
+  ],
+  "summary": {
+    "criticalErrors": 2,
+    "warnings": 0,
+    "performance": []
+  }
+}
