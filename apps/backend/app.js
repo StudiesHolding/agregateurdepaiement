@@ -48,7 +48,7 @@ app.use(helmet({
 app.use(cors({
     origin: process.env.CORS_ALLOWED_ORIGINS
         ? process.env.CORS_ALLOWED_ORIGINS.split(',')
-        : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "https://dashboard.studieslearning.com"],
+        : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "https://dashboard.studieslearning.com", "https://sl-business.studieslearning.com"],
     credentials: true
 }));
 app.use(express.json());
