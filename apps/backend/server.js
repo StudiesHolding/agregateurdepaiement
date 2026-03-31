@@ -13,7 +13,7 @@ const startServer = async () => {
         // In production, prefer running migration scripts separately
         try {
             if (process.env.NODE_ENV !== 'production') {
-                await sequelize.sync({ force: true });
+                await sequelize.sync({ force: false });
                 console.log(" Database models synchronized.");
             } else {
                 console.log(" Production mode: skipping auto-sync. Run migration scripts manually.");
