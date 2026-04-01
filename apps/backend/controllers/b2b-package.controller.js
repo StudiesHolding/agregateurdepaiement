@@ -25,13 +25,18 @@ export const b2bPackageController = {
           {
             model: FormationPackage,
             as: "package",
-            include: [
-              {
-                model: Course,
-                as: "globalFormations",
-                include: [{ model: PostMeta, as: "meta" }],
-              },
-              { model: SpecificFormation, as: "specificFormations" },
+            attributes: [
+              "id",
+              "name",
+              "description",
+              "price",
+              "image_url",
+              "currency",
+              "status",
+              "target_audience",
+              "formations",
+              "featured",
+              "max_licenses",
             ],
           },
         ],
@@ -53,14 +58,23 @@ export const b2bPackageController = {
   getPackageById: async (req, res, next) => {
     try {
       const { id } = req.params;
+      // Get package details with specific attributes to avoid JOIN issues
       const pkg = await FormationPackage.findByPk(id, {
-        include: [
-          {
-            model: Course,
-            as: "globalFormations",
-            include: [{ model: PostMeta, as: "meta" }],
-          },
-          { model: SpecificFormation, as: "specificFormations" },
+        attributes: [
+          "id",
+          "name",
+          "description",
+          "price",
+          "image_url",
+          "currency",
+          "status",
+          "target_audience",
+          "formations",
+          "featured",
+          "max_licenses",
+          "benefits",
+          "custom_sections",
+          "total_duration",
         ],
       });
 
@@ -83,15 +97,24 @@ export const b2bPackageController = {
    */
   getCatalog: async (req, res, next) => {
     try {
+      // Get packages with only the fields we need to avoid JOIN issues
       const catalog = await FormationPackage.findAll({
-        where: { is_active: true },
-        include: [
-          {
-            model: Course,
-            as: "globalFormations",
-            include: [{ model: PostMeta, as: "meta" }],
-          },
-          { model: SpecificFormation, as: "specificFormations" },
+        where: { featured: 1 },
+        attributes: [
+          "id",
+          "name",
+          "description",
+          "price",
+          "image_url",
+          "currency",
+          "status",
+          "target_audience",
+          "formations",
+          "featured",
+          "max_licenses",
+          "benefits",
+          "custom_sections",
+          "total_duration",
         ],
       });
 
@@ -385,7 +408,7 @@ export const b2bPackageController = {
           additional_licenses: additionalCount,
           current_licenses: companyPackage.total_licenses,
           new_total_licenses: companyPackage.total_licenses + additionalCount,
-          package_name: pkg.title,
+          package_name: pkg.name,
         },
       });
     } catch (err) {
@@ -440,7 +463,7 @@ export const b2bPackageController = {
           lmsItemId: package_id.toString(),
           lmsItemType: "package",
           formationId: package_id,
-          formationName: pkg.title,
+          formationName: pkg.name,
           paidAt: new Date(),
           paymentProvider: "SIMULATED",
           metadata: {

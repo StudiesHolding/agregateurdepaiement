@@ -1,4 +1,9 @@
-import { CompanyPackage, Employee, AccessRequest, FormationPackage } from "../models/index.js";
+import {
+  CompanyPackage,
+  Employee,
+  AccessRequest,
+  FormationPackage,
+} from "../models/index.js";
 
 export const b2bDashboardController = {
   /**
@@ -11,48 +16,94 @@ export const b2bDashboardController = {
 
       // 1. Total & Used Licenses
       const packages = await CompanyPackage.findAll({
-        where: { company_id: companyId, status: 'active' },
-        include: [{ model: FormationPackage, as: 'package' }]
+        where: { company_id: companyId, status: "active" },
+        include: [
+          {
+            model: FormationPackage,
+            as: "package",
+            attributes: [
+              "id",
+              "name",
+              "description",
+              "price",
+              "image_url",
+              "currency",
+              "status",
+              "target_audience",
+              "formations",
+              "featured",
+              "max_licenses",
+            ],
+          },
+        ],
       });
 
-      const totalLicenses = packages.reduce((acc, p) => acc + (p.total_licenses || 0), 0);
-      const usedLicenses = packages.reduce((acc, p) => acc + (p.used_licenses || 0), 0);
+      const totalLicenses = packages.reduce(
+        (acc, p) => acc + (p.total_licenses || 0),
+        0,
+      );
+      const usedLicenses = packages.reduce(
+        (acc, p) => acc + (p.used_licenses || 0),
+        0,
+      );
 
       // 2. Total Employees
       const totalEmployees = await Employee.count({
-        where: { company_id: companyId, is_active: true }
+        where: { company_id: companyId, is_active: true },
       });
 
       // 3. Pending Requests
       const pendingRequests = await AccessRequest.count({
-        where: { company_id: companyId, status: 'pending' }
+        where: { company_id: companyId, status: "pending" },
       });
 
       // 4. Usage by Package
-      const usageByPackage = packages.map(p => ({
-        name: p.package?.title || "Package inconnu",
+      const usageByPackage = packages.map((p) => ({
+        name: p.package?.name || "Package inconnu",
         total: p.total_licenses,
-        used: p.used_licenses
+        used: p.used_licenses,
       }));
 
       // 5. Recent Activity
       const recentActivities = await AccessRequest.findAll({
         where: { company_id: companyId },
         include: [
-          { model: Employee, as: 'employee' },
-          { model: CompanyPackage, as: 'companyPackage', include: [{ model: FormationPackage, as: 'package' }] }
+          { model: Employee, as: "employee" },
+          {
+            model: CompanyPackage,
+            as: "companyPackage",
+            include: [
+              {
+                model: FormationPackage,
+                as: "package",
+                attributes: [
+                  "id",
+                  "name",
+                  "description",
+                  "price",
+                  "image_url",
+                  "currency",
+                  "status",
+                  "target_audience",
+                  "formations",
+                  "featured",
+                  "max_licenses",
+                ],
+              },
+            ],
+          },
         ],
-        order: [['created_at', 'DESC']],
-        limit: 10
+        order: [["created_at", "DESC"]],
+        limit: 10,
       });
 
-      const recentActivityFormatted = recentActivities.map(activity => ({
+      const recentActivityFormatted = recentActivities.map((activity) => ({
         id: activity.id,
         user: `${activity.employee?.first_name} ${activity.employee?.last_name}`,
-        action: 'access_requested', 
-        package: activity.companyPackage?.package?.title || "N/A",
+        action: "access_requested",
+        package: activity.companyPackage?.package?.name || "N/A",
         status: activity.status,
-        time: activity.created_at 
+        time: activity.created_at,
       }));
 
       res.json({
@@ -63,11 +114,11 @@ export const b2bDashboardController = {
           total_employees: totalEmployees,
           pending_requests: pendingRequests,
           usage_by_package: usageByPackage,
-          recent_activity: recentActivityFormatted
-        }
+          recent_activity: recentActivityFormatted,
+        },
       });
     } catch (err) {
       next(err);
     }
-  }
+  },
 };
