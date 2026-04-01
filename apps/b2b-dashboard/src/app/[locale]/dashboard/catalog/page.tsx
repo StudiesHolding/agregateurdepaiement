@@ -19,12 +19,15 @@ export default function CatalogPage() {
     queryFn: async () => {
       const response = await b2bPackages.getCatalog();
       return response.data.data;
-    }
+    },
   });
 
-  const filtered = (catalogData || []).filter((pkg: any) =>
-    pkg.title.toLowerCase().includes(search.toLowerCase()) ||
-    pkg.description?.toLowerCase().includes(search.toLowerCase())
+  const filtered = (catalogData || []).filter(
+    (pkg: any) =>
+      (pkg.name || pkg.title || "")
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+      (pkg.description || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   if (isLoading) {
@@ -39,8 +42,12 @@ export default function CatalogPage() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">Catalogue de Formations</h1>
-          <p className="mt-1 text-sm text-text-light">Découvrez nos packages et formez vos équipes dès aujourd'hui.</p>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight">
+            Catalogue de Formations
+          </h1>
+          <p className="mt-1 text-sm text-text-light">
+            Découvrez nos packages et formez vos équipes dès aujourd'hui.
+          </p>
         </div>
       </div>
 
@@ -68,12 +75,12 @@ export default function CatalogPage() {
             {/* Header Image/Background */}
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden mb-5 bg-surface border border-white/5 shadow-inner">
               {pkg.image_url ? (
-                <Image 
-                  src={pkg.image_url} 
-                  alt={pkg.title} 
+                <Image
+                  src={pkg.image_url}
+                  alt={pkg.name || pkg.title || "Package"}
                   width={400}
                   height={225}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
@@ -90,7 +97,7 @@ export default function CatalogPage() {
             <div className="flex-1 flex flex-col space-y-4">
               <div>
                 <h3 className="text-xl font-bold text-text-main group-hover:text-primary transition-colors line-clamp-1">
-                  {pkg.title}
+                  {pkg.name || pkg.title || "Package sans nom"}
                 </h3>
                 <p className="mt-2 text-sm text-text-light line-clamp-2 leading-relaxed h-10">
                   {pkg.description}
@@ -99,19 +106,35 @@ export default function CatalogPage() {
 
               {/* Formations list */}
               <div className="space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Formations incluses</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  Formations incluses
+                </p>
                 <div className="space-y-1.5">
-                  {pkg.packageFormations?.slice(0, 4).map((pf: any, i: number) => (
-                    <div key={pf.id} className="flex items-center gap-2 text-xs text-text-light bg-white/[0.02] p-2 rounded-lg border border-white/5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
-                      <span className="truncate">{pf.globalCourse?.title || pf.specificCourse?.title || "Formation"}</span>
-                    </div>
-                  ))}
+                  {pkg.packageFormations
+                    ?.slice(0, 4)
+                    .map((pf: any, i: number) => (
+                      <div
+                        key={pf.id}
+                        className="flex items-center gap-2 text-xs text-text-light bg-white/[0.02] p-2 rounded-lg border border-white/5"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
+                        <span className="truncate">
+                          {pf.globalCourse?.title ||
+                            pf.specificCourse?.title ||
+                            "Formation"}
+                        </span>
+                      </div>
+                    ))}
                   {pkg.packageFormations?.length > 4 && (
-                    <p className="text-[10px] font-medium text-primary pl-4">+{pkg.packageFormations.length - 4} autres formations</p>
+                    <p className="text-[10px] font-medium text-primary pl-4">
+                      +{pkg.packageFormations.length - 4} autres formations
+                    </p>
                   )}
-                  {(!pkg.packageFormations || pkg.packageFormations.length === 0) && (
-                    <p className="text-xs text-text-muted italic ">Contenu en cours de mise à jour</p>
+                  {(!pkg.packageFormations ||
+                    pkg.packageFormations.length === 0) && (
+                    <p className="text-xs text-text-muted italic ">
+                      Contenu en cours de mise à jour
+                    </p>
                   )}
                 </div>
               </div>
@@ -119,8 +142,12 @@ export default function CatalogPage() {
               {/* Action */}
               <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-tight">Accès Entreprise</span>
-                  <span className="text-xs font-semibold text-text-main">Licences illimitées*</span>
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-tight">
+                    Accès Entreprise
+                  </span>
+                  <span className="text-xs font-semibold text-text-main">
+                    Licences illimitées*
+                  </span>
                 </div>
                 <button
                   className="btn btn-primary h-10 px-4 shadow-glow-sm group/btn"
@@ -148,7 +175,9 @@ export default function CatalogPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center glass-dark rounded-3xl border border-white/5">
           <Search className="h-12 w-12 text-text-muted mb-4" />
           <p className="text-text-main font-bold">Aucun résultat</p>
-          <p className="text-sm text-text-light">Essayez d'autres termes de recherche.</p>
+          <p className="text-sm text-text-light">
+            Essayez d'autres termes de recherche.
+          </p>
         </div>
       )}
     </div>

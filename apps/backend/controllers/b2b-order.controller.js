@@ -1,4 +1,10 @@
-import { Order, Company, CompanyPackage, FormationPackage, sequelize } from "../models/index.js";
+import {
+  Order,
+  Company,
+  CompanyPackage,
+  FormationPackage,
+  sequelize,
+} from "../models/index.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { InvoiceService } from "../services/invoice.service.js";
 import { OrchestratorService } from "../services/orchestrator.service.js";
@@ -11,7 +17,7 @@ export const b2bOrderController = {
   getAll: async (req, res, next) => {
     try {
       const companyId = req.company_id;
-      console.log('[B2B GET ORDERS] companyId from req:', companyId);
+      console.log("[B2B GET ORDERS] companyId from req:", companyId);
 
       let companyEmail = null;
       let companyName = null;
@@ -20,23 +26,32 @@ export const b2bOrderController = {
         const company = await Company.findByPk(companyId);
         companyEmail = company?.email;
         companyName = company?.name;
-        console.log('[B2B GET ORDERS] Company found:', { companyId, companyEmail, companyName });
+        console.log("[B2B GET ORDERS] Company found:", {
+          companyId,
+          companyEmail,
+          companyName,
+        });
       } else {
-        console.log('[B2B GET ORDERS] WARNING: No companyId in request!');
+        console.log("[B2B GET ORDERS] WARNING: No companyId in request!");
       }
 
       // Get all orders
       const allOrders = await Order.findAll({
-        order: [['created_at', 'DESC']],
-        limit: 100
+        order: [["created_at", "DESC"]],
+        limit: 100,
       });
-      console.log('[B2B GET ORDERS] Total orders in DB:', allOrders.length);
+      console.log("[B2B GET ORDERS] Total orders in DB:", allOrders.length);
 
       // Debug: Log metadata for first few orders
       if (allOrders.length > 0) {
-        console.log('[B2B GET ORDERS] Sample order metadata:');
+        console.log("[B2B GET ORDERS] Sample order metadata:");
         allOrders.slice(0, 3).forEach((o, i) => {
-          console.log(`  Order ${i + 1}:`, o.reference, 'metadata:', JSON.stringify(o.metadata).substring(0, 200));
+          console.log(
+            `  Order ${i + 1}:`,
+            o.reference,
+            "metadata:",
+            JSON.stringify(o.metadata).substring(0, 200),
+          );
         });
       }
 
@@ -45,10 +60,10 @@ export const b2bOrderController = {
       // 2. customer_email matching company email
       // 3. customer_name matching company name
       // 4. metadata.company_name matching company name
-      const companyOrders = allOrders.filter(order => {
+      const companyOrders = allOrders.filter((order) => {
         // Parse metadata if it's a string (MySQL JSON stored as string)
         let metadata = order.metadata || {};
-        if (typeof metadata === 'string') {
+        if (typeof metadata === "string") {
           try {
             metadata = JSON.parse(metadata);
           } catch (e) {
@@ -58,27 +73,30 @@ export const b2bOrderController = {
 
         // Check company_id in metadata (handle string/int comparison)
         const metaCompanyId = metadata.company_id;
-        const matchesCompanyId = metaCompanyId !== undefined &&
-          (String(metaCompanyId) === String(companyId) || metaCompanyId === companyId);
+        const matchesCompanyId =
+          metaCompanyId !== undefined &&
+          (String(metaCompanyId) === String(companyId) ||
+            metaCompanyId === companyId);
 
         // Check customer_email matches company email
-        const matchesEmail = companyEmail &&
-          order.customerEmail === companyEmail;
+        const matchesEmail =
+          companyEmail && order.customerEmail === companyEmail;
 
         // Check customer_name matches company name
-        const matchesName = companyName &&
-          order.customerName === companyName;
+        const matchesName = companyName && order.customerName === companyName;
 
         // Check metadata.company_name
-        const matchesMetaName = metadata.company_name &&
+        const matchesMetaName =
+          metadata.company_name &&
           metadata.company_name.toLowerCase() === companyName?.toLowerCase();
 
         // Check if it's a B2B order with company info
-        const isB2BOrder = metadata.is_b2b === true || metadata.b2b_purchase === true;
+        const isB2BOrder =
+          metadata.is_b2b === true || metadata.b2b_purchase === true;
 
         // Debug log for each order
         if (isB2BOrder) {
-          console.log('[B2B GET ORDERS] B2B Order:', order.reference, {
+          console.log("[B2B GET ORDERS] B2B Order:", order.reference, {
             orderEmail: order.customerEmail,
             orderName: order.customerName,
             metaCompanyId,
@@ -88,52 +106,64 @@ export const b2bOrderController = {
             matchesCompanyId,
             matchesEmail,
             matchesName,
-            matchesMetaName
+            matchesMetaName,
           });
         }
 
-        return isB2BOrder && (matchesCompanyId || matchesEmail || matchesName || matchesMetaName);
+        return (
+          isB2BOrder &&
+          (matchesCompanyId || matchesEmail || matchesName || matchesMetaName)
+        );
       });
 
-      console.log('[B2B GET ORDERS] Filtered orders count:', companyOrders.length);
+      console.log(
+        "[B2B GET ORDERS] Filtered orders count:",
+        companyOrders.length,
+      );
 
       // Enrich with formation data
-      const enrichedOrders = await Promise.all(companyOrders.map(async (order) => {
-        let formationPackage = null;
-        if (order.formationId && order.lmsItemType === 'package') {
-          formationPackage = await FormationPackage.findByPk(order.formationId);
-        }
-        return {
-          id: order.id,
-          reference: order.reference,
-          customerEmail: order.customerEmail,
-          customerName: order.customerName,
-          currency: order.currency,
-          totalAmount: order.totalAmount,
-          status: order.status,
-          lmsItemType: order.lmsItemType,
-          formationId: order.formationId,
-          formationName: order.formationName,
-          formationPrice: order.formationPrice,
-          paidAt: order.paidAt,
-          paymentProvider: order.paymentProvider,
-          paymentIntentId: order.paymentIntentId,
-          metadata: order.metadata,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          formationPackage: formationPackage ? {
-            id: formationPackage.id,
-            title: formationPackage.title,
-            description: formationPackage.description,
-            price: formationPackage.price,
-            currency: formationPackage.currency
-          } : null
-        };
-      }));
+      const enrichedOrders = await Promise.all(
+        companyOrders.map(async (order) => {
+          let formationPackage = null;
+          if (order.formationId && order.lmsItemType === "package") {
+            formationPackage = await FormationPackage.findByPk(
+              order.formationId,
+            );
+          }
+          return {
+            id: order.id,
+            reference: order.reference,
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            currency: order.currency,
+            totalAmount: order.totalAmount,
+            status: order.status,
+            lmsItemType: order.lmsItemType,
+            formationId: order.formationId,
+            formationName: order.formationName,
+            formationPrice: order.formationPrice,
+            paidAt: order.paidAt,
+            paymentProvider: order.paymentProvider,
+            paymentIntentId: order.paymentIntentId,
+            metadata: order.metadata,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            formationPackage: formationPackage
+              ? {
+                  id: formationPackage.id,
+                  title: formationPackage.name,
+                  description: formationPackage.description,
+                  price: formationPackage.price,
+                  currency: formationPackage.currency,
+                }
+              : null,
+          };
+        }),
+      );
 
       res.json({
         status: "success",
-        data: enrichedOrders
+        data: enrichedOrders,
       });
     } catch (err) {
       next(err);
@@ -163,7 +193,7 @@ export const b2bOrderController = {
 
       // Get formation package info
       let formationPackage = null;
-      if (order.formationId && order.lmsItemType === 'package') {
+      if (order.formationId && order.lmsItemType === "package") {
         formationPackage = await FormationPackage.findByPk(order.formationId);
       }
 
@@ -186,14 +216,16 @@ export const b2bOrderController = {
           paymentIntentId: order.paymentIntentId,
           metadata: order.metadata,
           createdAt: order.createdAt,
-          formationPackage: formationPackage ? {
-            id: formationPackage.id,
-            title: formationPackage.title,
-            description: formationPackage.description,
-            price: formationPackage.price,
-            currency: formationPackage.currency
-          } : null
-        }
+          formationPackage: formationPackage
+            ? {
+                id: formationPackage.id,
+                title: formationPackage.title,
+                description: formationPackage.description,
+                price: formationPackage.price,
+                currency: formationPackage.currency,
+              }
+            : null,
+        },
       });
     } catch (err) {
       next(err);
@@ -220,7 +252,7 @@ export const b2bOrderController = {
 
       // Parse metadata if string
       let metadata = order.metadata || {};
-      if (typeof metadata === 'string') {
+      if (typeof metadata === "string") {
         try {
           metadata = JSON.parse(metadata);
         } catch (e) {
@@ -230,20 +262,33 @@ export const b2bOrderController = {
 
       // Verify ownership - check multiple criteria
       const metaCompanyId = metadata.company_id;
-      const matchesCompanyId = metaCompanyId !== undefined &&
-        (String(metaCompanyId) === String(companyId) || metaCompanyId === companyId);
+      const matchesCompanyId =
+        metaCompanyId !== undefined &&
+        (String(metaCompanyId) === String(companyId) ||
+          metaCompanyId === companyId);
       const matchesEmail = companyEmail && order.customerEmail === companyEmail;
       const matchesName = companyName && order.customerName === companyName;
-      const matchesMetaName = metadata.company_name &&
+      const matchesMetaName =
+        metadata.company_name &&
         metadata.company_name.toLowerCase() === companyName?.toLowerCase();
-      const isB2BOrder = metadata.is_b2b === true || metadata.b2b_purchase === true;
+      const isB2BOrder =
+        metadata.is_b2b === true || metadata.b2b_purchase === true;
 
-      if (!isB2BOrder || !(matchesCompanyId || matchesEmail || matchesName || matchesMetaName)) {
+      if (
+        !isB2BOrder ||
+        !(matchesCompanyId || matchesEmail || matchesName || matchesMetaName)
+      ) {
         throw new NotFoundError("Commande introuvable.");
       }
 
-      if (order.status !== 'completed' && order.status !== 'paid' && order.status !== 'validated') {
-        throw new BadRequestError("La facture n'est disponible que pour les commandes validées ou payées.");
+      if (
+        order.status !== "completed" &&
+        order.status !== "paid" &&
+        order.status !== "validated"
+      ) {
+        throw new BadRequestError(
+          "La facture n'est disponible que pour les commandes validées ou payées.",
+        );
       }
 
       // Generate PDF
@@ -254,8 +299,11 @@ export const b2bOrderController = {
       }
 
       // Send PDF
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="facture-${order.reference}.pdf"`);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="facture-${order.reference}.pdf"`,
+      );
       res.send(pdfBuffer);
     } catch (err) {
       next(err);
@@ -269,7 +317,13 @@ export const b2bOrderController = {
    */
   initiatePayment: async (req, res, next) => {
     try {
-      const { package_id, total_licenses, paymentMethod, countryCode, currency } = req.body;
+      const {
+        package_id,
+        total_licenses,
+        paymentMethod,
+        countryCode,
+        currency,
+      } = req.body;
       const companyId = req.company_id;
       const companyEmail = req.company_email;
       const companyName = req.company_name;
@@ -293,14 +347,14 @@ export const b2bOrderController = {
         customerEmail: companyEmail,
         customerName: companyName,
         lmsItemId: package_id.toString(),
-        lmsItemType: 'package',
-        paymentMethod: paymentMethod || 'card', // card, mobile_money
-        countryCode: countryCode || 'CM',
-        currency: currency || pkg.currency || 'XOF',
+        lmsItemType: "package",
+        paymentMethod: paymentMethod || "card", // card, mobile_money
+        countryCode: countryCode || "CM",
+        currency: currency || pkg.currency || "XOF",
         amount: totalAmount,
-        successUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/packages?payment=success`,
-        cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/catalog?payment=cancelled`,
-        failedUrl: `${process.env.FRONTEND_URL || 'http://localhost:3002'}/fr/dashboard/catalog?payment=failed`,
+        successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success`,
+        cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=cancelled`,
+        failedUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=failed`,
         metadata: {
           is_b2b: true,
           b2b_purchase: true,
@@ -309,17 +363,22 @@ export const b2bOrderController = {
           company_admin_email: companyEmail,
           licence_count: total_licenses,
           unit_price: unitPrice,
-          source: 'b2b_dashboard'
-        }
+          source: "b2b_dashboard",
+        },
       };
 
-      console.log('[B2BOrderController] Initiating payment with orchestrator:', paymentData);
+      console.log(
+        "[B2BOrderController] Initiating payment with orchestrator:",
+        paymentData,
+      );
 
       // 4. Call the intelligent payment orchestrator
       const result = await OrchestratorService.initializePayment(paymentData);
 
       if (!result.success) {
-        throw new BadRequestError(result.error || "Erreur lors de l'initialisation du paiement.");
+        throw new BadRequestError(
+          result.error || "Erreur lors de l'initialisation du paiement.",
+        );
       }
 
       res.status(201).json({
@@ -332,12 +391,12 @@ export const b2bOrderController = {
           provider: result.provider,
           clientSecret: result.clientSecret,
           amount: totalAmount,
-          currency: currency || pkg.currency || 'XOF',
-          licences: total_licenses
-        }
+          currency: currency || pkg.currency || "XOF",
+          licences: total_licenses,
+        },
       });
     } catch (err) {
       next(err);
     }
-  }
+  },
 };
