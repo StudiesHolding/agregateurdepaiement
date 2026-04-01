@@ -10,7 +10,7 @@ SpecificFormation.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    packageId: {
+    package_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       field: "package_id",
@@ -18,17 +18,19 @@ SpecificFormation.init(
     title: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      field: "title",
     },
     description: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: "description",
     },
-    durationHours: {
+    duration_hours: {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: "duration_hours",
     },
-    difficultyLevel: {
+    difficulty_level: {
       type: DataTypes.ENUM("beginner", "intermediate", "advanced"),
       defaultValue: "beginner",
       field: "difficulty_level",
@@ -36,19 +38,46 @@ SpecificFormation.init(
     objectives: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: "objectives",
     },
     prerequisites: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: "prerequisites",
     },
     modules: {
-      type: DataTypes.JSON,
+      type: DataTypes.LONGTEXT,
       allowNull: true,
+      field: "modules",
     },
-    customSections: {
-      type: DataTypes.JSON,
+    custom_sections: {
+      type: DataTypes.LONGTEXT,
       allowNull: true,
       field: "custom_sections",
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: "created_at",
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: "updated_at",
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: "createdAt",
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: "updatedAt",
     },
   },
   {
@@ -57,7 +86,7 @@ SpecificFormation.init(
     tableName: "sl_package_specific_formations",
     timestamps: true,
     underscored: true,
-  }
+  },
 );
 
 export default SpecificFormation;
