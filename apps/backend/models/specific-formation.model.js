@@ -46,12 +46,12 @@ SpecificFormation.init(
       field: "prerequisites",
     },
     modules: {
-      type: DataTypes.LONGTEXT,
+      type: DataTypes.TEXT,
       allowNull: true,
       field: "modules",
     },
     custom_sections: {
-      type: DataTypes.LONGTEXT,
+      type: DataTypes.TEXT,
       allowNull: true,
       field: "custom_sections",
     },
