@@ -3,12 +3,11 @@
 ## Résumé Exécutif
 
 Le dashboard B2B est actuellement dans un état **partiellement fonctionnel** avec plusieurs fonctionnalités core en place mais de nombreux manques pour une mise en production premium. L'infrastructure de base est solide (Next.js 14 + TypeScript + React Query), mais il manque des éléments critiques comme le vrai flux de paiement, la gestion complète des invoices, et une expérience utilisateur polishée.
-
 ---
 
-## 1. Analyse des Fonctionnalités Implémentées
+## 1. Analyse des Fonctionnalités Implémentées 
 
-### ✅ Authentication & Session Management
+### Authentication & Session Management
 
 | Fonctionnalité | Status | Fichier Référent |
 |-----------------|--------|------------------|
@@ -56,7 +55,7 @@ Le dashboard B2B est actuellement dans un état **partiellement fonctionnel** av
 | Filter by status | ✅ Opérationnel | [`requests/page.tsx:77-114`](apps/b2b-dashboard/src/app/[locale]/dashboard/requests/page.tsx:77-114) |
 | Approve/Reject | ❌ **Manquant API** | - |
 
-### ✅ Historique & Facturation
+###  Historique & Facturation
 
 | Fonctionnalité | Status | Fichier Référent |
 |-----------------|--------|------------------|
@@ -64,10 +63,10 @@ Le dashboard B2B est actuellement dans un état **partiellement fonctionnel** av
 | Invoice download button | ❌ Non connecté | [`history/page.tsx:78-80`](apps/b2b-dashboard/src/app/[locale]/dashboard/history/page.tsx:78-80) |
 | Invoice PDF generation | ✅ Backend | [`InvoiceService`](apps/backend/services/invoice.service.js) |
 
-### ⚠️ Paramètres (Settings)
+###  Paramètres (Settings)
 
 | Fonctionnalité | Status | Fichier Référent |
-|-----------------|--------|------------------|
+|----------------|--------|------------------|
 | View profile | ⚠️ Partiel | [`settings/page.tsx`](apps/b2b-dashboard/src/app/[locale]/dashboard/settings/page.tsx) |
 | Edit profile | ❌ Non fonctionnel | [`settings/page.tsx:113-117`](apps/b2b-dashboard/src/app/[locale]/dashboard/settings/page.tsx:113-117) |
 | Change password | ❌ **Manquant** | - |

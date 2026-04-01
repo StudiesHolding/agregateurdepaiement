@@ -12,7 +12,7 @@ PackageFormation.init(
     },
     packageId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       field: "package_id",
     },
     formationType: {
@@ -33,7 +33,7 @@ PackageFormation.init(
     formationId: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      field: "formation_id", // Generic field used sometimes
+      field: "formation_id",
     },
     order: {
       type: DataTypes.INTEGER,
@@ -43,7 +43,7 @@ PackageFormation.init(
   {
     sequelize,
     modelName: "PackageFormation",
-    tableName: "sl_package_formations",
+    tableName: "course_packages",
     timestamps: false,
     underscored: true,
   }
