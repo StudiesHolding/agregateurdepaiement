@@ -22,7 +22,6 @@ import { CompanyPackage } from "./company-package.model.js";
 import { AccessRequest } from "./access-request.model.js";
 import { Course } from "./course.model.js";
 import { PostMeta } from "./post-meta.model.js";
-import { PackageFormation } from "./package-formation.model.js";
 import { SpecificFormation } from "./specific-formation.model.js";
 
 // Associations
@@ -119,40 +118,78 @@ Company.hasMany(CompanyPackage, { foreignKey: "company_id", as: "packages" });
 CompanyPackage.belongsTo(Company, { foreignKey: "company_id", as: "company" });
 
 // FormationPackage <-> CompanyPackage (1:N)
-FormationPackage.hasMany(CompanyPackage, { foreignKey: "package_id", as: "companyPurchases" });
-CompanyPackage.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package" });
+FormationPackage.hasMany(CompanyPackage, {
+  foreignKey: "package_id",
+  as: "companyPurchases",
+});
+CompanyPackage.belongsTo(FormationPackage, {
+  foreignKey: "package_id",
+  as: "package",
+});
 
 // Company <-> AccessRequest (1:N)
-Company.hasMany(AccessRequest, { foreignKey: "company_id", as: "accessRequests" });
+Company.hasMany(AccessRequest, {
+  foreignKey: "company_id",
+  as: "accessRequests",
+});
 AccessRequest.belongsTo(Company, { foreignKey: "company_id", as: "company" });
 
 // Employee <-> AccessRequest (1:N)
 Employee.hasMany(AccessRequest, { foreignKey: "employee_id", as: "requests" });
-AccessRequest.belongsTo(Employee, { foreignKey: "employee_id", as: "employee" });
+AccessRequest.belongsTo(Employee, {
+  foreignKey: "employee_id",
+  as: "employee",
+});
 
 // CompanyPackage <-> AccessRequest (1:N)
-CompanyPackage.hasMany(AccessRequest, { foreignKey: "company_package_id", as: "activations" });
-AccessRequest.belongsTo(CompanyPackage, { foreignKey: "company_package_id", as: "companyPackage" });
+CompanyPackage.hasMany(AccessRequest, {
+  foreignKey: "company_package_id",
+  as: "activations",
+});
+AccessRequest.belongsTo(CompanyPackage, {
+  foreignKey: "company_package_id",
+  as: "companyPackage",
+});
 
 // ============================================
 // TRAINING PACKAGES & LEARNPRESS
 // ============================================
 
 // Course <-> PostMeta (1:N) - Legacy WordPress tables, no FK constraint
-Course.hasMany(PostMeta, { foreignKey: "post_id", as: "meta", constraints: false });
-PostMeta.belongsTo(Course, { foreignKey: "post_id", as: "course", constraints: false });
-
-// FormationPackage <-> PackageFormation (1:N)
-FormationPackage.hasMany(PackageFormation, { foreignKey: "package_id", as: "packageFormations", constraints: false });
-PackageFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package", constraints: false });
-
-// PackageFormation <-> Course (N:1, can be global or specific)
-PackageFormation.belongsTo(Course, { foreignKey: "global_formation_id", as: "globalCourse", constraints: false });
-PackageFormation.belongsTo(SpecificFormation, { foreignKey: "package_formation_id", as: "specificCourse", constraints: false });
+Course.hasMany(PostMeta, {
+  foreignKey: "post_id",
+  as: "meta",
+  constraints: false,
+});
+PostMeta.belongsTo(Course, {
+  foreignKey: "post_id",
+  as: "course",
+  constraints: false,
+});
 
 // FormationPackage <-> SpecificFormation (1:N)
-FormationPackage.hasMany(SpecificFormation, { foreignKey: "package_id", as: "specificFormations", constraints: false });
-SpecificFormation.belongsTo(FormationPackage, { foreignKey: "package_id", as: "package", constraints: false });
+FormationPackage.hasMany(SpecificFormation, {
+  foreignKey: "package_id",
+  as: "specificFormations",
+  constraints: false,
+});
+SpecificFormation.belongsTo(FormationPackage, {
+  foreignKey: "package_id",
+  as: "package",
+  constraints: false,
+});
+
+// FormationPackage <-> Course (1:N) - Global formations via formations JSON
+FormationPackage.hasMany(Course, {
+  foreignKey: "post_id",
+  as: "globalFormations",
+  constraints: false,
+});
+Course.belongsTo(FormationPackage, {
+  foreignKey: "post_id",
+  as: "package",
+  constraints: false,
+});
 
 export {
   sequelize,
@@ -179,6 +216,5 @@ export {
   AccessRequest,
   Course,
   PostMeta,
-  PackageFormation,
   SpecificFormation,
 };

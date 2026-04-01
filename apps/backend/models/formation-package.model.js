@@ -1,4 +1,3 @@
-
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
 
@@ -11,52 +10,62 @@ FormationPackage.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    title: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-      field: "name",
-    },
     description: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: "description",
     },
     price: {
-      type: DataTypes.DECIMAL(15, 2),
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      field: "price",
     },
-    currency: {
-      type: DataTypes.STRING(3),
-      defaultValue: "EUR",
+    image_url: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "image_url",
     },
     target_audience: {
       type: DataTypes.ENUM("entreprises", "particuliers", "mixed"),
       defaultValue: "entreprises",
       field: "target_audience",
     },
-    status: {
-      type: DataTypes.ENUM("draft", "published", "archived"),
-      defaultValue: "draft",
-    },
-    formations: {
-      type: DataTypes.JSON,
-      allowNull: true,
-    },
-    image_url: {
-      type: DataTypes.STRING(500),
-      allowNull: true,
-    },
-    is_active: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      field: "featured",
-    },
     created_at: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
+      defaultValue: DataTypes.NOW,
+      field: "created_at",
     },
     updated_at: {
       type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: DataTypes.NOW,
+      field: "updated_at",
+    },
+    title: {
+      type: DataTypes.STRING(255),
       allowNull: false,
+      field: "title",
+    },
+    currency: {
+      type: DataTypes.STRING(3),
+      allowNull: true,
+      field: "currency",
+    },
+    status: {
+      type: DataTypes.ENUM("draft", "published", "archived"),
+      allowNull: true,
+      field: "status",
+    },
+    formations: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "formations",
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      field: "is_active",
     },
   },
   {
@@ -65,7 +74,7 @@ FormationPackage.init(
     tableName: "course_packages",
     timestamps: false,
     underscored: true,
-  }
+  },
 );
 
 export default FormationPackage;
