@@ -14,6 +14,7 @@ FormationPackage.init(
     title: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      field: "name",
     },
     description: {
       type: DataTypes.TEXT,
@@ -47,6 +48,7 @@ FormationPackage.init(
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+      field: "featured",
     },
     created_at: {
       type: DataTypes.DATE,
