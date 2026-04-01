@@ -95,14 +95,14 @@ export class FormationsService {
             const rows = await sequelize.query(
                 `SELECT 
                     id,
-                    title,
+                    name as title,
                     description,
                     price,
                     currency,
                     image_url as thumbnail,
                     created_at as createdAt
-                FROM sl_formation_packages
-                WHERE id = :id AND is_active = 1`,
+                FROM course_packages
+                WHERE id = :id AND featured = 1`,
                 { 
                     replacements: { id },
                     type: QueryTypes.SELECT 
