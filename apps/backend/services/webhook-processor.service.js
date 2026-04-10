@@ -1,3 +1,4 @@
+import axios from 'axios';
 import {
   WebhookEvent,
   PaymentIntent,
@@ -164,6 +165,26 @@ export class WebhookProcessor {
         if (finalStatus === PaymentStatus.SUCCEEDED) {
           await this.markAsSucceeded(attempt, providerResponse, transaction, providerCode);
           // notificationData = { type: "success", intent, order };
+
+          // Notify Auction System if applicable
+          if (order.metadata?.source === "AUCTION" && order.metadata?.auction_id) {
+            try {
+              const auctionId = order.metadata.auction_id;
+              const auctionServerUrl = process.env.AUCTION_SERVER_URL || 'http://localhost:5000/api/auctions';
+              
+              console.log(`[WebhookProcessor] Notifying auction system for auction #${auctionId}`);
+              
+              await axios.post(`${auctionServerUrl}/${auctionId}/payment-confirm`, {
+                orderReference: order.reference,
+                amount: order.totalAmount,
+                status: 'paid'
+              }, {
+                headers: { 'x-internal-key': process.env.INTERNAL_API_KEY }
+              });
+            } catch (err) {
+              console.error(`[WebhookProcessor] Failed to notify auction system: ${err.message}`);
+            }
+          }
 
           // LMS Specialization: NO AUTO-ENROLLMENT anymore (Phase 4 manual)
           // await LmsBridgeService.syncEnrollment(order);
