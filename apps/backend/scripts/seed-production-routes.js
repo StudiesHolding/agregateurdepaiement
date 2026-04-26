@@ -40,7 +40,6 @@ const seedProductionRoutes = async () => {
             // Cameroon (CM) - XAF
             { providerId: getProviderId('cinetpay'), countryCode: 'CM', currency: 'XAF', priority: 10, minAmount: 100, maxAmount: 5000000 },
             { providerId: getProviderId('kkiapay'), countryCode: 'CM', currency: 'XAF', priority: 20, minAmount: 100, maxAmount: 5000000 },
-            { providerId: getProviderId('maviance'), countryCode: 'CM', currency: 'XAF', priority: 30, minAmount: 100, maxAmount: 5000000 },
 
             // Ivory Coast (CI) - XOF
             { providerId: getProviderId('cinetpay'), countryCode: 'CI', currency: 'XOF', priority: 10, minAmount: 100, maxAmount: 5000000 },

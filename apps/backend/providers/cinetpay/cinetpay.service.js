@@ -94,10 +94,11 @@ export class CinetPayService extends PaymentProviderInterface {
         };
       }
     } catch (error) {
+      console.error("[CinetPayService] Fetch error:", error);
       return {
         success: false,
         errorCode: "CINETPAY_NETWORK_ERROR",
-        errorMessage: error.message,
+        errorMessage: error.message || `Network error: ${error.code || 'Unknown'}`,
       };
     }
   }
