@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { HttpClient } from '../utils/http-client.js';
 import {
   WebhookEvent,
   PaymentIntent,
@@ -170,19 +171,23 @@ export class WebhookProcessor {
           if (order.metadata?.source === "AUCTION" && order.metadata?.auction_id) {
             try {
               const auctionId = order.metadata.auction_id;
-              const auctionServerUrl = process.env.AUCTION_SERVER_URL || 'http://localhost:5000/api/auctions';
+              // DEFAULT to 3001 if not in environment
+              const auctionServerUrl = process.env.AUCTION_SERVER_URL || 'http://localhost:3001/api/auctions';
               
               console.log(`[WebhookProcessor] Notifying auction system for auction #${auctionId}`);
               
-              await axios.post(`${auctionServerUrl}/${auctionId}/payment-confirm`, {
+              await HttpClient.postWithRetry(`${auctionServerUrl}/${auctionId}/payment-confirm`, {
+                auctionId: auctionId,
                 orderReference: order.reference,
                 amount: order.totalAmount,
+                payment_id: attempt.transactionNumber, // Payment ID from gateway
                 status: 'paid'
               }, {
                 headers: { 'x-internal-key': process.env.INTERNAL_API_KEY }
               });
             } catch (err) {
               console.error(`[WebhookProcessor] Failed to notify auction system: ${err.message}`);
+              // Error logged but process continues (handled by HttpClient retries and alerts)
             }
           }
 
