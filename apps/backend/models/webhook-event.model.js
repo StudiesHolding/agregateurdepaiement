@@ -53,5 +53,6 @@ WebhookEvent.init(
         tableName: "aggp_webhook_events",
         timestamps: true,
         updatedAt: false, // We only care about createdAt
+        underscored: false, // Override global underscored setting to match camelCase database columns
     }
 );

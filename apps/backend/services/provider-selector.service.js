@@ -109,12 +109,17 @@ export class ProviderSelectorService {
                 console.log(`[ProviderSelector] Attempting payment with provider: ${next.provider.name} (Priority: ${next.route.priority})`);
 
                 // 1. Create Attempt
+                const transactionNum = this.generateTransactionNumber();
+                console.log(`[ProviderSelector] Generated transaction number: ${transactionNum}`);
+
                 attempt = await PaymentAttemptService.create({
                     paymentIntentId: this.paymentIntent.id,
                     providerId: next.provider.id,
-                    transactionNumber: this.generateTransactionNumber(),
+                    transactionNumber: transactionNum,
                     requestPayload: {},
                 });
+
+                console.log(`[ProviderSelector] Created attempt with ID: ${attempt.id}, transactionNumber: ${attempt.transactionNumber}`);
 
                 // 2. Mark as Processing
                 await PaymentAttemptService.markProcessing(attempt.id);

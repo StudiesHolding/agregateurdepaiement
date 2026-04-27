@@ -11,15 +11,15 @@ PaymentAttempt.init(
             autoIncrement: true,
             primaryKey: true,
         },
-        payment_intent_id: {
+        paymentIntentId: {
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: false,
         },
-        provider_id: {
+        providerId: {
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: false,
         },
-        transaction_number: {
+        transactionNumber: {
             type: DataTypes.STRING(255),
             allowNull: false,
         },
@@ -27,19 +27,19 @@ PaymentAttempt.init(
             type: DataTypes.ENUM(...Object.values(AttemptStatus)),
             defaultValue: AttemptStatus.PENDING,
         },
-        request_payload: {
+        requestPayload: {
             type: DataTypes.JSON,
             allowNull: true,
         },
-        response_payload: {
+        responsePayload: {
             type: DataTypes.JSON,
             allowNull: true,
         },
-        error_code: {
+        errorCode: {
             type: DataTypes.STRING(100),
             allowNull: true,
         },
-        error_message: {
+        errorMessage: {
             type: DataTypes.TEXT,
             allowNull: true,
         },
@@ -48,5 +48,6 @@ PaymentAttempt.init(
         sequelize,
         modelName: "PaymentAttempt",
         tableName: "aggp_payment_attempts",
+        underscored: false, // Override global underscored setting to match camelCase database columns
     }
 );

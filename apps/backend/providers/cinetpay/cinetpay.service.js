@@ -29,6 +29,8 @@ export class CinetPayService extends PaymentProviderInterface {
       process.env.WEBHOOK_NOTIFY_URL ||
       paymentData.successUrl; // Fallback to successUrl if no notifyUrl configured
 
+    console.log(`[CinetPayService] Received transactionNumber: ${paymentData.transactionNumber}`);
+
     const payload = {
       apikey: this.apiKey,
       site_id: this.siteId,
