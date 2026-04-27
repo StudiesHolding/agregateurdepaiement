@@ -199,6 +199,13 @@ export class OrchestratorService {
         secretKey: provider.credentialsEncrypted?.secretKey,
       });
 
+      console.log(`[Orchestrator] Attempt object:`, {
+        id: attempt.id,
+        transactionNumber: attempt.transactionNumber,
+        hasTransactionNumber: attempt.hasOwnProperty('transactionNumber'),
+        attemptKeys: Object.keys(attempt.dataValues || attempt)
+      });
+
       return await adapter.createPayment({
         amount: finalAmount,
         currency,
