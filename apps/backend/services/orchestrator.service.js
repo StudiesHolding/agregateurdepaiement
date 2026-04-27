@@ -85,24 +85,29 @@ export class OrchestratorService {
         throw new BadRequestError("Montant de formation invalide pour ce paiement.");
       }
 
-      // Only enforce the expected amount if the currency matches the formation's currency
-      // If they differ, it's a cross-currency payment (e.g., product in EUR, payment in XOF)
-      // and we should trust the frontend's converted amount.
-      const formationCurrency = formation.currency || 'XAF'; // Assuming XAF for standard courses if not specified
-
-      if (currency === formationCurrency) {
-        if (expectedAmount !== finalAmount) {
-          console.warn(
-            `[OrchestratorService] Amount mismatch for formation ${actualFormationId}. ` +
-            `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
-          );
-          finalAmount = expectedAmount;
-        }
+      // Special Case: Auctions (Price is dynamic/bid_amount)
+      if (finalMetadata.source === 'AUCTION') {
+        console.log(`[OrchestratorService] Auction payment detected for auction #${finalMetadata.auction_id}. Using dynamic amount=${finalAmount}`);
       } else {
-        console.log(
-          `[OrchestratorService] Cross-currency payment detected: Product=${formationCurrency}, Payment=${currency}. ` +
-          `Trusting frontend amount=${finalAmount}.`
-        );
+        // Only enforce the expected amount if the currency matches the formation's currency
+        // If they differ, it's a cross-currency payment (e.g., product in EUR, payment in XOF)
+        // and we should trust the frontend's converted amount.
+        const formationCurrency = formation.currency || 'XAF'; // Assuming XAF for standard courses if not specified
+
+        if (currency === formationCurrency) {
+          if (expectedAmount !== finalAmount) {
+            console.warn(
+              `[OrchestratorService] Amount mismatch for formation ${actualFormationId}. ` +
+              `Received=${finalAmount}, Expected=${expectedAmount}. Using expected amount.`,
+            );
+            finalAmount = expectedAmount;
+          }
+        } else {
+          console.log(
+            `[OrchestratorService] Cross-currency payment detected: Product=${formationCurrency}, Payment=${currency}. ` +
+            `Trusting frontend amount=${finalAmount}.`
+          );
+        }
       }
 
       finalMetadata = {

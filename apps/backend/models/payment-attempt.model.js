@@ -11,15 +11,15 @@ PaymentAttempt.init(
             autoIncrement: true,
             primaryKey: true,
         },
-        paymentIntentId: {
+        payment_intent_id: {
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: false,
         },
-        providerId: {
+        provider_id: {
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: false,
         },
-        transactionNumber: {
+        transaction_number: {
             type: DataTypes.STRING(255),
             allowNull: false,
         },
@@ -27,19 +27,19 @@ PaymentAttempt.init(
             type: DataTypes.ENUM(...Object.values(AttemptStatus)),
             defaultValue: AttemptStatus.PENDING,
         },
-        requestPayload: {
+        request_payload: {
             type: DataTypes.JSON,
             allowNull: true,
         },
-        responsePayload: {
+        response_payload: {
             type: DataTypes.JSON,
             allowNull: true,
         },
-        errorCode: {
+        error_code: {
             type: DataTypes.STRING(100),
             allowNull: true,
         },
-        errorMessage: {
+        error_message: {
             type: DataTypes.TEXT,
             allowNull: true,
         },
