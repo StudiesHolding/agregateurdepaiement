@@ -45,10 +45,18 @@ export class WebhookProcessor {
           payload.cpm_trans_id || payload.client_transaction_id;
       } else if (providerCode === "stripe") {
         const stripeObj = payload.data?.object;
+        console.log(`[WebhookProcessor] Stripe webhook object:`, {
+          id: stripeObj?.id,
+          client_reference_id: stripeObj?.client_reference_id,
+          metadata: stripeObj?.metadata,
+          object: stripeObj?.object
+        });
         transactionNumber =
           stripeObj?.metadata?.transactionNumber ||
           stripeObj?.client_reference_id ||
           stripeObj?.id;
+
+        console.log(`[WebhookProcessor] Extracted transaction number for Stripe: ${transactionNumber}`);
       } else if (providerCode === "kkiapay") {
         transactionNumber =
           payload.partnerId ||

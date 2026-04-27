@@ -9,12 +9,12 @@ export class PaymentAttemptService {
      */
     static async create(data) {
         return await PaymentAttempt.create({
-            payment_intent_id: data.paymentIntentId,
-            provider_id: data.providerId,
-            transaction_number: data.transactionNumber,
+            paymentIntentId: data.paymentIntentId,
+            providerId: data.providerId,
+            transactionNumber: data.transactionNumber,
             status: AttemptStatus.PENDING,
-            request_payload: data.requestPayload || {},
-            response_payload: {},
+            requestPayload: data.requestPayload || {},
+            responsePayload: {},
         });
     }
 
@@ -40,7 +40,7 @@ export class PaymentAttemptService {
         return await PaymentAttempt.update(
             {
                 status: AttemptStatus.SUCCEEDED,
-                response_payload: responsePayload,
+                responsePayload: responsePayload,
             },
             { where: { id } }
         );
@@ -58,9 +58,9 @@ export class PaymentAttemptService {
         return await PaymentAttempt.update(
             {
                 status: AttemptStatus.FAILED,
-                error_code: errorCode,
-                error_message: errorMessage,
-                response_payload: responsePayload,
+                errorCode: errorCode,
+                errorMessage: errorMessage,
+                responsePayload: responsePayload,
             },
             { where: { id } }
         );
@@ -73,8 +73,8 @@ export class PaymentAttemptService {
      */
     static async getAttemptsForIntent(paymentIntentId) {
         return await PaymentAttempt.findAll({
-            where: { payment_intent_id: paymentIntentId },
-            order: [["created_at", "ASC"]],
+            where: { paymentIntentId: paymentIntentId },
+            order: [["createdAt", "ASC"]],
             include: ["provider"]
         });
     }
