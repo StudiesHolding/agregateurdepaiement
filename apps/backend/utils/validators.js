@@ -25,9 +25,9 @@ export const initPaymentSchema = z.object({
     notifyUrl: z.string().url().optional(),
     idempotencyKey: z.string().optional(),
     metadata: z.record(z.any()).optional(),
-    
+
     // LMS & B2B Specific Fields
-    lmsItemId: z.string().or(z.number()).optional(),
+    lmsItemId: z.string().or(z.number()).nullable().optional(),
     lmsItemType: z.enum(["course", "package"]).optional(),
     is_b2b: z.boolean().optional(),
     company_name: z.string().optional(),
