@@ -11,6 +11,12 @@ export const emailVerificationMiddleware = async (req, res, next) => {
             return next(); // Let validation schema handle missing email
         }
 
+        // Bypass email verification for AUCTION source since emails are already verified
+        if (req.body.metadata && req.body.metadata.source === 'AUCTION') {
+            console.log(`[EmailVerificationMiddleware] Bypassing verification for AUCTION source: ${customerEmail}`);
+            return next();
+        }
+
         const isVerified = await EmailVerificationService.isVerified(customerEmail);
 
         if (isVerified) {
