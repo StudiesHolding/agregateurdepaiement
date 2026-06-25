@@ -173,52 +173,71 @@ export class WebhookProcessor {
 
         if (finalStatus === PaymentStatus.SUCCEEDED) {
           await this.markAsSucceeded(attempt, providerResponse, transaction, providerCode);
-          // notificationData = { type: "success", intent, order };
 
-          // Notify Auction System if applicable
-          if (order.metadata?.source === "AUCTION" && order.metadata?.auction_id) {
-            try {
-              const auctionId = order.metadata.auction_id;
-              // DEFAULT to 3001 if not in environment
-              const auctionServerUrl = process.env.AUCTION_SERVER_URL || 'http://localhost:3001/api/auctions';
-              
-              console.log(`[WebhookProcessor] Notifying auction system for auction #${auctionId}`);
-              
-              await HttpClient.postWithRetry(`${auctionServerUrl}/${auctionId}/payment-confirm`, {
-                auctionId: auctionId,
-                orderReference: order.reference,
-                amount: order.totalAmount,
-                payment_id: attempt.transactionNumber, // Payment ID from gateway
-                status: 'paid'
-              }, {
-                headers: { 'x-internal-key': process.env.INTERNAL_API_KEY }
-              });
-            } catch (err) {
-              console.error(`[WebhookProcessor] Failed to notify auction system: ${err.message}`);
-              // Error logged but process continues (handled by HttpClient retries and alerts)
+          // ─────────────────────────────────────────────────────────────
+          // FEATURE FLAG — Strangler Fig Pattern (Phase 2)
+          // 
+          // Seuls les B2B_PACKAGE et MOODLE_HEADLESS passent par la Saga.
+          // RETAIL et AUCTION legacy utilisent encore l'ancien flux synchrone.
+          // 
+          // Lorsque la Saga sera stabilisée, on supprimera la branche else
+          // et TOUT le trafic passera par la Saga.
+          // ─────────────────────────────────────────────────────────────
+          const metadata = order.metadata || {};
+          const isNewSagaEnabled = (
+            metadata.is_b2b === true ||
+            metadata.b2b_purchase === true ||
+            metadata.source === 'AUCTION' ||
+            metadata.source === 'MOODLE_HEADLESS'
+          );
+
+          if (isNewSagaEnabled) {
+            // 🚀 NOUVEAU FLUX ASYNCHRONE (BullMQ)
+            console.log(`[WebhookProcessor] 🚀 Routing ${order.reference} to Saga (feature flag ON)`);
+            
+            const { dispatchOrderToSaga } = await import('../saga/payment-event-dispatcher.service.js');
+            dispatchOrderToSaga(order, `webhook-${Date.now()}`).catch(err => {
+              console.error(`[WebhookProcessor] Failed to dispatch order ${order.reference} to saga:`, err.message);
+            });
+          } else {
+            // 🐢 ANCIEN FLUX SYNCHRONE (conservé intact pour la transition)
+            console.log(`[WebhookProcessor] 🐢 Using legacy sync flow for ${order.reference}`);
+
+            // Notify Auction System if applicable (legacy sync path)
+            if (metadata.source === "AUCTION" && metadata.auction_id) {
+              try {
+                const { HttpClient } = await import('../utils/http-client.js');
+                const auctionId = metadata.auction_id;
+                const auctionServerUrl = process.env.AUCTION_SERVER_URL || 'http://localhost:3001/api/auctions';
+                await HttpClient.postWithRetry(`${auctionServerUrl}/${auctionId}/payment-confirm`, {
+                  auctionId, orderReference: order.reference, amount: order.totalAmount,
+                  payment_id: attempt.transactionNumber, status: 'paid'
+                }, { headers: { 'x-internal-key': process.env.INTERNAL_API_KEY } });
+              } catch (err) {
+                console.error(`[WebhookProcessor] Failed to notify auction system: ${err.message}`);
+              }
             }
+
+            // B2B Legacy sync provisioning (conservé intact)
+            if (metadata.is_b2b) {
+              try {
+                const { B2BProvisioningService } = await import('./b2b-provisioning.service.js');
+                await B2BProvisioningService.handleB2BOrder(order);
+              } catch (err) {
+                console.error(`[WebhookProcessor] B2B Provisioning failed for Order ${order.reference}:`, err);
+              }
+            }
+
+            // Legacy LMS enrollment (commenté mais conservé pour référence)
+            // const { LmsBridgeService } = await import('./lms-bridge.service.js');
+            // await LmsBridgeService.syncEnrollment(order);
           }
 
-          // LMS Specialization: NO AUTO-ENROLLMENT anymore (Phase 4 manual)
-          // await LmsBridgeService.syncEnrollment(order);
-
-          // ── Admin Alerts Redesign ──
+          // ── Admin Alerts (toujours synchrones, quel que soit le flux) ──
           await this.notifyAdminsForValidation(order);
 
           // Phase 2: Send payment confirmation WITHOUT invoice
-          // Phase 2: Send payment confirmation WITHOUT invoice
           await MailService.sendPaymentConfirmed(order);
-
-          // B2B Phase: Auto-Provisioning
-          if (order.metadata?.is_b2b) {
-            try {
-              await B2BProvisioningService.handleB2BOrder(order);
-            } catch (err) {
-              console.error(`[WebhookProcessor] B2B Provisioning failed for Order ${order.reference}:`, err);
-              // We don't fail the whole webhook because payment IS successful.
-              // Admin will see the payment and have to manual provision or retry.
-            }
-          }
         } else if (finalStatus === PaymentStatus.FAILED) {
           await this.markAsFailed(attempt, providerResponse, transaction);
           notificationData = {

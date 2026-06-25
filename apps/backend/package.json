@@ -46,11 +46,13 @@
   "dependencies": {
     "@kkiapay-org/nodejs-sdk": "^1.0.7",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.79.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.0.0",
     "express-rate-limit": "^8.3.0",
     "helmet": "^8.0.0",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.5",
     "nodemailer": "^6.9.16",
