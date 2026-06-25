@@ -1,16 +1,15 @@
 /**
  * PaymentSagaWorker
  *
- * Worker BullMQ qui traite les événements de la file 'saga-payment'.
- * Pour chaque événement :
+ * Worker BullMQ pour la file 'saga-payment'.
+ * Traite chaque événement de manière asynchrone :
  * 1. Vérifie l'idempotence (table aggp_saga_idempotency)
  * 2. Résout la stratégie via StrategyFactory
- * 3. Exécute la stratégie
- * 4. Marque l'idempotence comme COMPLETED
+ * 3. Exécute la stratégie (appels M2M, DB, etc.)
+ * 4. Marque l'état final dans la table d'idempotence
  *
- * Démarrage : importé dans server.js ou via un processus séparé
+ * Format de log unifié : [PaymentSagaWorker:{correlationId}] message
  */
-import { Worker } from 'bullmq';
 import { createSagaWorker } from './saga-queue.service.js';
 import { resolveStrategy } from './strategy-factory.js';
 import { QueryTypes } from 'sequelize';
@@ -18,41 +17,43 @@ import sequelize from '../config/database.js';
 
 /**
  * Traite un job de la file 'saga-payment'
- * @param {Object} job - Job BullMQ
  */
 async function processPaymentSaga(job) {
   const { eventId, source, orderReference, payload, correlationId } = job.data;
+  const log = (msg, ...args) => console.log(`[PaymentSagaWorker:${correlationId}] ${msg}`, ...args);
+  const logError = (msg, ...args) => console.error(`[PaymentSagaWorker:${correlationId}] ❌ ${msg}`, ...args);
 
-  console.log(`[PaymentSagaWorker] Processing job ${job.id} | source=${source} | order=${orderReference}`);
+  log(`Processing job ${job.id} | source=${source} | order=${orderReference}`);
 
-  // 1. Vérifier l'idempotence (éviter de traiter 2 fois le même événement)
-  const alreadyProcessed = await checkIdempotency(eventId);
-  if (alreadyProcessed) {
-    console.log(`[PaymentSagaWorker] Event ${eventId} already processed — skipping`);
+  // 1. Idempotence : ne pas traiter un événement déjà complété
+  const alreadyCompleted = await checkIdempotency(eventId);
+  if (alreadyCompleted) {
+    log(`Event ${eventId} already processed — skipping`);
     return { skipped: true, eventId };
   }
 
-  // 2. Marquer comme PROCESSING
+  // 2. Marquer PROCESSING
   await markIdempotency(eventId, orderReference, source, 'PROCESSING');
 
   try {
     // 3. Résoudre et exécuter la stratégie
     const strategy = resolveStrategy(source);
+    log(`Executing ${strategy.constructor.name}...`);
     const result = await strategy.execute(job.data);
 
-    // 4. Marquer comme COMPLETED
-    await markIdempotency(eventId, orderReference, source, 'COMPLETED', result);
-
-    console.log(`[PaymentSagaWorker] ✅ Job ${job.id} completed successfully`);
+    // 4. Marquer SUCCESS
+    await markIdempotency(eventId, orderReference, source, 'SUCCESS', result);
+    log(`✅ Job ${job.id} completed successfully`);
     return result;
+
   } catch (error) {
-    // Si l'erreur est retryable, BullMQ s'en charge automatiquement
-    // Sinon, on marque comme FAILED
     const isRetryable = error.name === 'MoodleRetryableError';
 
     if (!isRetryable) {
       await markIdempotency(eventId, orderReference, source, 'FAILED', null, error.message);
-      console.error(`[PaymentSagaWorker] ❌ Job ${job.id} failed definitively:`, error.message);
+      logError(`Job ${job.id} failed definitively: ${error.message}`);
+    } else {
+      logError(`Job ${job.id} failed (retryable): ${error.message}`);
     }
 
     throw error; // BullMQ gère le retry
@@ -72,7 +73,7 @@ async function checkIdempotency(eventId) {
   );
 
   if (!row) return false;
-  return row.status === 'COMPLETED' || row.status === 'PROCESSING';
+  return row.status === 'SUCCESS' || row.status === 'PROCESSING';
 }
 
 /**
@@ -80,7 +81,6 @@ async function checkIdempotency(eventId) {
  */
 async function markIdempotency(eventId, orderReference, source, status, result = null, error = null) {
   if (status === 'PROCESSING') {
-    // INSERT (ignorer si déjà existant)
     await sequelize.query(
       `INSERT IGNORE INTO aggp_saga_idempotency
        (event_id, status, order_reference, source, created_at)
@@ -91,7 +91,6 @@ async function markIdempotency(eventId, orderReference, source, status, result =
       }
     );
   } else {
-    // UPDATE
     await sequelize.query(
       `UPDATE aggp_saga_idempotency
        SET status = :status,
@@ -115,5 +114,3 @@ async function markIdempotency(eventId, orderReference, source, status, result =
 
 // Créer et exporter le worker
 export const paymentSagaWorker = createSagaWorker('saga-payment', processPaymentSaga);
-
-console.log('[PaymentSagaWorker] Initialized — listening on queue "saga-payment"');
