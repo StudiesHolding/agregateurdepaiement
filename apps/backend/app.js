@@ -11,6 +11,7 @@ import testRoutes from "./routes/test.routes.js";
 import b2bRoutes from "./routes/b2b.routes.js";
 import qaRoutes from "./routes/qa.routes.js";
 import ssoRoutes from "./routes/sso.routes.js";
+import checkoutRoutes from "./routes/checkout.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 // Rate Limiting
@@ -92,6 +93,7 @@ app.use("/api/admin/test", testRoutes);
 app.use("/api/b2b", b2bRoutes);
 
 app.use("/api/v1/sso", ssoRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 if (process.env.NODE_ENV === "test") {
   app.use("/api/qa", qaRoutes);
