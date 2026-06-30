@@ -1,7 +1,7 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
 // import { logger } from '../../utils/logger.js';
 import { B2bPackagePurchaseStrategy } from "./b2b-package.strategy.js";
-// import { B2bThematiquePurchaseStrategy } from "./b2b-thematique.strategy.js";
+import { B2bThematiquePurchaseStrategy } from "./b2b-thematique.strategy.js";
 import { AuctionPaymentStrategy } from "./auction-payment.strategy.js";
 import { B2cCoursePurchaseStrategy } from "./b2c-course.strategy.js";
 
@@ -11,7 +11,7 @@ class CheckoutContextService {
     
     // Enregistrement des stratégies disponibles
     this.registerStrategy(new B2bPackagePurchaseStrategy());
-    // this.registerStrategy(new B2bThematiquePurchaseStrategy());
+    this.registerStrategy(new B2bThematiquePurchaseStrategy());
     this.registerStrategy(new AuctionPaymentStrategy());
     this.registerStrategy(new B2cCoursePurchaseStrategy());
   }

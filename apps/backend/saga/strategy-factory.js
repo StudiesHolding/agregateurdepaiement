@@ -8,11 +8,13 @@
  * - RETAIL : Achat direct B2C (via formulaire de paiement)
  * - AUCTION : Enchère gagnée
  * - B2B_PACKAGE : Achat de package entreprise
+ * - B2B_THEMATIQUE : Achat de thématique entreprise
  * - MOODLE_HEADLESS : Inscription via Authoring Engine/Moodle
  */
-import { LegacyStrategy } from './strategies/legacy.strategy.js';
 import { B2BPackageStrategy } from './strategies/b2b-package.strategy.js';
+import { B2BThematiqueStrategy } from './strategies/b2b-thematique.strategy.js';
 import { MoodleHeadlessStrategy } from './strategies/moodle-headless.strategy.js';
+import { LegacyStrategy } from './strategies/legacy.strategy.js';
 
 /**
  * Stratégies disponibles
@@ -21,6 +23,7 @@ const STRATEGIES = {
   RETAIL: LegacyStrategy,
   AUCTION: LegacyStrategy,
   B2B_PACKAGE: B2BPackageStrategy,
+  B2B_THEMATIQUE: B2BThematiqueStrategy,
   MOODLE_HEADLESS: MoodleHeadlessStrategy,
 };
 
