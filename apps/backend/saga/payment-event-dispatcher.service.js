@@ -28,7 +28,7 @@ export const SAGA_SOURCES = {
  * @returns {Promise<Object>} Résultat du dispatch
  */
 export async function dispatchOrderToSaga(order, correlationId) {
-  const metadata = order.metadata || {};
+  const metadata = parseMetadata(order.metadata);
   const source = resolveSource(metadata);
 
   const event = {
@@ -51,6 +51,21 @@ export async function dispatchOrderToSaga(order, correlationId) {
     jobId: job.id,
     orderReference: order.reference,
   };
+}
+
+/**
+ * Résout la source de l'événement à partir des métadonnées
+ */
+function parseMetadata(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  return raw;
 }
 
 /**

@@ -9,7 +9,7 @@
  * - saga-payment-dlq : Dead Letter Queue (après 3 échecs)
  * - saga-license-assign : Assignations de licences B2B
  */
-import { Queue, Worker, QueueScheduler } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';

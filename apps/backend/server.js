@@ -46,6 +46,15 @@ const startServer = async () => {
             console.log(` Health check: http://localhost:${PORT}/health`);
         });
 
+        // Workers Saga BullMQ (provisioning post-paiement + assignations B2B)
+        try {
+            await import('./saga/payment-saga.worker.js');
+            await import('./saga/license-assign.worker.js');
+            console.log(' Saga workers started (saga-payment, saga-license-assign)');
+        } catch (workerError) {
+            console.warn(' Saga workers not started:', workerError.message);
+        }
+
         server.on('error', (err) => {
             if (err.code === 'EADDRINUSE') {
                 console.error(` Port ${PORT} is already in use.`);

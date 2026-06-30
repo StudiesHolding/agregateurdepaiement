@@ -30,6 +30,21 @@ jest.unstable_mockModule('../../services/mail.service.js', () => ({
   MailService: { sendEmail: mockSendEmail },
 }));
 
+jest.unstable_mockModule('../../services/formation-mapping.service.js', () => ({
+  FormationMappingService: {
+    assertFormationMappable: jest.fn().mockResolvedValue({
+      slFormationId: 2,
+      moodleCourseId: 40,
+      moodleInstanceId: 1,
+    }),
+    resolveSyncedFormation: jest.fn().mockResolvedValue({
+      slFormationId: 2,
+      moodleCourseId: 40,
+      moodleInstanceId: 1,
+    }),
+  },
+}));
+
 jest.unstable_mockModule('../m2m-http-client.service.js', () => ({
   M2MHttpClient: jest.fn().mockImplementation(() => ({
     post: mockM2MPost,
@@ -104,8 +119,8 @@ describe('MoodleHeadlessStrategy', () => {
     );
   });
 
-  it('TC-SSO-02: should skip creation if user exists', async () => {
-    mockDbQuery.mockResolvedValueOnce([{ ID: 999, keycloak_id: null }]);
+  it('TC-SSO-02: should skip creation if user exists (SSO pending)', async () => {
+    mockDbQuery.mockResolvedValueOnce([{ ID: 999, keycloak_id: null, user_pass: '' }]);
     mockM2MPost.mockResolvedValueOnce({
       status: 201,
       data: { status: 'success', data: { enrollmentId: 'enr-uuid-456' } },
@@ -116,8 +131,25 @@ describe('MoodleHeadlessStrategy', () => {
     expect(result.userId).toBe(999);
   });
 
+  it('TC-SSO-02b: existing user with active SSO gets login email only', async () => {
+    mockDbQuery.mockResolvedValueOnce([
+      { ID: 888, keycloak_id: 'kc-existing', user_pass: '$2a$10$hashedpasswordhere' },
+    ]);
+    mockM2MPost.mockResolvedValueOnce({
+      status: 201,
+      data: { status: 'success', data: { enrollmentId: 'enr-existing' } },
+    });
+
+    const result = await strategy.execute(baseEvent);
+    expect(result.success).toBe(true);
+    expect(result.keycloakPending).toBe(false);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: expect.stringContaining('formation est disponible') }),
+    );
+  });
+
   it('TC-SSO-03: should treat 409 as success (idempotent)', async () => {
-    mockDbQuery.mockResolvedValueOnce([{ ID: 111, keycloak_id: null }]);
+    mockDbQuery.mockResolvedValueOnce([{ ID: 111, keycloak_id: null, user_pass: '' }]);
     mockM2MPost.mockResolvedValueOnce({
       status: 409,
       data: { status: 'conflict', data: { enrollmentId: 'existing-uuid' } },

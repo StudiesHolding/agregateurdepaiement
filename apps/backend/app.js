@@ -9,6 +9,8 @@ import adminRoutes from "./routes/admin.routes.js";
 import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import b2bRoutes from "./routes/b2b.routes.js";
+import qaRoutes from "./routes/qa.routes.js";
+import ssoRoutes from "./routes/sso.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 // Rate Limiting
@@ -61,6 +63,7 @@ app.use(
           "http://localhost:3000",
           "http://localhost:3001",
           "http://localhost:3002",
+          "http://localhost:3004",
           "https://dashboard.studieslearning.com",
           "https://sl-business.studieslearning.com",
         ],
@@ -87,6 +90,13 @@ app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/test", testRoutes);
 app.use("/api/b2b", b2bRoutes);
+
+app.use("/api/v1/sso", ssoRoutes);
+
+if (process.env.NODE_ENV === "test") {
+  app.use("/api/qa", qaRoutes);
+  console.log("[QA] Routes ATDD actives sur /api/qa (NODE_ENV=test)");
+}
 
 // Error handling
 app.use(errorHandler);

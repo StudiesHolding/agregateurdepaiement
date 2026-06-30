@@ -207,20 +207,14 @@ export const b2bPackageController = {
 
       await transaction.commit();
 
-      // Send notification to platform admin
+      // Vision ATDD : assignation automatique + email X ou Y (pas de validation admin manuelle)
       try {
-        const { AdminNotificationService } =
-          await import("../services/admin-notification.service.js");
-        await AdminNotificationService.notifyNewAccessRequest(newRequest.id, {
-          companyId,
-          employeeId: employee_id,
-          packageId: company_package_id,
-        });
-      } catch (notifError) {
-        console.warn(
-          "[b2bPackageController] Failed to send notification:",
-          notifError.message,
+        const { B2bLicenseAssignService } = await import(
+          "../services/b2b-license-assign.service.js"
         );
+        await B2bLicenseAssignService.processAccessRequest(newRequest.id);
+      } catch (assignError) {
+        console.error("[b2bPackageController] Auto-assign failed:", assignError.message);
       }
 
       res.status(201).json({

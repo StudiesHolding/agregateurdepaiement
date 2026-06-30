@@ -1,34 +1,30 @@
 /**
  * MoodleHeadlessStrategy
  *
- * Stratégie d'enrollment via l'Authoring Engine (Moodle Headless).
- * Gère le cycle de vie SSO Keycloak :
- * 1. Vérifie/crée l'utilisateur dans kyd4_users avec keycloak_id = NULL
- * 2. Génère le magic-link d'activation Keycloak
- * 3. Appelle POST /api/v1/authoring/enrollments (M2M HMAC)
- * 4. Analyse les codes retour (201, 409 = succès / 422 = fail / 503 = retry)
- * 5. Met à jour les métadonnées avec keycloak_pending = true
- * 6. Envoie l'email de bienvenue avec lien d'activation SSO
+ * Inscription Moodle via Authoring Engine + provisionnement SSO Studies.
+ *
+ * Règles métier :
+ * - Formation doit exister dans sl_course_mapping (SYNCED) — validée en amont.
+ * - Moodle : findOrCreate utilisateur + enrol (Authoring Engine).
+ * - SSO magic-link : UNIQUEMENT si l'utilisateur n'a pas encore activé son compte
+ *   (keycloak_id NULL ou mot de passe vide).
+ * - Déjà inscrit sur Moodle (409) : succès idempotent ; email adapté au profil SSO.
+ * - ATDD : mock possible via SAGA_MOCK_MOODLE_ENROLLMENT=true (NODE_ENV=test).
  */
 import { M2MHttpClient } from '../m2m-http-client.service.js';
 import { Order, sequelize } from '../../models/index.js';
 import { OrderStatus } from '../../enums/index.js';
 import { QueryTypes } from 'sequelize';
 import { MailService } from '../../services/mail.service.js';
+import { FormationMappingService } from '../../services/formation-mapping.service.js';
 import crypto from 'crypto';
 
 export class MoodleHeadlessStrategy {
   constructor() {
     this.m2mClient = new M2MHttpClient();
-    this.keycloakBaseUrl = process.env.KEYCLOAK_BASE_URL || 'https://sso.studieslearning.com';
-    this.frontendUrl = process.env.FRONTEND_URL || 'https://studieslearning.com';
+    this.frontendUrl = process.env.NEWSTUDIES_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:3004';
   }
 
-  /**
-   * Exécute la stratégie d'enrollment avec provisionnement SSO Keycloak
-   * @param {Object} event - Événement de la queue
-   * @returns {Promise<Object>}
-   */
   async execute(event) {
     const { payload, correlationId, source } = event;
     const {
@@ -42,64 +38,94 @@ export class MoodleHeadlessStrategy {
 
     console.log(`[MoodleHeadlessStrategy:${correlationId}] Starting for order ${orderReference}`);
 
-    // ÉTAPE 1 : Résoudre ou créer l'utilisateur dans kyd4_users
-    const { userId, isNewUser } = await this.resolveUser(
-      customerEmail, customerName, customerSurname, correlationId
-    );
+    await FormationMappingService.assertFormationMappable(formationId);
 
-    // ÉTAPE 2 : Générer le magic-link d'activation Keycloak
-    const magicToken = this.generateMagicToken();
-    const activationLink = this.buildActivationLink(customerEmail, magicToken);
+    const userCtx = await this.resolveUser(customerEmail, customerName, customerSurname, correlationId);
+    const magicToken = userCtx.ssoPending ? this.generateMagicToken() : null;
+    const activationLink = magicToken
+      ? this.buildActivationLink(customerEmail, magicToken)
+      : `${this.frontendUrl}/auth/login/student`;
 
-    // ÉTAPE 3 : Appel sécurisé à l'Authoring Engine
-    const response = await this.m2mClient.post(
-      '/api/v1/authoring/enrollments',
-      {
-        email: customerEmail,
-        formationId,
-        orderReference,
-        customerName,
-        customerSurname,
-        source: source || 'RETAIL',
-        auctionId: auctionId || null,
-      },
-      correlationId
-    );
+    let response;
+    const useAtddMock =
+      process.env.NODE_ENV === 'test' &&
+      process.env.SAGA_MOCK_MOODLE_ENROLLMENT !== 'false';
 
-    // ÉTAPE 4 : Analyse du code retour
+    if (useAtddMock) {
+      console.log(`[MoodleHeadlessStrategy:${correlationId}] ATDD mock enrollment`);
+      const mapping = await FormationMappingService.resolveSyncedFormation(formationId);
+      response = {
+        status: 201,
+        success: true,
+        data: {
+          status: 'success',
+          data: {
+            enrollmentId: `qa-${orderReference}`,
+            formationId: String(formationId),
+            moodleUserId: 1,
+            moodleCourseId: mapping?.moodleCourseId ?? 1,
+          },
+        },
+        correlationId,
+      };
+    } else {
+      response = await this.m2mClient.post(
+        '/api/v1/authoring/enrollments',
+        {
+          email: customerEmail,
+          formationId: String(formationId),
+          orderReference,
+          customerName,
+          customerSurname,
+          source: source || 'RETAIL',
+          auctionId: auctionId || null,
+        },
+        correlationId,
+      );
+    }
+
     switch (response.status) {
       case 201:
         await this.handleEnrollmentSuccess(
-          orderReference, userId, response, magicToken, correlationId
+          orderReference,
+          userCtx,
+          response,
+          magicToken,
+          correlationId,
+          customerEmail,
         );
         return {
           success: true,
           orderReference,
-          userId,
-          keycloakPending: true,
+          userId: userCtx.userId,
+          keycloakPending: Boolean(magicToken),
           activationLink,
           details: response.data,
           status: 'COMPLETED',
         };
 
       case 409:
-        // Déjà inscrit — considéré comme un succès (idempotence)
-        console.log(`[MoodleHeadlessStrategy:${correlationId}] User already enrolled (409) — idempotent success`);
+        console.log(`[MoodleHeadlessStrategy:${correlationId}] Already enrolled (409) — idempotent`);
         await this.handleEnrollmentSuccess(
-          orderReference, userId, response, magicToken, correlationId
+          orderReference,
+          userCtx,
+          response,
+          magicToken,
+          correlationId,
+          customerEmail,
+          { idempotent: true },
         );
         return {
           success: true,
           orderReference,
-          userId,
-          keycloakPending: true,
+          userId: userCtx.userId,
+          keycloakPending: Boolean(magicToken),
           activationLink,
           details: response.data,
           status: 'COMPLETED_IDEMPOTENT',
         };
 
       case 422:
-        // Formation invalide — erreur métier définitive
         console.error(`[MoodleHeadlessStrategy:${correlationId}] Invalid formation (422): ${formationId}`);
         await this.handleEnrollmentFailure(orderReference, response);
         return {
@@ -110,49 +136,45 @@ export class MoodleHeadlessStrategy {
         };
 
       case 503:
-        // Moodle indisponible — retry BullMQ
-        console.warn(`[MoodleHeadlessStrategy:${correlationId}] Moodle unavailable (503) — will retry`);
         throw new MoodleRetryableError(response.data?.message || 'Moodle unavailable');
 
       default:
-        console.warn(`[MoodleHeadlessStrategy:${correlationId}] Unexpected status ${response.status} — will retry`);
         throw new MoodleRetryableError(`Unexpected status: ${response.status}`);
     }
   }
 
   /**
-   * Résout le kyd4_users.ID : trouve ou crée l'utilisateur.
-   * keycloak_id = NULL tant que l'utilisateur n'a pas activé son SSO.
+   * Résout kyd4_users — SSO en attente si pas de compte activé (pas de keycloak_id + mot de passe).
    */
   async resolveUser(email, firstName, lastName, correlationId) {
     const [existing] = await sequelize.query(
-      `SELECT ID, keycloak_id FROM kyd4_users WHERE user_email = :email LIMIT 1`,
-      {
-        replacements: { email },
-        type: QueryTypes.SELECT,
-      }
+      `SELECT ID, keycloak_id, user_pass FROM kyd4_users WHERE user_email = :email LIMIT 1`,
+      { replacements: { email }, type: QueryTypes.SELECT },
     );
 
     if (existing) {
-      console.log(`[MoodleHeadlessStrategy:${correlationId}] Found existing user ID=${existing.ID}, keycloak_id=${existing.keycloak_id || 'NULL'}`);
+      const ssoPending = this.isSsoPending(existing);
+      console.log(
+        `[MoodleHeadlessStrategy:${correlationId}] User ID=${existing.ID} keycloak_id=${existing.keycloak_id || 'NULL'} ssoPending=${ssoPending}`,
+      );
       return {
         userId: Number(existing.ID),
         isNewUser: false,
+        ssoPending,
       };
     }
 
-    // Création du compte avec keycloak_id = NULL (activation SSO en attente)
-    const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '_')
-      + '_' + crypto.randomBytes(4).toString('hex');
+    const username =
+      email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '_') +
+      '_' +
+      crypto.randomBytes(4).toString('hex');
     const tempPassword = crypto.randomBytes(24).toString('hex');
     const now = new Date();
 
-    const [result] = await sequelize.query(
+    const [insertId] = await sequelize.query(
       `INSERT INTO kyd4_users
-       (user_login, user_pass, user_nicename, user_email, display_name,
-        user_registered, keycloak_id)
-       VALUES (:username, :password, :nicename, :email, :displayName,
-               :now, NULL)`,
+       (user_login, user_pass, user_nicename, user_email, display_name, user_registered, keycloak_id)
+       VALUES (:username, :password, :nicename, :email, :displayName, :now, NULL)`,
       {
         replacements: {
           username,
@@ -163,65 +185,72 @@ export class MoodleHeadlessStrategy {
           now,
         },
         type: QueryTypes.INSERT,
-      }
+      },
     );
 
-    console.log(`[MoodleHeadlessStrategy:${correlationId}] Created new user ID=${result} with keycloak_id=NULL`);
-    return {
-      userId: Number(result),
-      isNewUser: true,
-    };
+    console.log(`[MoodleHeadlessStrategy:${correlationId}] Created user ID=${insertId} (SSO pending)`);
+    return { userId: Number(insertId), isNewUser: true, ssoPending: true };
   }
 
-  /**
-   * Génère un token d'activation unique pour le SSO Keycloak
-   */
+  /** Compte SSO actif = keycloak_id renseigné ET mot de passe défini */
+  isSsoPending(userRow) {
+    const hasKeycloak = Boolean(userRow.keycloak_id);
+    const hasPassword = Boolean(userRow.user_pass && String(userRow.user_pass).length > 8);
+    return !(hasKeycloak && hasPassword);
+  }
+
   generateMagicToken() {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  /**
-   * Construit le lien d'activation Keycloak (magic-link)
-   * L'utilisateur clique sur ce lien pour activer son SSO au premier login
-   */
   buildActivationLink(email, token) {
-    return `${this.frontendUrl}/auth/activate?token=${token}&email=${encodeURIComponent(email)}&redirect=${encodeURIComponent('/dashboard')}`;
+    return `${this.frontendUrl}/auth/activate?token=${token}&email=${encodeURIComponent(email)}&redirect=${encodeURIComponent('/student/dashboard')}`;
   }
 
-  /**
-   * Gère le succès d'enrollment : met à jour la commande et notifie l'utilisateur
-   */
-  async handleEnrollmentSuccess(orderReference, userId, response, magicToken, correlationId) {
+  async handleEnrollmentSuccess(
+    orderReference,
+    userCtx,
+    response,
+    magicToken,
+    correlationId,
+    customerEmail,
+    options = {},
+  ) {
+    const enrollmentData = response.data?.data || {};
     const metadata = {
-      keycloak_pending: true,
-      keycloak_magic_token: magicToken,
-      kyd4_user_id: userId,
-      moodle_enrollment_id: response.data?.data?.enrollmentId || '',
-      moodle_user_id: response.data?.data?.moodleUserId || '',
-      moodle_course_id: response.data?.data?.moodleCourseId || '',
+      keycloak_pending: Boolean(magicToken),
+      kyd4_user_id: userCtx.userId,
+      moodle_enrollment_id: enrollmentData.enrollmentId || '',
+      moodle_user_id: enrollmentData.moodleUserId || '',
+      moodle_course_id: enrollmentData.moodleCourseId || '',
       enrolled_at: new Date().toISOString(),
+      activation_redirect: '/student/dashboard',
+      moodle_idempotent: Boolean(options.idempotent),
     };
+
+    if (magicToken) {
+      metadata.keycloak_magic_token = magicToken;
+      metadata.keycloak_token_expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    }
 
     await Order.update(
       {
         status: OrderStatus.COMPLETED,
         completedAt: new Date(),
         metadata: sequelize.literal(
-          `JSON_MERGE_PATCH(COALESCE(metadata, '{}'), '${JSON.stringify(metadata).replace(/'/g, "''")}')`
+          `JSON_MERGE_PATCH(COALESCE(metadata, '{}'), '${JSON.stringify(metadata).replace(/'/g, "''")}')`,
         ),
       },
-      { where: { reference: orderReference } }
+      { where: { reference: orderReference } },
     );
 
-    // Envoi de l'email de bienvenue avec le lien d'activation Keycloak
-    await this.sendWelcomeEmail(orderReference, response, correlationId);
-
-    console.log(`[MoodleHeadlessStrategy:${correlationId}] ✅ Order ${orderReference} completed — SSO pending`);
+    if (magicToken) {
+      await this.sendActivationEmail(orderReference, customerEmail, magicToken, enrollmentData, correlationId);
+    } else {
+      await this.sendExistingUserEmail(orderReference, customerEmail, enrollmentData, correlationId, options.idempotent);
+    }
   }
 
-  /**
-   * Gère l'échec définitif (formation invalide)
-   */
   async handleEnrollmentFailure(orderReference, response) {
     const errorMessage = response.data?.message || 'Unknown error';
     const errorCode = response.data?.code || 'UNKNOWN';
@@ -234,24 +263,20 @@ export class MoodleHeadlessStrategy {
             '$.saga_error', ${sequelize.escape(errorMessage)},
             '$.saga_error_code', ${sequelize.escape(errorCode)},
             '$.saga_failed_at', '${new Date().toISOString()}'
-          )`
+          )`,
         ),
       },
-      { where: { reference: orderReference } }
+      { where: { reference: orderReference } },
     );
-
-    console.error(`[MoodleHeadlessStrategy] Order ${orderReference} FAILED: ${errorCode} — ${errorMessage}`);
   }
 
-  /**
-   * Envoie l'email de bienvenue avec le magic-link d'activation Keycloak
-   */
-  async sendWelcomeEmail(orderReference, response, correlationId) {
-    const enrollmentData = response.data?.data || {};
+  async sendActivationEmail(orderReference, customerEmail, magicToken, enrollmentData, correlationId) {
+    const activationLink = this.buildActivationLink(customerEmail, magicToken);
+    const loginUrl = `${this.frontendUrl}/auth/login/student`;
 
     try {
       await MailService.sendEmail({
-        to: correlationId.includes('@') ? correlationId : 'destinataire', // Note: à remplacer par customerEmail du payload
+        to: customerEmail,
         subject: 'Bienvenue sur Studies Learning — Activez votre compte SSO',
         html: `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto;">
@@ -261,41 +286,65 @@ export class MoodleHeadlessStrategy {
             </div>
             <div style="padding: 40px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 16px 16px;">
               <p>Bonjour,</p>
-              <p>Votre accès à la formation a été créé avec succès.</p>
-              ${enrollmentData.moodleCourseId ? `
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p><strong>Formation :</strong> ${enrollmentData.formationId || 'N/A'}</p>
-                  <p><strong>Référence :</strong> ${orderReference}</p>
-                </div>
-              ` : ''}
-              <p>Pour activer votre compte et accéder à votre espace de formation, cliquez sur le bouton ci-dessous :</p>
+              <p>Votre inscription à la formation a été confirmée sur notre plateforme Moodle.</p>
+              <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Formation :</strong> ${enrollmentData.formationId || 'N/A'}</p>
+                <p><strong>Référence :</strong> ${orderReference}</p>
+              </div>
+              <p><strong>Première connexion ?</strong> Activez votre compte SSO (lien à usage unique, 24h) :</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${this.buildActivationLink(correlationId, '')}"
-                   style="background: #1d3557; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 700; display: inline-block;">
-                  Activer mon compte
+                <a href="${activationLink}" style="background: #1d3557; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 700; display: inline-block;">
+                  Activez votre compte
                 </a>
               </div>
-              <p style="font-size: 14px; color: #64748b;">Ce lien est à usage unique et expirera dans 24 heures.</p>
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-              <p style="font-size: 14px; color: #64748b;">Une fois votre compte activé, vous pourrez vous connecter avec votre email et le mot de passe que vous aurez défini.</p>
-              <p>Cordialement,<br>L'équipe Studies Learning</p>
+              <p style="font-size: 14px; color: #64748b;">Déjà activé ? <a href="${loginUrl}">Connectez-vous ici</a>.</p>
             </div>
           </div>
         `,
       });
-
-      console.log(`[MoodleHeadlessStrategy] Welcome email sent for order ${orderReference}`);
+      console.log(`[MoodleHeadlessStrategy:${correlationId}] Activation email → ${customerEmail}`);
     } catch (err) {
-      console.error(`[MoodleHeadlessStrategy] Failed to send welcome email for ${orderReference}:`, err.message);
-      // L'échec d'email ne doit pas bloquer la saga
+      console.error(`[MoodleHeadlessStrategy] Activation email failed for ${orderReference}:`, err.message);
+    }
+  }
+
+  async sendExistingUserEmail(orderReference, customerEmail, enrollmentData, correlationId, idempotent = false) {
+    const loginUrl = `${this.frontendUrl}/auth/login/student`;
+    const subject = idempotent
+      ? 'Studies Learning — Vous êtes déjà inscrit à cette formation'
+      : 'Studies Learning — Votre formation est disponible';
+
+    try {
+      await MailService.sendEmail({
+        to: customerEmail,
+        subject,
+        html: `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto; padding: 32px;">
+            <h1 style="color: #1d3557;">${idempotent ? 'Inscription confirmée' : 'Formation disponible'}</h1>
+            <p>Bonjour,</p>
+            <p>${
+              idempotent
+                ? 'Vous étiez déjà inscrit(e) à cette formation sur Moodle. Votre accès reste actif.'
+                : 'Votre achat est confirmé et votre formation est accessible.'
+            }</p>
+            <p><strong>Formation :</strong> ${enrollmentData.formationId || 'N/A'} — <strong>Réf. :</strong> ${orderReference}</p>
+            <p>Connectez-vous avec votre compte Studies Learning existant :</p>
+            <p style="text-align: center; margin: 24px 0;">
+              <a href="${loginUrl}" style="background: #1d3557; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700;">
+                Accéder à mon espace
+              </a>
+            </p>
+            <p style="font-size: 14px; color: #64748b;">Aucun nouveau compte n'a été créé — vous utilisez vos identifiants habituels.</p>
+          </div>
+        `,
+      });
+      console.log(`[MoodleHeadlessStrategy:${correlationId}] Existing-user email → ${customerEmail}`);
+    } catch (err) {
+      console.error(`[MoodleHeadlessStrategy] Existing-user email failed:`, err.message);
     }
   }
 }
 
-/**
- * Erreur retryable pour BullMQ
- * Levée quand Moodle est indisponible (503) ou en cas de code inattendu
- */
 export class MoodleRetryableError extends Error {
   constructor(message) {
     super(message);

@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { InvoiceService } from "./invoice.service.js";
 import { NotificationSettings } from "../models/index.js";
+import { resolveMailTransportFromEnv } from "../config/mail-transport.js";
 
 dotenv.config();
 
@@ -16,17 +17,15 @@ export class MailService {
    */
   static getTransporter() {
     if (!this._transporter) {
+      const cfg = resolveMailTransportFromEnv();
       console.log(
-        `[MailService] Initializing SMTP with host: ${process.env.MAIL_HOST}`,
+        `[MailService] SMTP ${cfg.usesMailpit ? "(Mailpit — local)" : "(production)"} → ${cfg.host}:${cfg.port}`,
       );
       this._transporter = nodemailer.createTransport({
-        host: process.env.MAIL_HOST,
-        port: parseInt(process.env.MAIL_PORT || "465"),
-        secure: true,
-        auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS,
-        },
+        host: cfg.host,
+        port: cfg.port,
+        secure: cfg.secure,
+        auth: cfg.auth,
       });
     }
     return this._transporter;
@@ -814,6 +813,70 @@ export class MailService {
     return await this.sendEmail({
       to: email,
       subject: `[Studies Learning] Statut de votre demande d'accès`,
+      html,
+    });
+  }
+
+  /**
+   * Email X — collaborateur avec compte existant : notification d'accès attribué.
+   */
+  static async sendCollaboratorAccessNotification(email, data) {
+    const { firstName, lastName, companyName, packageName } = data;
+    const campusUrl = process.env.LMS_URL || process.env.FRONTEND_URL || "http://localhost:3004/student/dashboard";
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto; color: #1e293b;">
+        <div style="background: #0f766e; color: white; padding: 32px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0; font-size: 22px;">Accès attribué</h1>
+        </div>
+        <div style="padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+          <p>Bonjour <strong>${firstName} ${lastName}</strong>,</p>
+          <p>Une formation <strong>${packageName}</strong> vous a été <strong>attribuée</strong> par <strong>${companyName}</strong>.</p>
+          <p>Votre compte Studies Learning est déjà actif — connectez-vous pour commencer.</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${campusUrl}" style="background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+              Accéder au campus
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `[Studies Learning] Formation attribuée — ${packageName}`,
+      html,
+    });
+  }
+
+  /**
+   * Email Y — nouveau collaborateur : invitation magic-link SSO.
+   */
+  static async sendCollaboratorInvitation(email, data) {
+    const { firstName, lastName, companyName, packageName, activationLink } = data;
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto; color: #1e293b;">
+        <div style="background: #1d3557; color: white; padding: 32px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="margin: 0; font-size: 22px;">Invitation Studies Learning</h1>
+        </div>
+        <div style="padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+          <p>Bonjour <strong>${firstName} ${lastName}</strong>,</p>
+          <p><strong>${companyName}</strong> vous invite à accéder à la formation <strong>${packageName}</strong>.</p>
+          <p>Créez votre compte SSO en un clic :</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${activationLink}" style="background: #e63946; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+              Activer mon accès
+            </a>
+          </div>
+          <p style="font-size: 13px; color: #64748b; word-break: break-all;">${activationLink}</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `[Studies Learning] Invitation — Activez votre accès formation`,
       html,
     });
   }
