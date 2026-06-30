@@ -1,14 +1,33 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
-import { logger } from '../../utils/logger.js';
+// import { logger } from '../../utils/logger.js';
 // Importer les modèles nécessaires (ex: Package B2B) depuis Sequelize
 // import { CoursePackage } from '../../models/index.js';
 
 export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
-  getType() {
-    return 'B2B_PACKAGE';
-  }
+    constructor() {
+        super();
+    }
 
-  async getContext(id) {
+    getType() {
+        return "B2B_PACKAGE";
+    }
+
+    getSagaRoutingType() {
+        return "B2B_PACKAGE";
+    }
+
+    async validateEligibility(user, id) {
+        return true;
+    }
+
+    async initiatePayment(data) {
+        return this.process(data, null);
+    }
+
+    /**
+     * @override
+     */
+    async getContext(id) {
     logger.info(`[B2B_PACKAGE] Fetching context for package ID: ${id}`);
     
     // TODO: Requête BDD pour récupérer les infos du package.
