@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import {
   Company,
   CompanyAdmin,
+  CompanyThematique,
   Order,
   sequelize,
 } from '../../models/index.js';
@@ -41,10 +42,10 @@ export class B2BThematiqueStrategy {
     try {
       const company = await this.findOrCreateCompany(companyName, companyEmail, orderReference, transaction);
       const admin = await this.findOrCreateAdmin(company.id, adminEmail, adminFirstName, adminLastName, transaction);
-      
+
       // We don't have CompanyThematique explicitly in the prompt models yet, so we will use metadata on Company for now
       // Or we can mock the thematique attribution logic here if there isn't a specific table.
-      await this.provisionThematique(company.id, thematiqueId, licenseCount, transaction);
+      await this.provisionThematique(company.id, thematiqueId, orderReference, transaction);
 
       await Order.update(
         {
@@ -62,7 +63,7 @@ export class B2BThematiqueStrategy {
       await this.sendActivationEmail(admin, company, orderReference);
 
       console.log(`[B2BThematiqueStrategy:${correlationId}] ✅ Order ${orderReference} provisioned`);
-      
+
       return {
         success: true,
         orderReference,
@@ -115,10 +116,32 @@ export class B2BThematiqueStrategy {
     return admin;
   }
 
-  async provisionThematique(companyId, thematiqueId, licenseCount, transaction) {
-    // For now we just record it in the company metadata if CompanyThematique doesn't exist
-    // Or just log it. Let's log it.
-    console.log(`[B2BThematiqueStrategy] Provisioning thematique ${thematiqueId} with ${licenseCount} licenses for company ${companyId}`);
+  async provisionThematique(companyId, thematiqueId, orderReference, transaction) {
+    console.log(`[B2BThematiqueStrategy] Provisioning thematique ${thematiqueId} for company ${companyId}`);
+
+    let companyThematique = await CompanyThematique.findOne({
+      where: { company_id: companyId, authoring_thematique_id: thematiqueId },
+      transaction,
+    });
+
+    if (companyThematique) {
+      // Already exists — reactivate if cancelled
+      if (companyThematique.status === 'cancelled') {
+        await companyThematique.update({ status: 'active' }, { transaction });
+      }
+      // If already active, it's idempotent (same thematique purchased again)
+      console.log(`[B2BThematiqueStrategy] Thematique ${thematiqueId} already provisioned for company ${companyId} (status: ${companyThematique.status})`);
+    } else {
+      companyThematique = await CompanyThematique.create({
+        company_id: companyId,
+        authoring_thematique_id: thematiqueId,
+        purchase_order_id: orderReference,
+        purchase_date: new Date(),
+        status: 'active',
+      }, { transaction });
+    }
+
+    return companyThematique;
   }
 
   async sendActivationEmail(admin, company, orderReference) {

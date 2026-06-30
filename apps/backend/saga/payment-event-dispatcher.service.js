@@ -16,6 +16,7 @@ export const SAGA_SOURCES = {
   RETAIL: 'RETAIL',
   AUCTION: 'AUCTION',
   B2B_PACKAGE: 'B2B_PACKAGE',
+  B2B_THEMATIQUE: 'B2B_THEMATIQUE',
   MOODLE_HEADLESS: 'MOODLE_HEADLESS',
 };
 
@@ -73,6 +74,9 @@ function parseMetadata(raw) {
  */
 function resolveSource(metadata) {
   if (metadata.source === 'AUCTION') return SAGA_SOURCES.AUCTION;
+  if (metadata.purchase_type === 'thematique' || metadata.source === 'B2B_THEMATIQUE') {
+    return SAGA_SOURCES.B2B_THEMATIQUE;
+  }
   if (metadata.is_b2b || metadata.b2b_purchase || metadata.source === 'b2b_dashboard') {
     return SAGA_SOURCES.B2B_PACKAGE;
   }
@@ -118,6 +122,19 @@ function buildPayload(source, order, metadata) {
         adminFirstName: order.customerName,
         adminLastName: order.customerSurname,
         packageId: String(order.formationId || order.lmsItemId || ''),
+        licenseCount: Number(metadata.licence_count || metadata.total_licenses || 1),
+        unitPrice: Number(metadata.unit_price || 0),
+      };
+
+    case SAGA_SOURCES.B2B_THEMATIQUE:
+      return {
+        ...base,
+        companyName: metadata.company_name || order.customerName,
+        companyEmail: metadata.company_admin_email || order.customerEmail,
+        adminEmail: metadata.company_admin_email || order.customerEmail,
+        adminFirstName: order.customerName,
+        adminLastName: order.customerSurname,
+        thematiqueId: Number(metadata.thematique_id || order.lmsItemId || 0),
         licenseCount: Number(metadata.licence_count || metadata.total_licenses || 1),
         unitPrice: Number(metadata.unit_price || 0),
       };
