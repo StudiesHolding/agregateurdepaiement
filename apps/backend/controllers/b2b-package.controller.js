@@ -99,7 +99,7 @@ export const b2bPackageController = {
     try {
       // Get packages with only the fields we need to avoid JOIN issues
       const catalog = await FormationPackage.findAll({
-        where: { featured: 1 },
+        where: { status: "published" },
         attributes: [
           "id",
           "name",
@@ -413,74 +413,83 @@ export const b2bPackageController = {
 
   /**
    * @route POST /api/v1/b2b/packages/purchase
-   * @desc Purchase a new package (Simulation)
+   * @desc Initiate purchase of a new package via Purchase Engine
+   * 
+   * Ce controller ne crée plus directement Order ni CompanyPackage.
+   * Il délègue au service référent (via initiatePayment) qui suit le flux :
+   * Dashboard → API B2B → Orchestrator → PSP → Webhook → Dispatcher → Saga → Provisioning
    */
   purchasePackage: async (req, res, next) => {
-    const transaction = await sequelize.transaction();
     try {
-      const { package_id, total_licenses } = req.body;
+      const { package_id, total_licenses, paymentMethod, countryCode, currency } = req.body;
       const companyId = req.company_id;
+      const companyEmail = req.company_email;
+      const companyName = req.company_name;
 
-      // 1. Get package details
-      const pkg = await FormationPackage.findByPk(package_id, { transaction });
+      if (!package_id) {
+        throw new BadRequestError("package_id est requis.");
+      }
+
+      // Délégation au OrderController.initiatePayment qui utilise OrchestratorService
+      // Cela garantit que le flux officiel est respecté
+      const { OrchestratorService } = await import("../services/orchestrator.service.js");
+
+      const pkg = await FormationPackage.findByPk(package_id);
       if (!pkg) {
         throw new NotFoundError("Package introuvable.");
       }
 
-      // 2. Create Company Package
-      // We check if company already has this package active to maybe increment licenses?
-      // For simplicity in this simulation, we create a new entry or update existing.
-      const companyPackage = await CompanyPackage.create(
-        {
+      const unitPrice = Number(pkg.price) || 0;
+      const totalAmount = unitPrice * (total_licenses || 1);
+
+      const paymentData = {
+        customerEmail: companyEmail,
+        customerName: companyName,
+        lmsItemId: package_id.toString(),
+        lmsItemType: "package",
+        paymentMethod: paymentMethod || "card",
+        countryCode: countryCode || "CM",
+        currency: currency || pkg.currency || "XOF",
+        amount: totalAmount,
+        successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success`,
+        cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=cancelled`,
+        failedUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=failed`,
+        metadata: {
+          is_b2b: true,
+          b2b_purchase: true,
           company_id: companyId,
-          package_id,
-          total_licenses,
-          used_licenses: 0,
-          status: "active",
-          purchase_date: new Date(),
+          company_name: companyName,
+          company_admin_email: companyEmail,
+          licence_count: total_licenses || 1,
+          unit_price: unitPrice,
+          source: "b2b_dashboard",
         },
-        { transaction },
-      );
+      };
 
-      // 3. Create simulated Order
-      const totalAmount = (pkg.price || 0) * 1; // Price per package or per license?
-      // In B2B often it's a fixed price for the package with a set number of licenses.
+      const result = await OrchestratorService.initializePayment(paymentData);
 
-      await Order.create(
-        {
-          reference: `B2B-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          customerEmail: req.company_email || "b2b@enterprise.com",
-          customerName: req.company_name || "Enterprise Client",
-          currency: pkg.currency || "XOF",
-          totalAmount: totalAmount,
-          status: "completed",
-          lmsItemId: package_id.toString(),
-          lmsItemType: "package",
-          formationId: package_id,
-          formationName: pkg.name,
-          paidAt: new Date(),
-          paymentProvider: "SIMULATED",
-          metadata: {
-            b2b_purchase: true,
-            is_b2b: true,
-            company_id: companyId,
-            company_name: req.company_name, // If available in request
-            total_licenses,
-            source: "b2b_dashboard",
-          },
-        },
-        { transaction },
-      );
-
-      await transaction.commit();
+      if (!result.success) {
+        throw new BadRequestError(
+          result.error || "Erreur lors de l'initialisation du paiement.",
+        );
+      }
 
       res.status(201).json({
         status: "success",
-        message: "Package acheté avec succès.",
-        data: companyPackage,
+        data: {
+          message: "Achat initié avec succès. En attente de paiement.",
+          orderReference: result.orderReference,
+          paymentIntentId: result.paymentIntentId,
+          redirectUrl: result.redirectUrl,
+          widgetParams: result.widgetParams,
+          provider: result.provider,
+          clientSecret: result.clientSecret,
+          amount: totalAmount,
+          currency: currency || pkg.currency || "XOF",
+          licences: total_licenses || 1,
+        },
       });
     } catch (err) {
-      await transaction.rollback();
       next(err);
     }
   },
