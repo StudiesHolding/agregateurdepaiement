@@ -212,7 +212,7 @@ export default function PackagesPage() {
                       className="btn btn-secondary text-xs py-2 px-4"
                     >
                       <Plus className="h-4 w-4" />
-                      Acheter
+                      Ajouter des licences
                     </button>
                     <button
                       disabled={available <= 0}

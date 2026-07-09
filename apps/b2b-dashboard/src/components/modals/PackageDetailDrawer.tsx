@@ -38,8 +38,8 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
   const [mounted, setMounted] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [expandedCurriculum, setExpandedCurriculum] = useState(true);
-  const [displayCurrency, setDisplayCurrency] = useState<"XAF" | "EUR" | "USD">("XAF");
-  const [selectedCountry, setSelectedCountry] = useState("CM");
+  const [displayCurrency, setDisplayCurrency] = useState<"XOF" | "XAF" | "EUR" | "USD">("XOF");
+  const [selectedCountry, setSelectedCountry] = useState("CI");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "mobile_money">("card");
   const [licenseCount, setLicenseCount] = useState(5);
   const [step, setStep] = useState<"details" | "purchase">("details");
@@ -346,12 +346,12 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                 selectedCurrency={displayCurrency}
                 onCountryChange={(country: CountryConfig) => {
                   setSelectedCountry(country.code);
-                  setDisplayCurrency(country.defaultCurrency as "XAF" | "EUR" | "USD");
+                  setDisplayCurrency(country.defaultCurrency as "XOF" | "XAF" | "EUR" | "USD");
                   if (!country.supportMobileMoney && paymentMethod === "mobile_money") {
                     setPaymentMethod("card");
                   }
                 }}
-                onCurrencyChange={(curr) => setDisplayCurrency(curr as "XAF" | "EUR" | "USD")}
+                onCurrencyChange={(curr) => setDisplayCurrency(curr as "XOF" | "XAF" | "EUR" | "USD")}
               />
 
               {/* Payment Method Selection */}
@@ -486,7 +486,7 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                   <div className="flex items-center gap-3 mb-1">
                     <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Prix par licence</p>
                     <div className="flex gap-1 bg-white/5 p-0.5 rounded-md">
-                      {(["XAF", "EUR", "USD"] as const).map((curr) => (
+                      {(["XOF", "XAF", "EUR", "USD"] as const).map((curr) => (
                         <button
                           key={curr}
                           onClick={() => setDisplayCurrency(curr)}
@@ -504,7 +504,7 @@ export function PackageDetailDrawer({ isOpen, onClose, pkg }: PackageDetailDrawe
                   </div>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-3xl font-black text-primary tracking-tighter">
-                      {unitPrice.toLocaleString(undefined, { maximumFractionDigits: displayCurrency === "XAF" ? 0 : 2 })}
+                      {unitPrice.toLocaleString(undefined, { maximumFractionDigits: (displayCurrency === "XAF" || displayCurrency === "XOF") ? 0 : 2 })}
                     </span>
                     <span className="text-sm font-bold text-primary/80 italic uppercase">{displayCurrency}</span>
                   </div>

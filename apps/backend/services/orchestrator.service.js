@@ -69,10 +69,18 @@ export class OrchestratorService {
       const actualFormationId = lmsItemId || finalMetadata.formation_id || data.formationId;
       const actualLicenceCount = Number(licence_count || finalMetadata.licence_count || 1) || 1;
 
-      if (lmsItemType === 'package') {
-        formation = await FormationsService.getPackage(actualFormationId);
+      if (finalMetadata.is_b2b) {
+        formation = {
+          id: actualFormationId,
+          price: finalMetadata.unit_price || (finalAmount / actualLicenceCount),
+          currency: currency,
+        };
       } else {
-        formation = await FormationsService.getFormation(actualFormationId);
+        if (lmsItemType === 'package') {
+          formation = await FormationsService.getPackage(actualFormationId);
+        } else {
+          formation = await FormationsService.getFormation(actualFormationId);
+        }
       }
 
       if (!formation) {

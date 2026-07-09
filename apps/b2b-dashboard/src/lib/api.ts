@@ -72,11 +72,14 @@ export const b2bPackages = {
   getAll: () => api.get("/b2b/packages"),
   getById: (id: number) => api.get(`/b2b/packages/${id}`),
   getCatalog: () => api.get("/b2b/packages/catalog"),
+  getThematiquesCatalog: () => api.get("/b2b/thematiques/catalog"),
   purchase: (data: { package_id: number; total_licenses: number }) =>
     api.post("/b2b/packages/purchase", data),
   // NOUVEAU: Ajouter des licences à un package existant
   addLicenses: (packageId: number, data: { additional_licenses: number; paymentMethod?: string; countryCode?: string; currency?: string }) =>
     api.post(`/b2b/packages/${packageId}/add-licenses`, data),
+  purchaseThematique: (data: { thematique_id: number; total_licenses?: number }) =>
+    api.post("/b2b/thematiques/purchase", data),
 };
 
 // --- Employees ---

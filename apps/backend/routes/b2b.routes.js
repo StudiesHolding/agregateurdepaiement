@@ -49,6 +49,10 @@ router.post("/packages/:id/add-licenses", b2bPackageController.addLicenses); // 
 router.post("/licenses/assign", validateB2B(B2BValidators.assignLicenseSchema), b2bPackageController.assignLicense);
 router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 
+// Thématiques — Catalogue
+router.get("/thematiques/catalog", b2bPackageController.getThematiquesCatalog);
+router.post("/thematiques/purchase", b2bPackageController.purchaseThematique);
+
 // Demandes d'accès
 router.get("/requests", b2bRequestController.getAll);
 router.get("/requests/export-pdf", PdfExportController.exportRequestsPDF);

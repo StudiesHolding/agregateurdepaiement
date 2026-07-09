@@ -33,8 +33,8 @@ interface AddLicenseModalProps {
 export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModalProps) {
     const [mounted, setMounted] = useState(false);
     const [licenseCount, setLicenseCount] = useState(5);
-    const [displayCurrency, setDisplayCurrency] = useState<"XAF" | "EUR" | "USD">("XAF");
-    const [selectedCountry, setSelectedCountry] = useState("CM");
+    const [displayCurrency, setDisplayCurrency] = useState<"XOF" | "XAF" | "EUR" | "USD">("XOF");
+    const [selectedCountry, setSelectedCountry] = useState("CI");
     const [paymentMethod, setPaymentMethod] = useState<"card" | "mobile_money">("card");
 
     useEffect(() => {
@@ -241,13 +241,13 @@ export function AddLicenseModal({ isOpen, onClose, packageData }: AddLicenseModa
                         selectedCurrency={displayCurrency}
                         onCountryChange={(country: CountryConfig) => {
                             setSelectedCountry(country.code);
-                            setDisplayCurrency(country.defaultCurrency as "XAF" | "EUR" | "USD");
+                            setDisplayCurrency(country.defaultCurrency as "XOF" | "XAF" | "EUR" | "USD");
                             // Reset payment method when country changes if MM not supported
                             if (!country.supportMobileMoney && paymentMethod === "mobile_money") {
                                 setPaymentMethod("card");
                             }
                         }}
-                        onCurrencyChange={(curr) => setDisplayCurrency(curr as "XAF" | "EUR" | "USD")}
+                        onCurrencyChange={(curr) => setDisplayCurrency(curr as "XOF" | "XAF" | "EUR" | "USD")}
                     />
 
                     {/* Payment Method Selection */}

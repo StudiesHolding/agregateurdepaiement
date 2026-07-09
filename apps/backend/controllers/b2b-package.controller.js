@@ -7,6 +7,7 @@ import {
   PostMeta,
   SpecificFormation,
   Order,
+  BusinessThematique,
   sequelize,
 } from "../models/index.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
@@ -392,6 +393,7 @@ export const b2bPackageController = {
         status: "success",
         data: {
           orderReference: result.orderReference,
+          orderRef: result.orderReference,
           paymentIntentId: result.paymentIntentId,
           redirectUrl: result.redirectUrl,
           widgetParams: result.widgetParams,
@@ -479,6 +481,7 @@ export const b2bPackageController = {
         data: {
           message: "Achat initié avec succès. En attente de paiement.",
           orderReference: result.orderReference,
+          orderRef: result.orderReference,
           paymentIntentId: result.paymentIntentId,
           redirectUrl: result.redirectUrl,
           widgetParams: result.widgetParams,
@@ -493,4 +496,113 @@ export const b2bPackageController = {
       next(err);
     }
   },
+
+  /**
+   * @route GET /api/v1/b2b/thematiques/catalog
+   * @desc Get all active thematiques available for purchase
+   */
+  getThematiquesCatalog: async (req, res, next) => {
+    try {
+      const thematiques = await BusinessThematique.findAll({
+        where: { status: "ACTIVE" },
+        attributes: [
+          "id",
+          "title",
+          "slug",
+          "description",
+          "icon",
+          "color",
+          "image_url",
+          "status",
+          "display_order",
+        ],
+        order: [["display_order", "ASC"], ["title", "ASC"]],
+      });
+
+      res.json({
+        status: "success",
+        data: thematiques,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * @route POST /api/v1/b2b/thematiques/purchase
+   * @desc Initiate payment for a thematique
+   */
+  purchaseThematique: async (req, res, next) => {
+    try {
+      const { thematique_id, total_licenses, paymentMethod, countryCode, currency } = req.body;
+      const companyId = req.company_id;
+      const companyEmail = req.company_email;
+      const companyName = req.company_name;
+
+      if (!thematique_id) {
+        throw new BadRequestError("thematique_id est requis.");
+      }
+
+      const { OrchestratorService } = await import("../services/orchestrator.service.js");
+
+      const thematique = await BusinessThematique.findByPk(thematique_id);
+      if (!thematique) {
+        throw new NotFoundError("Thématique introuvable.");
+      }
+
+      const unitPrice = 50000;
+      const amount = unitPrice * (total_licenses || 10);
+
+      const paymentData = {
+        customerEmail: companyEmail,
+        customerName: companyName,
+        lmsItemId: thematique_id.toString(),
+        lmsItemType: "thematique",
+        paymentMethod: paymentMethod || "card",
+        countryCode: countryCode || "CM",
+        currency: currency || "XOF",
+        amount: amount,
+        successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success`,
+        cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=cancelled`,
+        failedUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=failed`,
+        metadata: {
+          is_b2b: true,
+          b2b_purchase: true,
+          company_id: companyId,
+          company_name: companyName,
+          company_admin_email: companyEmail,
+          licence_count: total_licenses || 10,
+          unit_price: unitPrice,
+          source: "b2b_dashboard",
+          purchase_type: "thematique",
+        },
+      };
+
+      const result = await OrchestratorService.initializePayment(paymentData);
+
+      if (!result.success) {
+        throw new BadRequestError(result.error || "Erreur lors de l'initialisation du paiement.");
+      }
+
+      res.status(201).json({
+        status: "success",
+        data: {
+          message: "Achat initié avec succès. En attente de paiement.",
+          orderReference: result.orderReference,
+          orderRef: result.orderReference,
+          paymentIntentId: result.paymentIntentId,
+          redirectUrl: result.redirectUrl,
+          widgetParams: result.widgetParams,
+          provider: result.provider,
+          clientSecret: result.clientSecret,
+          amount: amount,
+          currency: currency || "XOF",
+          licences: total_licenses || 10,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
+

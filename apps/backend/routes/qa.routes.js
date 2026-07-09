@@ -263,7 +263,7 @@ router.post(
     if (withActivePackage) {
       const pkg = packageId
         ? await FormationPackage.findByPk(packageId)
-        : await FormationPackage.findOne({ where: { status: "active" } });
+        : await FormationPackage.findOne({ where: { status: "published" } });
 
       if (pkg) {
         const cp = await CompanyPackage.create({

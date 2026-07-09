@@ -24,6 +24,7 @@ import { Course } from "./course.model.js";
 import { PostMeta } from "./post-meta.model.js";
 import { SpecificFormation } from "./specific-formation.model.js";
 import { CompanyThematique } from "./company-thematique.model.js";
+import { BusinessThematique } from "./business-thematique.model.js";
 
 // Associations
 
@@ -219,4 +220,5 @@ export {
   PostMeta,
   SpecificFormation,
   CompanyThematique,
+  BusinessThematique,
 };
