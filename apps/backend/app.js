@@ -14,20 +14,23 @@ import ssoRoutes from "./routes/sso.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    status: "fail",
-    message:
-      "Too many requests from this IP, please try again after 15 minutes",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 dotenv.config();
+
+// Rate Limiting (désactivé en mode test — les tests E2E génèrent trop d'appels)
+const isTest = process.env.NODE_ENV === "test";
+const limiter = isTest
+  ? null
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      message: {
+        status: "fail",
+        message:
+          "Too many requests from this IP, please try again after 15 minutes",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
 
 // Global fix for BigInt JSON serialization
 BigInt.prototype.toJSON = function () {
@@ -39,8 +42,10 @@ const app = express();
 // Trust proxy (required for express-rate-limit behind Nginx/PM2)
 app.set("trust proxy", 1);
 
-// Apply Rate Limiter
-app.use("/api/", limiter);
+// Apply Rate Limiter (null en mode test = pas de limitation)
+if (limiter) {
+  app.use("/api/", limiter);
+}
 
 // Basic Request Logger
 app.use((req, res, next) => {
