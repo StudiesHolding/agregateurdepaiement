@@ -10,11 +10,19 @@ export function resolveMailTransportFromEnv(env = process.env) {
   const isTest = nodeEnv === "test";
 
   const host = env.MAIL_HOST || (isTest ? "localhost" : undefined);
+  // Mailpit SMTP écoute sur le port 1025, son UI est sur 8025
   const port = parseInt(env.MAIL_PORT || (isTest ? "1025" : "465"), 10);
 
+  // Mailpit (port 1025) ne supporte PAS SSL/TLS → secure doit être false
+  // Ionos (port 465) nécessite secure=true
+  // Si MAIL_SECURE est explicitement défini, on l'utilise
+  // Sinon, on déduit : port 465 → secure, port 1025 → pas secure
   const secure =
-    env.MAIL_SECURE === "true" ||
-    (env.MAIL_SECURE !== "false" && port === 465);
+    env.MAIL_SECURE === "true"
+      ? true
+      : env.MAIL_SECURE === "false"
+        ? false
+        : port === 465;
 
   const auth =
     env.MAIL_USER && env.MAIL_PASS
