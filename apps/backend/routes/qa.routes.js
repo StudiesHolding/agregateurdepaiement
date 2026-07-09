@@ -327,4 +327,28 @@ router.post(
   }),
 );
 
+/**
+ * GET /api/qa/orders/:orderRef/status
+ * Vérifie le statut d'une commande après provisioning saga
+ */
+router.get(
+  "/orders/:orderRef/status",
+  catchAsync(async (req, res) => {
+    const { orderRef } = req.params;
+    const order = await Order.findOne({ where: { reference: orderRef } });
+    if (!order) {
+      return res.status(404).json({ status: "fail", message: "Commande introuvable" });
+    }
+    res.json({
+      status: "success",
+      data: {
+        reference: order.reference,
+        status: order.status,
+        completedAt: order.completedAt,
+        metadata: order.metadata,
+      },
+    });
+  }),
+);
+
 export default router;
