@@ -41,7 +41,28 @@ export class MoodleHeadlessStrategy {
     await FormationMappingService.assertFormationMappable(formationId);
 
     const userCtx = await this.resolveUser(customerEmail, customerName, customerSurname, correlationId);
-    const magicToken = userCtx.ssoPending ? this.generateMagicToken() : null;
+    
+    // Token idempotent : si un token existe déjà dans la commande (retry BullMQ),
+    // on le conserve pour que le lien dans l'email déjà envoyé reste valide.
+    let magicToken = null;
+    if (userCtx.ssoPending) {
+      const existingOrder = await Order.findOne({
+        where: { reference: orderReference },
+        attributes: ['metadata'],
+      });
+      let existingMeta = {};
+      if (existingOrder?.metadata) {
+        try {
+          existingMeta = typeof existingOrder.metadata === 'string'
+            ? JSON.parse(existingOrder.metadata)
+            : existingOrder.metadata;
+        } catch {
+          existingMeta = {};
+        }
+      }
+      magicToken = existingMeta.keycloak_magic_token || this.generateMagicToken();
+    }
+    
     const activationLink = magicToken
       ? this.buildActivationLink(customerEmail, magicToken)
       : `${this.frontendUrl}/auth/login/student`;
