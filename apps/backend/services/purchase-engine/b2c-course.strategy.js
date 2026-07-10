@@ -28,11 +28,10 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
     }
 
     /**
-     * Récupère le contexte du cours depuis l'Authoring Engine (ou Moodle en proxy).
+     * Récupère le contexte du cours depuis l'Authoring Engine.
      */
     async getContext(id) {
         try {
-            // L'API Authoring Engine doit nous renvoyer les métadonnées du cours
             const response = await axios.get(`${this.authoringApiUrl}/courses/${id}`);
             const course = response.data.data || response.data;
 
@@ -41,9 +40,11 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             }
 
             return {
-                title: course.title || `Formation Moodle #${id}`,
+                type: this.getType(),
+                itemId: id,
+                title: course.title || `Formation #${id}`,
                 price: parseFloat(course.price || course.montant || 0),
-                currency: "XAF", // Default currency for the region
+                currency: "XAF",
                 features: [
                     "Accès individuel à la plateforme NewStudies",
                     "Ressources pédagogiques téléchargeables",
@@ -56,39 +57,54 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             };
         } catch (error) {
             console.error(`[B2cCoursePurchaseStrategy] Erreur getContext (${id}):`, error.message);
-            // Fallback gracefully for development if API is unreachable but ID is provided
-            return {
-                title: `Formation B2C Standard #${id}`,
-                price: 50000.00,
-                currency: "XAF",
-                features: [
-                    "Accès individuel à la formation",
-                    "Ressources téléchargeables",
-                    "Certificat de réussite"
-                ],
-                courseDetails: {
-                    courseId: id
-                }
-            };
+            throw error; // Pas de fallback mock — on veut un vrai produit
         }
     }
 
     /**
-     * Initialise la saga de paiement (communication avec CinetPay/Stripe, etc.)
+     * Initialise le paiement via l'OrchestratorService (flux réel PSP).
      */
     async process(data, user) {
-        const transactionId = `TXN-B2C-${Date.now()}-${uuidv4().substring(0, 8)}`;
-        
-        // Logique métier : 
-        // 1. Enregistrer l'intention de paiement B2C
-        // 2. Si le bénéficiaire est différent du payeur (data.beneficiaryEmail), le noter
-        // 3. Générer le lien PSP
+        const { OrchestratorService } = await import('../../services/orchestrator.service.js');
+
+        const customerEmail = data.beneficiaryEmail || data.customerEmail;
+        const customerName = data.customerName || customerEmail;
+
+        const result = await OrchestratorService.initializePayment({
+            customerEmail,
+            customerName,
+            lmsItemId: String(data.itemId),
+            lmsItemType: 'course',
+            paymentMethod: data.paymentMethod || 'card',
+            countryCode: data.countryCode || 'CM',
+            currency: data.currency || 'XAF',
+            amount: data.amount || 0,
+            successUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/success`,
+            cancelUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/cancel`,
+            failedUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/failed`,
+            metadata: {
+                source: 'purchase_engine',
+                purchase_type: 'B2C_COURSE',
+                is_b2c: true,
+                customer_email: customerEmail,
+                payer_email: data.customerEmail || customerEmail,
+                beneficiary_email: data.beneficiaryEmail || null,
+                formation_id: data.itemId,
+            },
+        });
+
+        if (!result.success) {
+            throw new Error(result.error || 'Erreur lors de l\'initialisation du paiement B2C.');
+        }
 
         return {
-            transactionId,
-            status: "PENDING",
-            paymentUrl: `https://mock-psp.studieslearning.com/pay/${transactionId}`,
-            message: "Initialisation du paiement B2C avec succès."
+            transactionId: result.orderReference,
+            status: 'PENDING',
+            provider: result.provider,
+            redirectUrl: result.redirectUrl,
+            widgetParams: result.widgetParams,
+            clientSecret: result.clientSecret,
+            message: 'Paiement B2C initialisé avec succès.',
         };
     }
 }

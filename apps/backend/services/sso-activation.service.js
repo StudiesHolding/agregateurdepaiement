@@ -175,6 +175,33 @@ export class SsoActivationService {
     return null;
   }
 
+  /**
+   * Obtient un token admin Keycloak pour créer des utilisateurs.
+   */
+  static async getKeycloakAdminToken() {
+    const baseUrl = process.env.KEYCLOAK_BASE_URL || 'http://localhost:8080';
+    const realm = process.env.KEYCLOAK_REALM || 'studies-learning';
+    const clientId = process.env.KEYCLOAK_CLIENT_ID || 'admin-cli';
+    const clientSecret = process.env.KEYCLOAK_CLIENT_SECRET || '';
+    
+    const res = await fetch(`${baseUrl}/realms/master/protocol/openid-connect/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+      }),
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Keycloak token error: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    return data.access_token;
+  }
+
   /** Rôle étudiant WordPress (subscriber → student côté NewStudies) */
   static async ensureStudentRole(userId, force = false) {
     const caps = 'a:1:{s:10:"subscriber";b:1;}';
