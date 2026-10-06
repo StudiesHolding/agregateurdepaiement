@@ -8,9 +8,9 @@
  *   node scripts/cron-stats.js
  *   (or schedule via system cron / PM2 cron)
  * 
- * Production scheduling (crontab):
- *   */5 * * * * cd / path / to / backend && node scripts / cron - stats.js >> logs / cron - stats.log 2 >& 1
-    */
+ * Production scheduling (crontab), toutes les 5 minutes : voir la ligne ci-dessous.
+ */
+// Crontab : */5 * * * * cd /chemin/vers/backend && node scripts/cron-stats.js >> logs/cron-stats.log 2>&1
 
 import dotenv from "dotenv";
 dotenv.config({ path: new URL("../.env", import.meta.url).pathname });

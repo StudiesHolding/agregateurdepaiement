@@ -1,0 +1,41 @@
+name: CI
+
+# Agrégateur de paiement : chaque modification passe la syntaxe et les tests unitaires
+# (saga, stratégies d'achat, crédit de commission, garde-fous de sécurité).
+# Les suites d'intégration et e2e exigent une base MariaDB et Redis : elles seront
+# exécutées par un job dédié avec services quand l'infrastructure de CI sera prête (S2).
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: "Backend — syntaxe et tests unitaires"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+      - run: npm ci
+      - name: Syntaxe des modules (node --check)
+        run: |
+          set -euo pipefail
+          git ls-files '*.js' ':!:node_modules' | grep -v '^tests/' | while read -r f; do node --check "$f"; done
+      - name: Tests unitaires (sans infrastructure)
+        env:
+          NODE_ENV: test
+        run: node --experimental-vm-modules node_modules/jest/bin/jest.js --silent --testPathIgnorePatterns '/tests/integration/' 'e2e'
