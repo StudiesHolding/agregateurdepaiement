@@ -1,3 +1,4 @@
+import { isAdminTestRoutesEnabled } from "./utils/route-gates.js";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -94,7 +95,11 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/admin/test", testRoutes);
+// Routes de simulation de paiement : jamais en production (voir utils/route-gates.js).
+if (isAdminTestRoutesEnabled(process.env)) {
+  app.use("/api/admin/test", testRoutes);
+  console.warn("[SÉCURITÉ] Routes de simulation /api/admin/test ACTIVES — jamais en production");
+}
 app.use("/api/b2b", b2bRoutes);
 
 app.use("/api/v1/sso", ssoRoutes);
