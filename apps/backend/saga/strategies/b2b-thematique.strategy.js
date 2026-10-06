@@ -20,6 +20,13 @@ import {
 } from '../../models/index.js';
 import { OrderStatus } from '../../enums/index.js';
 import { MailService } from '../../services/mail.service.js';
+import {
+  computeB2BAccessExpiryDate,
+  getB2BAccessValidityMonths,
+  isAdminActive,
+  resolvePoolExpiryDate,
+} from './b2b-access.js';
+
 
 export class B2BThematiqueStrategy {
   async execute(event) {
@@ -27,6 +34,7 @@ export class B2BThematiqueStrategy {
     const {
       companyName,
       companyEmail,
+      companyId,
       adminEmail,
       adminFirstName,
       adminLastName,
@@ -40,11 +48,33 @@ export class B2BThematiqueStrategy {
     const transaction = await sequelize.transaction();
 
     try {
-      const company = await this.findOrCreateCompany(companyName, companyEmail, orderReference, transaction);
-      const admin = await this.findOrCreateAdmin(company.id, adminEmail, adminFirstName, adminLastName, transaction);
+      // 0. Idempotence par commande : verrouiller la commande AVANT tout effet.
+      //    Un rejeu ne doit pas re-provisionner une commande déjà traitée.
+      const order = await Order.findOne({
+        where: { reference: orderReference },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
 
-      // We don't have CompanyThematique explicitly in the prompt models yet, so we will use metadata on Company for now
-      // Or we can mock the thematique attribution logic here if there isn't a specific table.
+      if (!order) {
+        // Erreur définitive : jamais de provisionnement sans commande connue.
+        throw new Error(`Order ${orderReference} not found: nothing provisioned`);
+      }
+      if (order.status === OrderStatus.COMPLETED) {
+        await transaction.commit();
+        console.log(`[B2BThematiqueStrategy:${correlationId}] Order ${orderReference} already provisioned — skipping`);
+        return { success: true, alreadyProvisioned: true, orderReference };
+      }
+
+      // 1. Trouver l'entreprise (par id si fourni par le dashboard, sinon par e-mail)
+      const company = await this.findOrCreateCompany(companyId, companyName, companyEmail, orderReference, transaction);
+
+      // 2. CompanyAdmin (un admin déjà actif ne doit être ni modifié, ni réactivé)
+      const { admin, sendActivationEmail } = await this.findOrCreateAdmin(
+        company.id, adminEmail, adminFirstName, adminLastName, transaction
+      );
+
+      // 3. Créer/mettre à jour la CompanyThematique (avec expiration d'accès)
       await this.provisionThematique(company.id, thematiqueId, orderReference, transaction);
 
       await Order.update(
@@ -60,7 +90,11 @@ export class B2BThematiqueStrategy {
 
       await transaction.commit();
 
-      await this.sendActivationEmail(admin, company, orderReference);
+      if (sendActivationEmail) {
+        await this.sendActivationEmail(admin, company, orderReference);
+      } else {
+        console.log(`[B2BThematiqueStrategy:${correlationId}] Admin ${admin.email} already active — no activation email`);
+      }
 
       console.log(`[B2BThematiqueStrategy:${correlationId}] ✅ Order ${orderReference} provisioned`);
 
@@ -78,7 +112,20 @@ export class B2BThematiqueStrategy {
     }
   }
 
-  async findOrCreateCompany(name, email, orderReference, transaction) {
+  /**
+   * Trouve l'entreprise : par id (fixé côté serveur par le dashboard B2B
+   * authentifié) si fourni, sinon recherche/création par e-mail.
+   */
+  async findOrCreateCompany(companyId, name, email, orderReference, transaction) {
+    if (companyId) {
+      const company = await Company.findByPk(companyId, { transaction });
+      if (!company) {
+        // Erreur définitive : jamais de création implicite sur un id serveur.
+        throw new Error(`B2B company #${companyId} not found for order ${orderReference}`);
+      }
+      return company;
+    }
+
     let company = await Company.findOne({ where: { email }, transaction });
     if (!company) {
       company = await Company.create({
@@ -90,6 +137,14 @@ export class B2BThematiqueStrategy {
     return company;
   }
 
+  /**
+   * Trouve ou crée un CompanyAdmin.
+   * - Administrateur existant ET actif : ni jeton, ni is_active, ni e-mail modifiés.
+   * - Administrateur existant inactif : nouveau jeton + e-mail d'activation.
+   * - Nouvel administrateur : création + e-mail d'activation.
+   *
+   * @returns {Promise<{admin: Object, sendActivationEmail: boolean}>}
+   */
   async findOrCreateAdmin(companyId, email, firstName, lastName, transaction) {
     const activationToken = crypto.randomBytes(32).toString('hex');
     const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -106,18 +161,36 @@ export class B2BThematiqueStrategy {
         activation_token: activationToken,
         token_expires_at: tokenExpires,
       }, { transaction });
-    } else {
-      await admin.update({
-        activation_token: activationToken,
-        token_expires_at: tokenExpires,
-        is_active: false,
-      }, { transaction });
+      return { admin, sendActivationEmail: true };
     }
-    return admin;
+
+    if (isAdminActive(admin)) {
+      // Compte déjà actif : ne surtout pas le désactiver ni casser son jeton.
+      return { admin, sendActivationEmail: false };
+    }
+
+    await admin.update({
+      activation_token: activationToken,
+      token_expires_at: tokenExpires,
+      is_active: false,
+    }, { transaction });
+
+    return { admin, sendActivationEmail: true };
   }
 
+  /**
+   * Crée ou met à jour une CompanyThematique (droit d'accès) avec la date
+   * d'expiration (accès B2B valable N mois après l'achat) :
+   * - création ⇒ maintenant + durée ;
+   * - accès actif avec expiry_date future ⇒ date inchangée ;
+   * - accès expiré, sans date ou de statut non actif ⇒ maintenant + durée ;
+   * - les accès `cancelled` (comportement antérieur) ET `expired` sont réactivés.
+   */
   async provisionThematique(companyId, thematiqueId, orderReference, transaction) {
     console.log(`[B2BThematiqueStrategy] Provisioning thematique ${thematiqueId} for company ${companyId}`);
+
+    const now = new Date();
+    const months = getB2BAccessValidityMonths();
 
     let companyThematique = await CompanyThematique.findOne({
       where: { company_id: companyId, authoring_thematique_id: thematiqueId },
@@ -125,19 +198,20 @@ export class B2BThematiqueStrategy {
     });
 
     if (companyThematique) {
-      // Already exists — reactivate if cancelled
-      if (companyThematique.status === 'cancelled') {
-        await companyThematique.update({ status: 'active' }, { transaction });
+      const update = { expiry_date: resolvePoolExpiryDate(companyThematique, now, months) };
+      if (companyThematique.status === 'cancelled' || companyThematique.status === 'expired') {
+        update.status = 'active'; // réactivation (annulées ET expirées)
       }
-      // If already active, it's idempotent (same thematique purchased again)
+      await companyThematique.update(update, { transaction });
       console.log(`[B2BThematiqueStrategy] Thematique ${thematiqueId} already provisioned for company ${companyId} (status: ${companyThematique.status})`);
     } else {
       companyThematique = await CompanyThematique.create({
         company_id: companyId,
         authoring_thematique_id: thematiqueId,
         purchase_order_id: orderReference,
-        purchase_date: new Date(),
+        purchase_date: now,
         status: 'active',
+        expiry_date: computeB2BAccessExpiryDate(now, months),
       }, { transaction });
     }
 

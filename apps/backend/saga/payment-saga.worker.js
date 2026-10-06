@@ -18,21 +18,24 @@ import sequelize from '../config/database.js';
 /**
  * Traite un job de la file 'saga-payment'
  */
-async function processPaymentSaga(job) {
+export async function processPaymentSaga(job) {
   const { eventId, source, orderReference, payload, correlationId } = job.data;
   const log = (msg, ...args) => console.log(`[PaymentSagaWorker:${correlationId}] ${msg}`, ...args);
   const logError = (msg, ...args) => console.error(`[PaymentSagaWorker:${correlationId}] ❌ ${msg}`, ...args);
 
   log(`Processing job ${job.id} | source=${source} | order=${orderReference}`);
 
-  // 1. Idempotence : ne pas traiter un événement déjà complété
+  // 1. Idempotence : seul SUCCESS est définitif. PROCESSING / RETRYING peuvent
+  //    être rejoués (erreur réessayable, job « stalled » rejoué après un
+  //    plantage du worker entre deux runs BullMQ).
   const alreadyCompleted = await checkIdempotency(eventId);
   if (alreadyCompleted) {
     log(`Event ${eventId} already processed — skipping`);
     return { skipped: true, eventId };
   }
 
-  // 2. Marquer PROCESSING
+  // 2. Marquer PROCESSING (upsert : un rejeu réactive l'entrée existante
+  //    sans toucher à created_at)
   await markIdempotency(eventId, orderReference, source, 'PROCESSING');
 
   try {
@@ -50,6 +53,8 @@ async function processPaymentSaga(job) {
     // MoodleRetryableError (inscription) et CommissionRetryableError (crédit de
     // commission, S1-5) sont réessayables : BullMQ rejoue le job, l'inscription
     // déjà faite est conservée (idempotence 409 / backend de commission).
+    // Le rejeu doit être possible : on enregistre RETRYING (et non PROCESSING)
+    // pour que checkIdempotency ne saute pas le prochain essai.
     const RETRYABLE_ERROR_NAMES = new Set(['MoodleRetryableError', 'CommissionRetryableError']);
     const isRetryable = RETRYABLE_ERROR_NAMES.has(error.name);
 
@@ -57,6 +62,7 @@ async function processPaymentSaga(job) {
       await markIdempotency(eventId, orderReference, source, 'FAILED', null, error.message);
       logError(`Job ${job.id} failed definitively: ${error.message}`);
     } else {
+      await markIdempotency(eventId, orderReference, source, 'RETRYING', null, error.message);
       logError(`Job ${job.id} failed (retryable): ${error.message}`);
     }
 
@@ -65,7 +71,10 @@ async function processPaymentSaga(job) {
 }
 
 /**
- * Vérifie si un événement a déjà été traité
+ * Vérifie si un événement a déjà été traité avec succès.
+ * Seul SUCCESS est considéré comme traité : un événement PROCESSING
+ * (worker planté / job stalled) ou RETRYING (erreur réessayable) doit
+ * pouvoir être rejoué.
  */
 async function checkIdempotency(eventId) {
   const [row] = await sequelize.query(
@@ -77,7 +86,7 @@ async function checkIdempotency(eventId) {
   );
 
   if (!row) return false;
-  return row.status === 'SUCCESS' || row.status === 'PROCESSING';
+  return row.status === 'SUCCESS';
 }
 
 /**
@@ -85,10 +94,13 @@ async function checkIdempotency(eventId) {
  */
 async function markIdempotency(eventId, orderReference, source, status, result = null, error = null) {
   if (status === 'PROCESSING') {
+    // Upsert : INSERT la première fois, puis réactive l'entrée existante en
+    // PROCESSING lors d'un rejeu (created_at de la première tentative conservé).
     await sequelize.query(
-      `INSERT IGNORE INTO aggp_saga_idempotency
-       (event_id, status, order_reference, source, created_at)
-       VALUES (:eventId, :status, :orderReference, :source, NOW())`,
+      `INSERT INTO aggp_saga_idempotency
+         (event_id, status, order_reference, source, created_at)
+       VALUES (:eventId, :status, :orderReference, :source, NOW())
+       ON DUPLICATE KEY UPDATE status = 'PROCESSING'`,
       {
         replacements: { eventId, status, orderReference, source },
         type: QueryTypes.INSERT,

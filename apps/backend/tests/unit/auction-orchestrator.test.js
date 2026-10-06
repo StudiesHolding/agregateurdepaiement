@@ -55,7 +55,9 @@ describe("OrchestratorService Auction Pricing", () => {
       })
     };
     jest.spyOn(ProviderSelectorService.prototype, 'initialize').mockImplementation(mockSelector.initialize);
-    // Note: ProviderSelectorService is a class, we need to handle its instance methods
+    // Sans ce mock, le vrai executeWithFallback écrit en base (PaymentIntent.update) : le test n'était pas unitaire.
+    jest.spyOn(ProviderSelectorService.prototype, 'executeWithFallback').mockImplementation(mockSelector.executeWithFallback);
+    jest.spyOn(PaymentIntentService, 'updateStatus').mockResolvedValue([1]);
   });
 
   afterAll(() => {
