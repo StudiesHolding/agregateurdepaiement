@@ -44,6 +44,7 @@ router.delete("/employees/:id", b2bEmployeeController.delete);
 router.get("/packages", b2bPackageController.getPackages);
 router.get("/packages/catalog", b2bPackageController.getCatalog);
 router.get("/packages/:id", b2bPackageController.getPackageById);
+router.get("/packages/:id/quote", b2bPackageController.quotePackage);
 router.post("/packages/purchase", validateB2B(B2BValidators.purchaseSchema), b2bPackageController.purchasePackage);
 router.post("/packages/:id/add-licenses", b2bPackageController.addLicenses); // NOUVEAU: Ajouter des licences
 router.post("/licenses/assign", validateB2B(B2BValidators.assignLicenseSchema), b2bPackageController.assignLicense);

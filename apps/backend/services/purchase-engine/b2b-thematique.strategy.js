@@ -6,7 +6,8 @@ import { BadRequestError } from '../../utils/errors.js';
  * Stratégie de paiement B2B : licences d'une thématique complète (ADR-0001, ADR-0004).
  *
  *   1. getContext()          → devis 1 licence (prix de base du type, devise) pour l'affichage
- *   2. validateEligibility() → identifiant et nombre de licences valides
+ *   2. getQuote()            → devis serveur pour N licences (affichage du total avant paiement)
+ *      validateEligibility() → identifiant valide, thématique vendable
  *   3. initiatePayment()     → devis serveur (paliers de volume) → Orchestrateur → PSP
  *   4. getSagaRoutingType()  → "B2B_THEMATIQUE" → stratégie de saga B2BThematique (provisionnement)
  *
@@ -44,6 +45,10 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
         'Remise automatique selon le nombre de licences',
       ],
     };
+  }
+
+  async getQuote(id, seats) {
+    return this.quoteService.quote(id, seats);
   }
 
   async validateEligibility(_user, id) {

@@ -29,6 +29,27 @@ router.get("/context", catchAsync(async (req, res) => {
 }));
 
 /**
+ * GET /api/checkout/quote
+ * Server-side quote for an offer sold per licence (B2B_PACKAGE, B2B_THEMATIQUE).
+ * Query Params: ?type=B2B_PACKAGE&id=5&seats=25
+ * The amount paid at /process is recomputed from the same quote: this endpoint is for display only.
+ */
+router.get("/quote", catchAsync(async (req, res) => {
+    const { type, id, seats } = req.query;
+
+    if (!type || !id) {
+        return res.status(400).json({ success: false, message: "Type and ID are required." });
+    }
+
+    const quote = await checkoutContextService.getQuote(type, id, seats);
+
+    res.json({
+        success: true,
+        data: quote
+    });
+}));
+
+/**
  * POST /api/checkout/process
  * Initiates the payment process with the chosen strategy.
  * Body: { type: "B2B_PACKAGE", data: { itemId: 5, ... } }

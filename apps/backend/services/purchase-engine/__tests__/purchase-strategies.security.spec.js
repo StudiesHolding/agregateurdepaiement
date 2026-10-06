@@ -1,6 +1,6 @@
 /**
  * Sécurité des stratégies d'achat (06/10/2026) : aucun prix venu du navigateur,
- * aucun faux contexte en repli, licences plafonnées.
+ * aucun faux contexte en repli, licences validées par le devis serveur.
  */
 import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
@@ -68,30 +68,49 @@ describe('Stratégies d\'achat — fermeture sécurisée', () => {
     await expect(strategy.getContext(9)).rejects.toMatchObject({ statusCode: 503 });
   });
 
-  describe('package : licences plafonnées au maximum du package', () => {
-    const PKG = { id: 5, name: 'Pack Managers', price: '500000', currency: 'XAF', max_licenses: 20 };
+  describe('package : vendu à la licence, prix serveur', () => {
+    const PKG_QUOTE = {
+      packageId: 5, name: 'Pack Managers', seats: 7, currency: 'XOF',
+      basePrice: '25000.00', unitPrice: '23750.00', discountRate: '0.0500', discountLabel: '5-9 sièges',
+      total: '166250.00', breakpoint: { id: 6, minSeats: 5, maxSeats: 9 },
+    };
 
-    it.each([[21], [10000], [0], [-4], ['abc'], [2.5]])('%p licences → 400, aucun paiement', async (count) => {
-      mockPackageFindByPk.mockResolvedValue(PKG);
-      const strategy = new B2bPackagePurchaseStrategy();
-      await expect(strategy.initiatePayment({ itemId: 5, totalLicenses: count, adminEmail: 'rh@entreprise.cm' }))
-        .rejects.toMatchObject({ statusCode: 400 });
+    it('le total payé est le devis serveur (prix × licences − palier), jamais le montant du navigateur', async () => {
+      const quoteService = { quote: jest.fn(async () => PKG_QUOTE) };
+      const strategy = new B2bPackagePurchaseStrategy(quoteService);
+      await strategy.initiatePayment({ itemId: 5, totalLicenses: 7, amount: 1, currency: 'EUR', adminEmail: 'rh@entreprise.cm' });
+      expect(quoteService.quote).toHaveBeenCalledWith(5, 7);
+      expect(mockInitializePayment).toHaveBeenCalledWith(expect.objectContaining({
+        amount: 166250,
+        currency: 'XOF',
+        lmsItemType: 'package',
+        metadata: expect.objectContaining({ package_id: 5, licence_count: 7, unit_price: '23750.00', discount_label: '5-9 sièges' }),
+      }));
+    });
+
+    it('devis refusé (licences absentes ou invalides, package non vendable) → aucun paiement', async () => {
+      const refusal = Object.assign(new Error('Nombre de licences invalide'), { statusCode: 400 });
+      const strategy = new B2bPackagePurchaseStrategy({ quote: jest.fn(async () => { throw refusal; }) });
+      for (const totalLicenses of [undefined, 0, 'abc']) {
+        await expect(strategy.initiatePayment({ itemId: 5, totalLicenses, adminEmail: 'rh@entreprise.cm' }))
+          .rejects.toMatchObject({ statusCode: 400 });
+      }
       expect(mockInitializePayment).not.toHaveBeenCalled();
     });
 
-    it('20 licences (maximum) → paiement au prix serveur du package', async () => {
-      mockPackageFindByPk.mockResolvedValue(PKG);
-      const strategy = new B2bPackagePurchaseStrategy();
-      await strategy.initiatePayment({ itemId: 5, totalLicenses: 20, adminEmail: 'rh@entreprise.cm', amount: 1 });
-      expect(mockInitializePayment).toHaveBeenCalledWith(expect.objectContaining({ amount: 500000, currency: 'XAF' }));
+    it('e-mail administrateur absent → 400 avant tout devis', async () => {
+      const quoteService = { quote: jest.fn() };
+      const strategy = new B2bPackagePurchaseStrategy(quoteService);
+      await expect(strategy.initiatePayment({ itemId: 5, totalLicenses: 2 })).rejects.toMatchObject({ statusCode: 400 });
+      expect(quoteService.quote).not.toHaveBeenCalled();
     });
 
-    it('licences non précisées → maximum du package', async () => {
-      mockPackageFindByPk.mockResolvedValue(PKG);
-      const strategy = new B2bPackagePurchaseStrategy();
-      await strategy.initiatePayment({ itemId: 5, adminEmail: 'rh@entreprise.cm' });
-      const metadata = mockInitializePayment.mock.calls[0][0].metadata;
-      expect(JSON.stringify(metadata)).toContain('20');
+    it('contexte : prix affiché = prix d\'une licence issu du devis serveur', async () => {
+      const quoteService = { quote: jest.fn(async () => ({ ...PKG_QUOTE, seats: 1, unitPrice: '25000.00', total: '25000.00' })) };
+      const model = { findByPk: jest.fn(async () => ({ description: 'Managers', benefits: '["Coaching"]', price: '1' })) };
+      const context = await new B2bPackagePurchaseStrategy(quoteService, model).getContext(5);
+      expect(quoteService.quote).toHaveBeenCalledWith(5, 1);
+      expect(context).toMatchObject({ itemId: 5, price: 25000, currency: 'XOF', features: ['Coaching'], pricing: { unit: 'licence' } });
     });
   });
 });

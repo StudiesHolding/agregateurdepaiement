@@ -1,4 +1,5 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
+import { BadRequestError } from '../../utils/errors.js';
 // import { logger } from '../../utils/logger.js';
 import { B2bPackagePurchaseStrategy } from "./b2b-package.strategy.js";
 import { B2bThematiquePurchaseStrategy } from "./b2b-thematique.strategy.js";
@@ -37,7 +38,7 @@ class CheckoutContextService {
   getStrategy(type) {
     const strategy = this.strategies.get(type);
     if (!strategy) {
-      throw new Error(`Unsupported purchase type: ${type}`);
+      throw new BadRequestError(`Type d'achat non pris en charge : ${type}`);
     }
     return strategy;
   }
@@ -50,6 +51,16 @@ class CheckoutContextService {
   async getContext(type, id) {
     const strategy = this.getStrategy(type);
     return strategy.getContext(id);
+  }
+
+  /**
+   * Server-side quote for `seats` licences (B2B offers sold per licence).
+   * @param {string} type
+   * @param {string|number} id
+   * @param {string|number} seats
+   */
+  async getQuote(type, id, seats) {
+    return this.getStrategy(type).getQuote(id, seats);
   }
 
   /**
