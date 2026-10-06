@@ -51,6 +51,7 @@ router.post("/licenses/revoke", b2bPackageController.revokeLicense);
 
 // Thématiques — Catalogue
 router.get("/thematiques/catalog", b2bPackageController.getThematiquesCatalog);
+router.get("/thematiques/:id/quote", b2bPackageController.quoteThematique);
 router.post("/thematiques/purchase", b2bPackageController.purchaseThematique);
 
 // Demandes d'accès

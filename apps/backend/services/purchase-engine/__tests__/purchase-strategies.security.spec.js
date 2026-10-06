@@ -5,10 +5,8 @@
 import { jest, describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 const mockPackageFindByPk = jest.fn();
-const mockCourseFindByPk = jest.fn();
 jest.unstable_mockModule('../../../models/index.js', () => ({
   FormationPackage: { findByPk: mockPackageFindByPk },
-  Course: { findByPk: mockCourseFindByPk },
 }));
 
 const mockInitializePayment = jest.fn();
@@ -33,17 +31,30 @@ describe('Stratégies d\'achat — fermeture sécurisée', () => {
     mockInitializePayment.mockResolvedValue({ success: true, orderReference: 'ORD-1', provider: 'cinetpay' });
   });
 
-  it('thématique : un prix envoyé par le navigateur n\'initie jamais de paiement (501)', async () => {
-    const strategy = new B2bThematiquePurchaseStrategy();
-    await expect(strategy.initiatePayment({ itemId: 3, amount: 1, adminEmail: 'rh@entreprise.cm' }))
-      .rejects.toMatchObject({ statusCode: 501 });
-    expect(mockInitializePayment).not.toHaveBeenCalled();
+  const QUOTE = {
+    thematiqueId: 3, title: 'Leadership', typeName: 'Premium', seats: 25, currency: 'XAF',
+    basePrice: '50000.00', unitPrice: '45000.00', discountRate: '0.1000', discountLabel: 'Équipe',
+    total: '1125000.00', breakpoint: { id: 1, minSeats: 10, maxSeats: 49 },
+  };
+
+  it('thématique : le total payé est le devis serveur, jamais le montant du navigateur', async () => {
+    const quoteService = { quote: jest.fn(async () => QUOTE) };
+    const strategy = new B2bThematiquePurchaseStrategy(quoteService);
+    await strategy.initiatePayment({ itemId: 3, totalLicenses: 25, amount: 1, currency: 'EUR', adminEmail: 'rh@entreprise.cm' });
+    expect(quoteService.quote).toHaveBeenCalledWith(3, 25);
+    expect(mockInitializePayment).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 1125000,
+      currency: 'XAF',
+      metadata: expect.objectContaining({ thematique_id: 3, licence_count: 25, unit_price: '45000.00', discount_label: 'Équipe' }),
+    }));
   });
 
-  it('thématique : erreur de lecture → 503, jamais de faux contexte à 999 XAF', async () => {
-    mockCourseFindByPk.mockRejectedValue(new Error('base indisponible'));
-    const strategy = new B2bThematiquePurchaseStrategy();
-    await expect(strategy.getContext(3)).rejects.toMatchObject({ statusCode: 503 });
+  it('thématique : devis refusé (licences invalides, thématique inactive) → aucun paiement', async () => {
+    const refusal = Object.assign(new Error('Nombre de licences invalide'), { statusCode: 400 });
+    const strategy = new B2bThematiquePurchaseStrategy({ quote: jest.fn(async () => { throw refusal; }) });
+    await expect(strategy.initiatePayment({ itemId: 3, totalLicenses: 0, adminEmail: 'rh@entreprise.cm' }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    expect(mockInitializePayment).not.toHaveBeenCalled();
   });
 
   it('enchère : plus de paiement simulé (501), jamais d\'URL de PSP fictive', async () => {
