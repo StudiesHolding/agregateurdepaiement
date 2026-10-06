@@ -47,7 +47,11 @@ async function processPaymentSaga(job) {
     return result;
 
   } catch (error) {
-    const isRetryable = error.name === 'MoodleRetryableError';
+    // MoodleRetryableError (inscription) et CommissionRetryableError (crédit de
+    // commission, S1-5) sont réessayables : BullMQ rejoue le job, l'inscription
+    // déjà faite est conservée (idempotence 409 / backend de commission).
+    const RETRYABLE_ERROR_NAMES = new Set(['MoodleRetryableError', 'CommissionRetryableError']);
+    const isRetryable = RETRYABLE_ERROR_NAMES.has(error.name);
 
     if (!isRetryable) {
       await markIdempotency(eventId, orderReference, source, 'FAILED', null, error.message);

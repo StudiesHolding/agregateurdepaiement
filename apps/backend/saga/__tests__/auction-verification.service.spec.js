@@ -9,7 +9,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 // ============================================================
 const mockQuery = jest.fn();
 
-jest.unstable_mockModule('../config/database.js', () => ({
+jest.unstable_mockModule('../../config/database.js', () => ({
   __esModule: true,
   default: { query: mockQuery },
 }));
@@ -22,7 +22,8 @@ function buildMockAuction(overrides = {}) {
     highest_bidder_id: 1, winner_id: 1, winning_bid_id: 10,
     final_price: null, current_winner_rank: 1,
     start_date: '2026-06-01', end_date: '2026-06-24',
-    cascade_deadline: '2026-06-25 18:00:00',
+    // Délai de cascade à J+1 (dynamique) : la fixture reste valide dans le temps
+    cascade_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     winner_email: 'gagnant@example.com',
     winner_first_name: 'Jean', winner_last_name: 'Gagnant',
     created_at: '2026-06-01', updated_at: '2026-06-24',

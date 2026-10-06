@@ -9,7 +9,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 // ============================================================
 const mockQuery = jest.fn();
 
-jest.unstable_mockModule('../config/database.js', () => ({
+jest.unstable_mockModule('../../config/database.js', () => ({
   __esModule: true,
   default: { query: mockQuery },
 }));

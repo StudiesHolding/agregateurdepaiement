@@ -1,10 +1,29 @@
 import app from "./app.js";
 import { sequelize } from "./models/index.js";
+import { validateCommissionCreditConfig } from "./services/sl-backend-commission.client.js";
 
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
     try {
+        // Validation de configuration — crédit de commission (S1-5) :
+        // hors test, refuser le démarrage si SL_BACKEND_URL / INTERNAL_API_KEY
+        // sont absentes alors que la fonctionnalité est activée (défaut : activée).
+        const commissionConfig = validateCommissionCreditConfig();
+        if (!commissionConfig.valid) {
+            console.error(
+                ` [FATAL] Crédit de commission activé (COMMISSION_CREDIT_ENABLED) mais variables manquantes :` +
+                ` ${commissionConfig.missing.join(', ')}.` +
+                ` Renseignez-les dans .env ou désactivez avec COMMISSION_CREDIT_ENABLED=false.`
+            );
+            process.exit(1);
+        }
+        if (commissionConfig.enabled) {
+            console.log(" Crédit de commission activé (SL_BACKEND_URL + INTERNAL_API_KEY configurés)");
+        } else {
+            console.log(" Crédit de commission désactivé (COMMISSION_CREDIT_ENABLED=false)");
+        }
+
         console.log(" Connecting to database...");
         await sequelize.authenticate();
         console.log(" Database connection established successfully.");
