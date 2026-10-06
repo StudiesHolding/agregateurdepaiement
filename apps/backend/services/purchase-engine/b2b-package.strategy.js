@@ -1,6 +1,7 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
 import { FormationPackage } from '../../models/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { BadRequestError } from '../../utils/errors.js';
 
 /**
  * Stratégie de paiement pour l'achat d'un Package B2B (forfait entreprise).
@@ -128,7 +129,15 @@ export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
       throw new Error('Package introuvable lors de l\'initialisation du paiement.');
     }
 
-    const licenseCount = parseInt(data.totalLicenses) || pkg.max_licenses || 10;
+    // Licences : jamais au-delà du maximum vendu avec le package (prix fixe par package).
+    const maxLicenses = Number(pkg.max_licenses) > 0 ? Number(pkg.max_licenses) : 10;
+    const requested = data.totalLicenses === undefined || data.totalLicenses === null || data.totalLicenses === ''
+      ? maxLicenses
+      : Number(data.totalLicenses);
+    if (!Number.isInteger(requested) || requested < 1 || requested > maxLicenses) {
+      throw new BadRequestError(`Nombre de licences invalide : entre 1 et ${maxLicenses} pour ce package.`);
+    }
+    const licenseCount = requested;
     const totalAmount = parseFloat(pkg.price) * 1; // Prix fixe par package (pas par licence)
 
     const result = await OrchestratorService.initializePayment({

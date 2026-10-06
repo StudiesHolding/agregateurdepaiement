@@ -1,5 +1,6 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
 import { Course } from '../../models/index.js';
+import { AppError } from '../../utils/errors.js';
 
 /**
  * Stratégie de paiement pour l'achat B2B d'une Thématique (un lot de cours).
@@ -55,20 +56,8 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
       };
     } catch (error) {
       console.error(`[B2bThematiquePurchaseStrategy] Erreur getContext (${id}):`, error.message);
-      // Fallback
-      return {
-        type: this.getType(),
-        itemId: id,
-        title: `Thématique d'Expertise #${id}`,
-        description: "Ensemble de formations thématiques pour vos équipes.",
-        price: 999.00,
-        currency: "XAF",
-        features: [
-            "Accès illimité aux cours de la thématique",
-            "Dashboard d'administration B2B",
-            "Suivi de la progression"
-        ]
-      };
+      // Aucun faux contexte en repli : un prix inventé ne doit jamais être affiché.
+      throw new AppError("Cette thématique n'est pas disponible à l'achat pour le moment.", 503);
     }
   }
 
@@ -76,58 +65,12 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
     return true;
   }
 
-  async initiatePayment(data) {
-    console.log('[B2B_THEMATIQUE] Initiating payment with data:', {
-      companyName: data.companyName,
-      adminEmail: data.adminEmail,
-      itemId: data.itemId,
-    });
-
-    const { OrchestratorService } = await import('../../services/orchestrator.service.js');
-
-    const totalAmount = data.amount || 999;
-    const licenseCount = parseInt(data.totalLicenses) || 10;
-
-    const result = await OrchestratorService.initializePayment({
-      customerEmail: data.adminEmail,
-      customerName: `${data.adminFirstName || ''} ${data.adminLastName || ''}`.trim(),
-      lmsItemId: String(data.itemId),
-      lmsItemType: 'thematique',
-      paymentMethod: data.paymentMethod || 'card',
-      countryCode: data.countryCode || 'CM',
-      currency: 'XAF',
-      amount: totalAmount,
-      successUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/success`,
-      cancelUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/cancel`,
-      failedUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/failed`,
-      metadata: {
-        source: 'purchase_engine',
-        purchase_type: 'B2B_THEMATIQUE',
-        b2b_purchase: true,
-        is_b2b: true,
-        company_name: data.companyName,
-        vat_number: data.vatNumber || null,
-        company_admin_email: data.adminEmail,
-        admin_first_name: data.adminFirstName,
-        admin_last_name: data.adminLastName,
-        thematique_id: data.itemId,
-        licence_count: licenseCount,
-        total_licenses: licenseCount,
-      },
-    });
-
-    if (!result.success) {
-      throw new Error(result.error || 'Erreur lors de l\'initialisation du paiement B2B Thématique.');
-    }
-
-    return {
-      transactionId: result.orderReference,
-      status: 'PENDING',
-      provider: result.provider,
-      redirectUrl: result.redirectUrl,
-      widgetParams: result.widgetParams,
-      clientSecret: result.clientSecret,
-      message: 'Paiement B2B Thématique initialisé avec succès.',
-    };
+  async initiatePayment(_data) {
+    // SÉCURITÉ (06/10/2026) : le montant était pris du navigateur (data.amount || 999).
+    // Fermé jusqu'à la tarification B2B serveur (paliers sl_volume_breakpoints, sprint 6).
+    throw new AppError(
+      "L'achat de thématiques en ligne ouvre avec la tarification entreprise (sprint 6). Contactez l'équipe commerciale.",
+      501,
+    );
   }
 }
