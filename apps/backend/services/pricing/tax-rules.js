@@ -1,49 +1,103 @@
 /**
- * Résolution de la règle de taxe du pays de l'acheteur (ADR-0012, D16).
+ * Règles de taxe applicables à une commande (ADR-0012, D16).
  *
- * `selectTaxRule` est pure (testée) : parmi les règles actives d'un pays, celle dont la période couvre la date
- * de la commande ; la plus récente l'emporte. Sans règle : aucune taxe (le moteur trace alors `tax: null`).
- * `resolveTaxRule` lit la table `aggp_tax_rules` avec un cache court (les règles changent rarement).
+ * Deux sources, dans cet ordre (le moteur prend la première règle de la catégorie de chaque ligne) :
+ *   1. les règles du PAYS de l'acheteur (table `aggp_tax_rules`, portée all | b2b | b2c, période de validité) ;
+ *   2. la TVA B2B MONDIALE (19,25 % par défaut), réglage plateforme `tax.b2b.vat` modifiable par le super admin
+ *      dans l'espace d'administration, lue sur le backend métier (`GET /api/internal/tax-rules`).
+ *
+ * Sécurité du prix : si la TVA B2B n'a jamais pu être lue (backend indisponible, aucun cache), la résolution
+ * échoue — un devis B2B n'est jamais calculé avec une taxe fausse. Le dernier taux connu reste utilisé en cas de
+ * panne passagère.
  */
+import axios from "axios";
 
 const CACHE_TTL_MS = 60_000;
-const cache = new Map();
+const TIMEOUT_MS = 5_000;
+const countryCache = new Map();
+let globalCache = null; // { at, rules }
 
-/** @returns {{ country, ratePercent, inclusive, scope, label } | null} règle au format du moteur de prix */
-export function selectTaxRule(rules, country, at = new Date()) {
+export class TaxRulesUnavailableError extends Error {
+  constructor() {
+    super("Taux de TVA B2B indisponible : réessayez dans un instant.");
+    this.name = "TaxRulesUnavailableError";
+    this.statusCode = 503;
+  }
+}
+
+/** Règles du pays en vigueur à la date donnée, au format du moteur (pure, testée). */
+export function selectCountryRules(rows, country, at = new Date()) {
   const code = String(country ?? "").trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return null;
+  if (!/^[A-Z]{2}$/.test(code)) return [];
   const when = at.getTime();
-  const match = rules
+  const inForce = rows
     .filter((r) => r.isActive && r.countryCode === code)
     .filter((r) => new Date(r.validFrom).getTime() <= when && (r.validTo == null || new Date(r.validTo).getTime() > when))
-    .sort((a, b) => new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime())[0];
-  if (!match) return null;
-  return {
+    .sort((a, b) => new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime());
+  // Une règle par portée : la plus récente.
+  const byScope = new Map();
+  for (const r of inForce) if (!byScope.has(r.scope ?? "all")) byScope.set(r.scope ?? "all", r);
+  return [...byScope.values()].map((r) => ({
     country: code,
-    ratePercent: String(match.ratePercent),
-    inclusive: Boolean(match.inclusive),
-    scope: match.scope ?? "all",
-    label: match.label ?? null,
-  };
+    ratePercent: String(r.ratePercent),
+    inclusive: Boolean(r.inclusive),
+    scope: r.scope ?? "all",
+    label: r.label ?? null,
+  }));
 }
 
-/** Règle applicable au pays de l'acheteur, à la date donnée (lecture base, cache 60 s). */
-export async function resolveTaxRule(country, at = new Date(), { TaxRule } = {}) {
-  const code = String(country ?? "").trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return null;
+/** Lecture de la TVA B2B mondiale sur le backend métier (clé interne). */
+async function fetchGlobalRulesOverHttp() {
+  const base = (process.env.SL_BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
+  const res = await axios.get(`${base}/api/internal/tax-rules`, {
+    timeout: TIMEOUT_MS,
+    headers: { "X-Internal-Api-Key": process.env.INTERNAL_API_KEY ?? "" },
+    validateStatus: () => true,
+  });
+  const b2b = res.status === 200 ? res.data?.data?.b2b : null;
+  if (!b2b || !/^\d{1,3}(\.\d{1,3})?$/.test(String(b2b.ratePercent))) throw new TaxRulesUnavailableError();
+  return [{ country: null, ratePercent: String(b2b.ratePercent), inclusive: Boolean(b2b.inclusive), scope: "b2b", label: b2b.label ?? "TVA B2B" }];
+}
+
+/**
+ * Règles applicables (pays d'abord, puis mondiales).
+ * @param {string|null} country pays de l'acheteur (ISO 3166 alpha-2), facultatif
+ */
+export async function resolveTaxRules(country, at = new Date(), deps = {}) {
   const now = Date.now();
-  const hit = cache.get(code);
-  let rules = hit && now - hit.at < CACHE_TTL_MS ? hit.rules : null;
-  if (!rules) {
-    const model = TaxRule ?? (await import("../../models/tax-rule.model.js")).TaxRule;
-    rules = (await model.findAll({ where: { countryCode: code, isActive: true }, raw: true }));
-    cache.set(code, { at: now, rules });
+  const fetchGlobal = deps.fetchGlobal ?? fetchGlobalRulesOverHttp;
+
+  let global;
+  if (globalCache && now - globalCache.at < CACHE_TTL_MS) {
+    global = globalCache.rules;
+  } else {
+    try {
+      global = await fetchGlobal();
+      globalCache = { at: now, rules: global };
+    } catch (error) {
+      if (!globalCache) throw error instanceof TaxRulesUnavailableError ? error : new TaxRulesUnavailableError();
+      global = globalCache.rules; // panne passagère : dernier taux connu
+    }
   }
-  return selectTaxRule(rules, code, at);
+
+  let countryRules = [];
+  const code = String(country ?? "").trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(code)) {
+    const hit = countryCache.get(code);
+    let rows = hit && now - hit.at < CACHE_TTL_MS ? hit.rows : null;
+    if (!rows) {
+      const model = deps.TaxRule ?? (await import("../../models/tax-rule.model.js")).TaxRule;
+      rows = await model.findAll({ where: { countryCode: code, isActive: true }, raw: true });
+      countryCache.set(code, { at: now, rows });
+    }
+    countryRules = selectCountryRules(rows, code, at);
+  }
+
+  return [...countryRules, ...global];
 }
 
-/** Vide le cache (après modification d'une règle depuis le dashboard). */
+/** Vide les caches (après modification d'une règle). */
 export function clearTaxRuleCache() {
-  cache.clear();
+  countryCache.clear();
+  globalCache = null;
 }

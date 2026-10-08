@@ -10,7 +10,7 @@ TaxRule.init(
         countryCode: { type: DataTypes.CHAR(2), allowNull: false },
         ratePercent: { type: DataTypes.DECIMAL(6, 3), allowNull: false, defaultValue: 0 },
         inclusive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-        scope: { type: DataTypes.ENUM("all", "b2b"), allowNull: false, defaultValue: "all" },
+        scope: { type: DataTypes.ENUM("all", "b2b", "b2c"), allowNull: false, defaultValue: "all" },
         label: { type: DataTypes.STRING(120), allowNull: true },
         validFrom: { type: DataTypes.DATE, allowNull: false },
         validTo: { type: DataTypes.DATE, allowNull: true },

@@ -221,46 +221,61 @@ function evaluate(lines, coupon, currency, exponent, withPromotion) {
 }
 
 /**
- * Taxe par ligne, après remises. `rule` : { country, ratePercent, inclusive, scope?, label?, reverseCharge? }.
- * - TTC (inclusive) : le total ne bouge pas ; la taxe est extraite (total − total / (1 + taux)).
- * - HT : la taxe s'ajoute au total.
- * - Portée (`scope`) : `all` (défaut) taxe toutes les lignes ; `b2b` ne taxe que les ventes aux entreprises
- *   (packages, thématiques) — ex. Cameroun, TVA 19,25 % sur les formations B2B uniquement.
- * - Autoliquidation (vente B2B éligible) : taux 0, mention conservée.
+ * Taxe par ligne, après remises (D16). `rules` : une règle ou une liste, chacune
+ * { country?, ratePercent, inclusive, scope: 'all'|'b2b'|'b2c', label?, reverseCharge? }.
+ * - Chaque ligne prend la PREMIÈRE règle de sa catégorie (B2B : packages et thématiques ; B2C : cours et enchères),
+ *   sinon la première règle `all` : l'appelant place les règles du pays avant les règles mondiales.
+ *   Ex. TVA B2B mondiale de 19,25 % (réglage plateforme), aucune taxe B2C tant qu'aucune règle n'existe.
+ * - TTC (inclusive) : le total ne bouge pas ; la taxe est extraite (total − total / (1 + taux)). HT : elle s'ajoute.
+ * - Autoliquidation : taux 0, mention conservée.
  */
-function applyTax(priced, rule) {
-  if (!rule) {
+function applyTax(priced, rules) {
+  const list = (Array.isArray(rules) ? rules : rules ? [rules] : []).map(normalizeTaxRule);
+  if (list.length === 0) {
     priced.forEach((p) => { p.tax = null; });
     return { amount: 0n, summary: null };
   }
-  const country = String(rule.country ?? "").trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(country)) throw new PriceEngineError("INVALID_TAX_RULE", "Pays de taxation invalide (ISO 3166 alpha-2).");
-  const bps = rule.reverseCharge ? 0n : toBasisPoints(rule.ratePercent ?? 0, "Taux de taxe");
-  const inclusive = Boolean(rule.inclusive);
-  const scope = rule.scope ?? "all";
-  if (scope !== "all" && scope !== "b2b") throw new PriceEngineError("INVALID_TAX_RULE", `Portée de taxe inconnue « ${scope} ».`);
   let amount = 0n;
+  const applied = new Map();
   for (const p of priced) {
-    if (scope === "b2b" && !B2B_KINDS.has(p.line.kind)) {
-      p.tax = { rateBps: 0, inclusive, baseMinor: p.total, amountMinor: 0n, exempt: "OUT_OF_SCOPE" };
+    const category = B2B_KINDS.has(p.line.kind) ? "b2b" : "b2c";
+    const rule = list.find((r) => r.scope === category) ?? list.find((r) => r.scope === "all") ?? null;
+    if (!rule) {
+      p.tax = { rateBps: 0, inclusive: false, baseMinor: p.total, amountMinor: 0n, exempt: "NO_RULE" };
       continue;
     }
     let lineTax;
     let base;
-    if (inclusive) {
-      base = divRound(p.total * BPS, BPS + bps);
+    if (rule.inclusive) {
+      base = divRound(p.total * BPS, BPS + rule.bps);
       lineTax = p.total - base;
     } else {
       base = p.total;
-      lineTax = divRound(p.total * bps, BPS);
+      lineTax = divRound(p.total * rule.bps, BPS);
       p.total += lineTax;
     }
-    p.tax = { rateBps: Number(bps), inclusive, baseMinor: base, amountMinor: lineTax };
+    p.tax = { rateBps: Number(rule.bps), inclusive: rule.inclusive, baseMinor: base, amountMinor: lineTax, rule: rule.label };
     amount += lineTax;
+    applied.set(rule, (applied.get(rule) ?? 0n) + lineTax);
   }
+  const summary = [...applied.entries()].map(([r, a]) => ({
+    country: r.country, scope: r.scope, rateBps: Number(r.bps), inclusive: r.inclusive, reverseCharge: r.reverseCharge, label: r.label, amountMinor: a,
+  }));
+  return { amount, summary: summary.length ? summary : null };
+}
+
+function normalizeTaxRule(rule) {
+  const country = rule.country == null || rule.country === "" ? null : String(rule.country).trim().toUpperCase();
+  if (country !== null && !/^[A-Z]{2}$/.test(country)) throw new PriceEngineError("INVALID_TAX_RULE", "Pays de taxation invalide (ISO 3166 alpha-2).");
+  const scope = rule.scope ?? "all";
+  if (!["all", "b2b", "b2c"].includes(scope)) throw new PriceEngineError("INVALID_TAX_RULE", `Portée de taxe inconnue « ${scope} ».`);
   return {
-    amount,
-    summary: { country, rateBps: Number(bps), inclusive, scope, reverseCharge: Boolean(rule.reverseCharge), label: rule.label ?? null },
+    country,
+    scope,
+    bps: rule.reverseCharge ? 0n : toBasisPoints(rule.ratePercent ?? 0, "Taux de taxe"),
+    inclusive: Boolean(rule.inclusive),
+    reverseCharge: Boolean(rule.reverseCharge),
+    label: rule.label ?? null,
   };
 }
 
@@ -272,8 +287,8 @@ function applyTax(priced, rule) {
  *   volumeDiscountPercent?, formationId?, categoryIds?, authorKey? }
  * @param {object} [input.coupon] — { code, type: 'percent'|'fixed'|'free', value?, currency?, minAmount?,
  *   exclusive?, scope?: { type: 'all'|'formation'|'category'|'author', ids? } }
- * @param {object} [input.tax] — { country, ratePercent, inclusive, scope?: 'all'|'b2b', label?, reverseCharge? }
- *   (règle du pays de l'acheteur)
+ * @param {object|Array<object>} [input.tax] — règle(s) de taxe applicables, règles du pays d'abord :
+ *   { country?, ratePercent, inclusive, scope?: 'all'|'b2b'|'b2c', label?, reverseCharge? }
  * @param {object} [input.settlement] — { currency, rate } : unités de la devise de règlement pour 1 unité de `currency`
  */
 export function quote(input) {
@@ -349,12 +364,12 @@ export function serializeQuote(q) {
       quantity: l.quantity,
       unitBase: money(l.unitBaseMinor),
       adjustments: l.adjustments.map((a) => ({ type: a.type, amount: money(a.amount) })),
-      tax: l.tax && { rateBps: l.tax.rateBps, inclusive: l.tax.inclusive, base: money(l.tax.baseMinor), amount: money(l.tax.amountMinor), exempt: l.tax.exempt ?? null },
+      tax: l.tax && { rateBps: l.tax.rateBps, inclusive: l.tax.inclusive, base: money(l.tax.baseMinor), amount: money(l.tax.amountMinor), rule: l.tax.rule ?? null, exempt: l.tax.exempt ?? null },
       total: money(l.totalMinor),
     })),
     subtotal: money(q.subtotalMinor),
     discount: money(q.discountMinor),
-    tax: q.tax && { ...q.tax, amount: money(q.taxMinor) },
+    tax: q.tax && { amount: money(q.taxMinor), rules: q.tax.map((r) => ({ ...r, amountMinor: undefined, amount: money(r.amountMinor) })) },
     total: money(q.totalMinor),
     coupon: q.coupon && { code: q.coupon.code, applied: q.coupon.applied, reason: q.coupon.reason, amount: money(q.coupon.amount) },
     settlement: q.settlement && { currency: q.settlement.currency, rate: q.settlement.rate, total: money(q.settlement.totalMinor, q.settlement.exponent) },

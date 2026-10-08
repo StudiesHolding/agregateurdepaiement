@@ -124,48 +124,50 @@ describe('devise de règlement (taux figé fourni par l’appelant)', () => {
   });
 });
 
-describe('taxe du pays de l’acheteur (D16)', () => {
-  it('prix HT : la TVA s’ajoute après les remises (Sénégal 18 %)', () => {
-    const q = quote({ currency: 'XOF', lines: [course({ promotionPercent: 20 })], tax: { country: 'sn', ratePercent: 18, inclusive: false } });
-    expect(q.lines[0].tax).toEqual({ rateBps: 1800, inclusive: false, baseMinor: 12000n, amountMinor: 2160n });
-    expect(q.totalMinor).toBe(14160n);
-    expect(q.taxMinor).toBe(2160n);
+describe('taxes (D16) — TVA B2B mondiale et règles par pays', () => {
+  const b2bVat = { ratePercent: '19.25', inclusive: false, scope: 'b2b', label: 'TVA B2B' };
+  const pkg = (over = {}) => ({ kind: 'B2B_PACKAGE', ref: 'p', unitPrice: '40000', quantity: 10, ...over });
+
+  it('TVA B2B de 19,25 % sur une licence, quel que soit le pays (aucun pays requis)', () => {
+    const q = quote({ currency: 'XAF', lines: [pkg()], tax: b2bVat });
+    expect(q.lines[0].tax).toMatchObject({ rateBps: 1925, inclusive: false, baseMinor: 400000n, amountMinor: 77000n, rule: 'TVA B2B' });
+    expect(q.totalMinor).toBe(477000n);
+    expect(q.tax).toEqual([{ country: null, scope: 'b2b', rateBps: 1925, inclusive: false, reverseCharge: false, label: 'TVA B2B', amountMinor: 77000n }]);
   });
 
-  it('prix TTC : le total ne bouge pas, la TVA est extraite (France 20 %)', () => {
-    const q = quote({ currency: 'EUR', lines: [course({ unitPrice: '59.00' })], tax: { country: 'FR', ratePercent: 20, inclusive: true } });
-    expect(fromMinor(q.totalMinor, 2)).toBe('59.00');
-    expect(fromMinor(q.lines[0].tax.baseMinor, 2)).toBe('49.17');
-    expect(fromMinor(q.taxMinor, 2)).toBe('9.83');
-  });
-
-  it('autoliquidation B2B : taux 0, mention conservée ; taux 0 par défaut : chemin complet', () => {
-    const b2b = quote({ currency: 'EUR', lines: [{ kind: 'B2B_PACKAGE', ref: 'p', unitPrice: '100', quantity: 10 }], tax: { country: 'BE', ratePercent: 21, reverseCharge: true } });
-    expect(b2b.taxMinor).toBe(0n);
-    expect(b2b.tax).toMatchObject({ country: 'BE', reverseCharge: true, rateBps: 0 });
-    const zero = quote({ currency: 'XOF', lines: [course()], tax: { country: 'CI', ratePercent: 0 } });
-    expect(zero.lines[0].tax).toMatchObject({ rateBps: 0, amountMinor: 0n, baseMinor: 15000n });
-  });
-
-  it('Cameroun : TVA 19,25 % sur le B2B uniquement, le B2C en est exempté dans la même commande', () => {
-    const q = quote({
-      currency: 'XAF',
-      lines: [{ kind: 'B2B_PACKAGE', ref: 'p', unitPrice: '40000', quantity: 10 }, course({ ref: 'c', unitPrice: '15000' })],
-      tax: { country: 'CM', ratePercent: '19.25', inclusive: false, scope: 'b2b', label: 'TVA Cameroun' },
-    });
-    expect(q.lines[0].tax).toMatchObject({ rateBps: 1925, amountMinor: 77000n });
-    expect(q.lines[0].totalMinor).toBe(477000n);
-    expect(q.lines[1].tax).toMatchObject({ rateBps: 0, amountMinor: 0n, exempt: 'OUT_OF_SCOPE' });
+  it('commande mixte : le B2B est taxé, le cours B2C sans règle ne l’est pas', () => {
+    const q = quote({ currency: 'XAF', lines: [pkg(), course({ ref: 'c', unitPrice: '15000' })], tax: [b2bVat] });
+    expect(q.lines[1].tax).toMatchObject({ rateBps: 0, amountMinor: 0n, exempt: 'NO_RULE' });
     expect(q.lines[1].totalMinor).toBe(15000n);
     expect(q.taxMinor).toBe(77000n);
-    expect(q.tax).toMatchObject({ country: 'CM', scope: 'b2b', rateBps: 1925 });
-    expect(() => quote({ currency: 'XAF', lines: [course()], tax: { country: 'CM', ratePercent: 19.25, scope: 'b2c-only' } })).toThrow(/Portée/);
   });
 
-  it('la conversion porte sur le total TTC ; pays invalide refusé', () => {
-    const q = quote({ currency: 'XOF', lines: [course({ unitPrice: '10000' })], tax: { country: 'SN', ratePercent: 18 }, settlement: { currency: 'XOF' } });
-    expect(q.settlement.totalMinor).toBe(11800n);
-    expect(() => quote({ currency: 'XOF', lines: [course()], tax: { country: 'SEN', ratePercent: 18 } })).toThrow(/Pays/);
+  it('une règle du pays placée avant la règle mondiale la remplace pour sa catégorie', () => {
+    const country = { country: 'fr', ratePercent: 20, inclusive: true, scope: 'b2c', label: 'TVA France' };
+    const q = quote({ currency: 'EUR', lines: [pkg({ unitPrice: '100', quantity: 1 }), course({ ref: 'c', unitPrice: '59.00' })], tax: [country, b2bVat] });
+    expect(fromMinor(q.lines[0].tax.amountMinor, 2)).toBe('19.25'); // B2B : règle mondiale
+    expect(fromMinor(q.lines[1].tax.amountMinor, 2)).toBe('9.83'); // B2C : règle du pays, TTC
+    expect(fromMinor(q.lines[1].totalMinor, 2)).toBe('59.00');
+  });
+
+  it('prix TTC : la taxe est extraite, le total ne bouge pas', () => {
+    const q = quote({ currency: 'XAF', lines: [pkg({ unitPrice: '119250', quantity: 1 })], tax: { ...b2bVat, inclusive: true } });
+    expect(q.totalMinor).toBe(119250n);
+    expect(q.taxMinor).toBe(19250n);
+  });
+
+  it('autoliquidation : taux 0, mention conservée ; aucune règle : chemin sans taxe', () => {
+    const rc = quote({ currency: 'EUR', lines: [pkg({ unitPrice: '100', quantity: 10 })], tax: { ...b2bVat, reverseCharge: true } });
+    expect(rc.taxMinor).toBe(0n);
+    expect(rc.tax[0]).toMatchObject({ reverseCharge: true, rateBps: 0 });
+    expect(quote({ currency: 'XAF', lines: [course()] }).lines[0].tax).toBeNull();
+  });
+
+  it('la conversion porte sur le total taxes comprises ; règles invalides refusées', () => {
+    const q = quote({ currency: 'XAF', lines: [pkg({ unitPrice: '10000', quantity: 1 })], tax: b2bVat, settlement: { currency: 'XAF' } });
+    expect(q.settlement.totalMinor).toBe(11925n);
+    expect(() => quote({ currency: 'XAF', lines: [course()], tax: { country: 'CMR', ratePercent: 18 } })).toThrow(/Pays/);
+    expect(() => quote({ currency: 'XAF', lines: [course()], tax: { ratePercent: 18, scope: 'b2c-only' } })).toThrow(/Portée/);
   });
 });
 
