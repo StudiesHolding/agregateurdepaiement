@@ -31,6 +31,7 @@ function resolveCompanyId(metadata) {
 
 export const SAGA_SOURCES = {
   RETAIL: 'RETAIL',
+  B2C_COURSE: 'B2C_COURSE',
   AUCTION: 'AUCTION',
   B2B_PACKAGE: 'B2B_PACKAGE',
   B2B_THEMATIQUE: 'B2B_THEMATIQUE',
@@ -91,6 +92,7 @@ function parseMetadata(raw) {
  */
 function resolveSource(metadata) {
   if (metadata.source === 'AUCTION') return SAGA_SOURCES.AUCTION;
+  if (metadata.purchase_type === 'B2C_COURSE') return SAGA_SOURCES.B2C_COURSE;
   if (metadata.purchase_type === 'thematique' || metadata.source === 'B2B_THEMATIQUE') {
     return SAGA_SOURCES.B2B_THEMATIQUE;
   }

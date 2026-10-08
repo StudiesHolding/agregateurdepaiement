@@ -159,6 +159,33 @@ export class AdminNotificationService {
             return false;
         }
     }
+
+    /**
+     * Notify admins when a paid B2C order could not produce an enrollment (ADR-0012, P5) — e.g. no account matches
+     * the buyer's e-mail. The payment is kept; the enrollment must be done by hand.
+     */
+    static async notifyEnrollmentFailure(orderReference, details = {}) {
+        try {
+            const { code, message: reason, formationId, correlationId } = details;
+            const message = `Paiement reçu pour la commande ${orderReference}, mais l'inscription n'a pas pu être créée (${code || "erreur"}).`;
+            const emailBody = `${message}\n\n- Motif : ${reason || "inconnu"}\n- Formation ID : ${formationId ?? "N/A"}\n- Corrélation : ${correlationId || "N/A"}\n\n` +
+                `Le paiement est acquis : inscrivez l'apprenant à la main, puis rejouez la commande.`;
+            await AdminNotification.create({
+                type: "enrollment_failed",
+                title: "Paiement reçu, inscription à faire",
+                message: emailBody,
+                priority: "high",
+                is_read: false,
+                metadata: { orderReference, code, formationId, correlationId, action_url: `/orders?ref=${orderReference}` },
+            });
+            const { MailService } = await import("./mail.service.js");
+            await MailService.sendAdminNotification("Paiement reçu, inscription à faire", emailBody);
+            return true;
+        } catch (error) {
+            console.error("[AdminNotificationService] Error sending enrollment failure notification:", error.message);
+            return false;
+        }
+    }
 }
 
 export default AdminNotificationService;

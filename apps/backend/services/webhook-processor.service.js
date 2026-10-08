@@ -206,7 +206,9 @@ export class WebhookProcessor {
             metadata.is_b2b === true ||
             metadata.b2b_purchase === true ||
             metadata.source === 'AUCTION' ||
-            metadata.source === 'MOODLE_HEADLESS'
+            metadata.source === 'MOODLE_HEADLESS' ||
+            // Formation canonique (ADR-0012, P5) : l'ancien flux synchrone n'inscrivait personne.
+            metadata.purchase_type === 'B2C_COURSE'
           );
 
           if (isNewSagaEnabled) {

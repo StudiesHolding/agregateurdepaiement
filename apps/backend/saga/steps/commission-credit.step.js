@@ -95,7 +95,7 @@ export class CommissionCreditStep {
    *   réseau / 5xx / 429 — l'inscription déjà faite n'est jamais annulée,
    *   l'étape est compensable par rejeu (idempotence côté backend).
    */
-  async execute({ orderReference, studentId, correlationId }) {
+  async execute({ orderReference, studentId, correlationId, channel = null }) {
     const log = (msg, ...args) =>
       console.log(`[CommissionCreditStep:${correlationId}] ${msg}`, ...args);
 
@@ -137,7 +137,8 @@ export class CommissionCreditStep {
       studentId: Number(studentId),
       grossAmount: toExactDecimalString(order.totalAmount),
       currency: order.currency,
-      channel: this.resolveChannel(metadata),
+      // Canal vérifié par le backend à l'inscription (ADR-0012, D14), sinon celui des métadonnées de commande.
+      channel: ALLOWED_CHANNELS.includes(channel) ? channel : this.resolveChannel(metadata),
       paidAt: toIsoPaidAt(order.paidAt),
       correlationId,
     };
