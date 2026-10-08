@@ -92,8 +92,17 @@ function discountOf(amount, bps) {
   return amount - divRound(amount * (BPS - bps), BPS);
 }
 
-/** Taux décimal positif ("655.957", "0.001524") → fraction exacte { num, den }. */
+/**
+ * Taux de change → fraction exacte { num, den }. Accepte une fraction exacte ({ num, den } en BigInt ou chaînes de
+ * chiffres, fournie par `fx-rates.settlementRate`) ou un décimal positif ("655.957", "0.001524").
+ */
 function parseRate(rate) {
+  if (rate && typeof rate === "object") {
+    const num = typeof rate.num === "bigint" ? rate.num : /^\d{1,40}$/.test(String(rate.num ?? "")) ? BigInt(rate.num) : null;
+    const den = typeof rate.den === "bigint" ? rate.den : /^\d{1,40}$/.test(String(rate.den ?? "")) ? BigInt(rate.den) : null;
+    if (num === null || den === null || num <= 0n || den <= 0n) throw new PriceEngineError("INVALID_RATE", "Taux de change invalide.");
+    return { num, den };
+  }
   const text = String(rate ?? "").trim();
   const match = /^(\d+)(?:\.(\d{1,12}))?$/.exec(text);
   if (!match) throw new PriceEngineError("INVALID_RATE", `Taux de change invalide : « ${rate} ».`);
@@ -290,6 +299,7 @@ function normalizeTaxRule(rule) {
  * @param {object|Array<object>} [input.tax] — règle(s) de taxe applicables, règles du pays d'abord :
  *   { country?, ratePercent, inclusive, scope?: 'all'|'b2b'|'b2c', label?, reverseCharge? }
  * @param {object} [input.settlement] — { currency, rate } : unités de la devise de règlement pour 1 unité de `currency`
+ *   (fraction exacte { num, den } recommandée, cf. fx-rates.settlementRate ; décimal accepté)
  */
 export function quote(input) {
   const currency = normalizeCurrencyCode(input?.currency);
@@ -337,15 +347,17 @@ export function quote(input) {
   if (input.settlement) {
     const target = normalizeCurrencyCode(input.settlement.currency);
     const targetExponent = currencyExponent(target);
-    if (target === currency) {
+    if (target === currency && input.settlement.rate == null) {
       out.settlement = { currency: target, exponent: targetExponent, rate: "1", totalMinor: total };
     } else {
       const { num, den } = parseRate(input.settlement.rate);
-      // total (mineures source) × taux × 10^(exposant cible − exposant source), arrondi au demi supérieur.
+      // total (mineures source) × taux × 10^(exposant cible − exposant source), arrondi au demi supérieur. Dans la
+      // même devise, un taux fourni est appliqué tel quel (majoration de change sur la devise de base, ADR-0013 D5).
       const shift = targetExponent - exponent;
       const numerator = total * num * (shift >= 0 ? 10n ** BigInt(shift) : 1n);
       const denominator = den * (shift < 0 ? 10n ** BigInt(-shift) : 1n);
-      out.settlement = { currency: target, exponent: targetExponent, rate: String(input.settlement.rate), totalMinor: divRound(numerator, denominator) };
+      const rate = typeof input.settlement.rate === "object" ? `${num}/${den}` : String(input.settlement.rate);
+      out.settlement = { currency: target, exponent: targetExponent, rate, totalMinor: divRound(numerator, denominator) };
     }
   }
 
