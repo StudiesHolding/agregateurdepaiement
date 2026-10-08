@@ -123,9 +123,10 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             // Prix et devise du backend : jamais ceux du navigateur.
             currency: intent.currency,
             amount: coupon ? Number(coupon.finalAmount) : intent.price,
-            successUrl: `${purchaseEngineUrl}/success`,
-            cancelUrl: `${purchaseEngineUrl}/cancel`,
-            failedUrl: `${purchaseEngineUrl}/failed`,
+            // Pages de retour du purchase-engine : la formation y figure pour ramener l'apprenant au bon endroit.
+            successUrl: `${purchaseEngineUrl}/success?type=B2C_COURSE&id=${formationId}`,
+            cancelUrl: `${purchaseEngineUrl}/cancel?type=B2C_COURSE&id=${formationId}`,
+            failedUrl: `${purchaseEngineUrl}/failed?type=B2C_COURSE&id=${formationId}`,
             metadata: {
                 source: "purchase_engine",
                 purchase_type: "B2C_COURSE",
@@ -204,7 +205,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             transactionId: orderRef,
             status: "COMPLETED",
             provider: null,
-            redirectUrl: `${purchaseEngineUrl}/success?ref=${encodeURIComponent(orderRef)}`,
+            redirectUrl: `${purchaseEngineUrl}/success?type=B2C_COURSE&id=${formationId}&ref=${encodeURIComponent(orderRef)}`,
             message: "Inscription offerte confirmée.",
         };
     }
