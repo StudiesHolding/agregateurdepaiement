@@ -23,6 +23,7 @@ export const ENGINE_VERSION = "price-engine/2";
 const EXPONENTS = { XOF: 0, XAF: 0, GNF: 0, KMF: 0, RWF: 0, UGX: 0, JPY: 0, KRW: 0, VND: 0, CLP: 0, BIF: 0, DJF: 0, BHD: 3, KWD: 3, OMR: 3, TND: 3, JOD: 3, LYD: 3 };
 
 const LINE_KINDS = new Set(["B2C_COURSE", "AUCTION", "B2B_PACKAGE", "B2B_THEMATIQUE"]);
+const B2B_KINDS = new Set(["B2B_PACKAGE", "B2B_THEMATIQUE"]);
 const BPS = 10000n;
 
 export class PriceEngineError extends Error {
@@ -220,9 +221,11 @@ function evaluate(lines, coupon, currency, exponent, withPromotion) {
 }
 
 /**
- * Taxe par ligne, après remises. `rule` : { country, ratePercent, inclusive, label?, reverseCharge? }.
+ * Taxe par ligne, après remises. `rule` : { country, ratePercent, inclusive, scope?, label?, reverseCharge? }.
  * - TTC (inclusive) : le total ne bouge pas ; la taxe est extraite (total − total / (1 + taux)).
  * - HT : la taxe s'ajoute au total.
+ * - Portée (`scope`) : `all` (défaut) taxe toutes les lignes ; `b2b` ne taxe que les ventes aux entreprises
+ *   (packages, thématiques) — ex. Cameroun, TVA 19,25 % sur les formations B2B uniquement.
  * - Autoliquidation (vente B2B éligible) : taux 0, mention conservée.
  */
 function applyTax(priced, rule) {
@@ -234,8 +237,14 @@ function applyTax(priced, rule) {
   if (!/^[A-Z]{2}$/.test(country)) throw new PriceEngineError("INVALID_TAX_RULE", "Pays de taxation invalide (ISO 3166 alpha-2).");
   const bps = rule.reverseCharge ? 0n : toBasisPoints(rule.ratePercent ?? 0, "Taux de taxe");
   const inclusive = Boolean(rule.inclusive);
+  const scope = rule.scope ?? "all";
+  if (scope !== "all" && scope !== "b2b") throw new PriceEngineError("INVALID_TAX_RULE", `Portée de taxe inconnue « ${scope} ».`);
   let amount = 0n;
   for (const p of priced) {
+    if (scope === "b2b" && !B2B_KINDS.has(p.line.kind)) {
+      p.tax = { rateBps: 0, inclusive, baseMinor: p.total, amountMinor: 0n, exempt: "OUT_OF_SCOPE" };
+      continue;
+    }
     let lineTax;
     let base;
     if (inclusive) {
@@ -251,7 +260,7 @@ function applyTax(priced, rule) {
   }
   return {
     amount,
-    summary: { country, rateBps: Number(bps), inclusive, reverseCharge: Boolean(rule.reverseCharge), label: rule.label ?? null },
+    summary: { country, rateBps: Number(bps), inclusive, scope, reverseCharge: Boolean(rule.reverseCharge), label: rule.label ?? null },
   };
 }
 
@@ -263,7 +272,8 @@ function applyTax(priced, rule) {
  *   volumeDiscountPercent?, formationId?, categoryIds?, authorKey? }
  * @param {object} [input.coupon] — { code, type: 'percent'|'fixed'|'free', value?, currency?, minAmount?,
  *   exclusive?, scope?: { type: 'all'|'formation'|'category'|'author', ids? } }
- * @param {object} [input.tax] — { country, ratePercent, inclusive, label?, reverseCharge? } (règle du pays de l'acheteur)
+ * @param {object} [input.tax] — { country, ratePercent, inclusive, scope?: 'all'|'b2b', label?, reverseCharge? }
+ *   (règle du pays de l'acheteur)
  * @param {object} [input.settlement] — { currency, rate } : unités de la devise de règlement pour 1 unité de `currency`
  */
 export function quote(input) {
@@ -339,7 +349,7 @@ export function serializeQuote(q) {
       quantity: l.quantity,
       unitBase: money(l.unitBaseMinor),
       adjustments: l.adjustments.map((a) => ({ type: a.type, amount: money(a.amount) })),
-      tax: l.tax && { rateBps: l.tax.rateBps, inclusive: l.tax.inclusive, base: money(l.tax.baseMinor), amount: money(l.tax.amountMinor) },
+      tax: l.tax && { rateBps: l.tax.rateBps, inclusive: l.tax.inclusive, base: money(l.tax.baseMinor), amount: money(l.tax.amountMinor), exempt: l.tax.exempt ?? null },
       total: money(l.totalMinor),
     })),
     subtotal: money(q.subtotalMinor),
