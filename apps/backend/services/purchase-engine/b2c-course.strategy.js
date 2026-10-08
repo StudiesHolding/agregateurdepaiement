@@ -14,7 +14,8 @@ import { AppError, BadRequestError, NotFoundError } from "../../utils/errors.js"
  * paiement ; ceux envoyés par le navigateur sont ignorés.
  */
 export const B2C_INTENT_TIMEOUT_MS = 8000;
-const AFFILIATE_REF = /^[A-Za-z0-9-]{1,64}$/;
+// Même format que les codes de lien d'auteur du backend métier (ADR-0012, D14) : 6 à 16 lettres ou chiffres.
+const AFFILIATE_REF = /^[A-Za-z0-9]{6,16}$/;
 
 /** Appel HTTP par défaut vers l'endpoint enroll-intent du backend métier. */
 async function fetchEnrollIntentOverHttp(formationId) {

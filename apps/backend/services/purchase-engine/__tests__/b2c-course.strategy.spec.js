@@ -79,8 +79,8 @@ describe('B2cCoursePurchaseStrategy', () => {
 
   it('la commande porte un formation_id entier et le lien d\'affiliation sûr', async () => {
     const { strategy } = strategyReturning(200, PURCHASABLE);
-    await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', ref: 'formateur-ab12' });
-    expect(mockInitializePayment.mock.calls[0][0].metadata).toMatchObject({ formation_id: 12, channel_ref: 'formateur-ab12' });
+    await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', ref: 'Ab12Cd34' });
+    expect(mockInitializePayment.mock.calls[0][0].metadata).toMatchObject({ formation_id: 12, channel_ref: 'Ab12Cd34' });
 
     mockInitializePayment.mockClear();
     await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', ref: '<script>' });
