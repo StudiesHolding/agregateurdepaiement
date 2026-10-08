@@ -6,15 +6,18 @@
  * l'exposant ISO 4217 de la devise (XOF/XAF : 0 décimale, EUR/USD : 2).
  *
  * Ordre d'application par ligne : prix catalogue → promotion SL → prix d'enchère (remplace tout) → remise de
- * volume (B2B) → coupon (un seul par commande) ; puis conversion éventuelle vers la devise de règlement au taux
- * fourni (figé dans la commande par l'appelant).
+ * volume (B2B) → coupon (un seul par commande) → taxe du pays de l'acheteur (D16) ; puis conversion éventuelle
+ * vers la devise de règlement au taux fourni (figé dans la commande par l'appelant).
+ *
+ * Taxe : la règle (taux, prix TTC ou HT, autoliquidation B2B) est résolue par l'appelant depuis la table des
+ * règles par pays ; le moteur la calcule ligne à ligne et la trace (base, taux, montant).
  *
  * Règles de cumul (D7) : une ligne d'enchère n'accepte aucune remise ; un coupon s'applique au prix promotionnel,
  * sauf coupon « exclusif » : on retient alors, pour la commande, la meilleure option entre promotions seules et
  * coupon seul (jamais les deux), au bénéfice de l'acheteur.
  */
 
-export const ENGINE_VERSION = "price-engine/1";
+export const ENGINE_VERSION = "price-engine/2";
 
 /** Exposants ISO 4217 différents de 2 (les autres devises ont 2 décimales). */
 const EXPONENTS = { XOF: 0, XAF: 0, GNF: 0, KMF: 0, RWF: 0, UGX: 0, JPY: 0, KRW: 0, VND: 0, CLP: 0, BIF: 0, DJF: 0, BHD: 3, KWD: 3, OMR: 3, TND: 3, JOD: 3, LYD: 3 };
@@ -217,6 +220,42 @@ function evaluate(lines, coupon, currency, exponent, withPromotion) {
 }
 
 /**
+ * Taxe par ligne, après remises. `rule` : { country, ratePercent, inclusive, label?, reverseCharge? }.
+ * - TTC (inclusive) : le total ne bouge pas ; la taxe est extraite (total − total / (1 + taux)).
+ * - HT : la taxe s'ajoute au total.
+ * - Autoliquidation (vente B2B éligible) : taux 0, mention conservée.
+ */
+function applyTax(priced, rule) {
+  if (!rule) {
+    priced.forEach((p) => { p.tax = null; });
+    return { amount: 0n, summary: null };
+  }
+  const country = String(rule.country ?? "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(country)) throw new PriceEngineError("INVALID_TAX_RULE", "Pays de taxation invalide (ISO 3166 alpha-2).");
+  const bps = rule.reverseCharge ? 0n : toBasisPoints(rule.ratePercent ?? 0, "Taux de taxe");
+  const inclusive = Boolean(rule.inclusive);
+  let amount = 0n;
+  for (const p of priced) {
+    let lineTax;
+    let base;
+    if (inclusive) {
+      base = divRound(p.total * BPS, BPS + bps);
+      lineTax = p.total - base;
+    } else {
+      base = p.total;
+      lineTax = divRound(p.total * bps, BPS);
+      p.total += lineTax;
+    }
+    p.tax = { rateBps: Number(bps), inclusive, baseMinor: base, amountMinor: lineTax };
+    amount += lineTax;
+  }
+  return {
+    amount,
+    summary: { country, rateBps: Number(bps), inclusive, reverseCharge: Boolean(rule.reverseCharge), label: rule.label ?? null },
+  };
+}
+
+/**
  * Devis.
  * @param {object} input
  * @param {string} input.currency — devise des prix catalogue (ISO 4217)
@@ -224,6 +263,7 @@ function evaluate(lines, coupon, currency, exponent, withPromotion) {
  *   volumeDiscountPercent?, formationId?, categoryIds?, authorKey? }
  * @param {object} [input.coupon] — { code, type: 'percent'|'fixed'|'free', value?, currency?, minAmount?,
  *   exclusive?, scope?: { type: 'all'|'formation'|'category'|'author', ids? } }
+ * @param {object} [input.tax] — { country, ratePercent, inclusive, label?, reverseCharge? } (règle du pays de l'acheteur)
  * @param {object} [input.settlement] — { currency, rate } : unités de la devise de règlement pour 1 unité de `currency`
  */
 export function quote(input) {
@@ -244,7 +284,9 @@ export function quote(input) {
       : { ...promotionsOnly, couponResult: { code: coupon.code, applied: false, reason: "PROMOTION_IS_BETTER", amount: 0n } };
   }
 
-  const { priced, couponResult, subtotal, total } = result;
+  const { priced, couponResult, subtotal } = result;
+  const tax = applyTax(priced, input.tax ?? null);
+  const total = priced.reduce((a, p) => a + p.total, 0n);
   const out = {
     engineVersion: ENGINE_VERSION,
     currency,
@@ -255,10 +297,13 @@ export function quote(input) {
       quantity: Number(p.line.quantity),
       unitBaseMinor: p.line.unitBase,
       adjustments: p.adjustments,
+      tax: p.tax,
       totalMinor: p.total,
     })),
     subtotalMinor: subtotal,
-    discountMinor: subtotal - total,
+    discountMinor: priced.reduce((a, p) => a + p.adjustments.reduce((b, adj) => b - adj.amount, 0n), 0n),
+    taxMinor: tax.amount,
+    tax: tax.summary,
     totalMinor: total,
     coupon: couponResult,
     settlement: null,
@@ -294,10 +339,12 @@ export function serializeQuote(q) {
       quantity: l.quantity,
       unitBase: money(l.unitBaseMinor),
       adjustments: l.adjustments.map((a) => ({ type: a.type, amount: money(a.amount) })),
+      tax: l.tax && { rateBps: l.tax.rateBps, inclusive: l.tax.inclusive, base: money(l.tax.baseMinor), amount: money(l.tax.amountMinor) },
       total: money(l.totalMinor),
     })),
     subtotal: money(q.subtotalMinor),
     discount: money(q.discountMinor),
+    tax: q.tax && { ...q.tax, amount: money(q.taxMinor) },
     total: money(q.totalMinor),
     coupon: q.coupon && { code: q.coupon.code, applied: q.coupon.applied, reason: q.coupon.reason, amount: money(q.coupon.amount) },
     settlement: q.settlement && { currency: q.settlement.currency, rate: q.settlement.rate, total: money(q.settlement.totalMinor, q.settlement.exponent) },

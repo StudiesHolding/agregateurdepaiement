@@ -124,6 +124,36 @@ describe('devise de règlement (taux figé fourni par l’appelant)', () => {
   });
 });
 
+describe('taxe du pays de l’acheteur (D16)', () => {
+  it('prix HT : la TVA s’ajoute après les remises (Sénégal 18 %)', () => {
+    const q = quote({ currency: 'XOF', lines: [course({ promotionPercent: 20 })], tax: { country: 'sn', ratePercent: 18, inclusive: false } });
+    expect(q.lines[0].tax).toEqual({ rateBps: 1800, inclusive: false, baseMinor: 12000n, amountMinor: 2160n });
+    expect(q.totalMinor).toBe(14160n);
+    expect(q.taxMinor).toBe(2160n);
+  });
+
+  it('prix TTC : le total ne bouge pas, la TVA est extraite (France 20 %)', () => {
+    const q = quote({ currency: 'EUR', lines: [course({ unitPrice: '59.00' })], tax: { country: 'FR', ratePercent: 20, inclusive: true } });
+    expect(fromMinor(q.totalMinor, 2)).toBe('59.00');
+    expect(fromMinor(q.lines[0].tax.baseMinor, 2)).toBe('49.17');
+    expect(fromMinor(q.taxMinor, 2)).toBe('9.83');
+  });
+
+  it('autoliquidation B2B : taux 0, mention conservée ; taux 0 par défaut : chemin complet', () => {
+    const b2b = quote({ currency: 'EUR', lines: [{ kind: 'B2B_PACKAGE', ref: 'p', unitPrice: '100', quantity: 10 }], tax: { country: 'BE', ratePercent: 21, reverseCharge: true } });
+    expect(b2b.taxMinor).toBe(0n);
+    expect(b2b.tax).toMatchObject({ country: 'BE', reverseCharge: true, rateBps: 0 });
+    const zero = quote({ currency: 'XOF', lines: [course()], tax: { country: 'CI', ratePercent: 0 } });
+    expect(zero.lines[0].tax).toMatchObject({ rateBps: 0, amountMinor: 0n, baseMinor: 15000n });
+  });
+
+  it('la conversion porte sur le total TTC ; pays invalide refusé', () => {
+    const q = quote({ currency: 'XOF', lines: [course({ unitPrice: '10000' })], tax: { country: 'SN', ratePercent: 18 }, settlement: { currency: 'XOF' } });
+    expect(q.settlement.totalMinor).toBe(11800n);
+    expect(() => quote({ currency: 'XOF', lines: [course()], tax: { country: 'SEN', ratePercent: 18 } })).toThrow(/Pays/);
+  });
+});
+
 describe('déterminisme et sérialisation', () => {
   it('mêmes entrées, même devis ; JSON lisible sans BigInt', () => {
     const input = { currency: 'EUR', lines: [course({ unitPrice: '19.99', promotionPercent: 15 })], coupon: { code: 'C', type: 'fixed', value: '2', currency: 'EUR' } };
