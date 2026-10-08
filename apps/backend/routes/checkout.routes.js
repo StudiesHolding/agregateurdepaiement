@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { catchAsync } from "../middlewares/error.middleware.js";
+import rateLimit from "express-rate-limit";
 import { checkoutContextService } from "../services/purchase-engine/checkout-context.service.js";
 
 // Note: Ensure the strategies are registered elsewhere (e.g. at startup)
@@ -47,6 +48,35 @@ router.get("/quote", catchAsync(async (req, res) => {
         success: true,
         data: quote
     });
+}));
+
+// Anti essai de codes (ADR-0012, D9) : 10 vérifications par minute et par adresse IP.
+const couponLimiter = process.env.NODE_ENV === "test"
+    ? (_req, _res, next) => next()
+    : rateLimit({
+        windowMs: 60 * 1000,
+        max: 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, message: "Trop d'essais de codes : patientez une minute." },
+    });
+
+/**
+ * POST /api/checkout/coupon
+ * Aperçu d'un code sur une formation (aucune réservation) : prix avant/après, ou refus motivé.
+ * Body: { type: "B2C_COURSE", id: 58, code: "RENTREE-2026", email?: "..." }
+ */
+router.post("/coupon", couponLimiter, catchAsync(async (req, res) => {
+    const { type, id, code, email } = req.body ?? {};
+    if (type !== "B2C_COURSE") {
+        return res.status(400).json({ success: false, message: "Les codes s'appliquent aux inscriptions à une formation." });
+    }
+    if (!id || typeof code !== "string" || !code.trim()) {
+        return res.status(400).json({ success: false, message: "Formation et code requis." });
+    }
+    const strategy = checkoutContextService.getStrategy(type);
+    const data = await strategy.previewCoupon(id, code, typeof email === "string" ? email : null);
+    res.json({ success: true, data });
 }));
 
 /**

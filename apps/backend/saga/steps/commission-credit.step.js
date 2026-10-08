@@ -141,6 +141,10 @@ export class CommissionCreditStep {
       channel: ALLOWED_CHANNELS.includes(channel) ? channel : this.resolveChannel(metadata),
       paidAt: toIsoPaidAt(order.paidAt),
       correlationId,
+      // Coupon (ADR-0012, D13) : prix avant coupon et financeur de la remise — la part de l'auteur s'en déduit.
+      ...(/^\d+(\.\d{1,3})?$/.test(String(metadata.coupon_list_amount ?? '')) && ['author', 'platform'].includes(metadata.coupon_funder)
+        ? { listAmount: String(metadata.coupon_list_amount), couponFunder: metadata.coupon_funder }
+        : {}),
     };
 
     log(

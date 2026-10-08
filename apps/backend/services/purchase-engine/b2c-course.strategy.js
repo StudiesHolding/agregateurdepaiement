@@ -1,6 +1,8 @@
 import { PurchaseStrategy } from "./purchase.strategy.js";
 import axios from "axios";
 import { AppError, BadRequestError, NotFoundError } from "../../utils/errors.js";
+import { SlBackendCouponClient, isRetryableCouponStatus } from "../sl-backend-coupon.client.js";
+import { SlBackendEnrollmentClient, isRetryableEnrollmentStatus } from "../sl-backend-enrollment.client.js";
 
 /**
  * Stratégie de paiement d'une formation B2C (S1-7b).
@@ -12,6 +14,9 @@ import { AppError, BadRequestError, NotFoundError } from "../../utils/errors.js"
  *
  * SÉCURITÉ : le prix et la devise sont TOUJOURS relus côté serveur au moment du
  * paiement ; ceux envoyés par le navigateur sont ignorés.
+ *
+ * COUPONS (ADR-0012, D6 bis) : le backend métier calcule le prix avec coupon et réserve l'utilisation ; le montant
+ * payé est celui de la réservation. Coupon à 100 % : aucune transaction, inscription directe (source coupon_free).
  */
 export const B2C_INTENT_TIMEOUT_MS = 8000;
 // Même format que les codes de lien d'auteur du backend métier (ADR-0012, D14) : 6 à 16 lettres ou chiffres.
@@ -36,9 +41,21 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
     /**
      * @param {(formationId: number) => Promise<{status: number, body: any, error?: Error}>} [fetchIntent]
      */
-    constructor(fetchIntent = fetchEnrollIntentOverHttp) {
+    constructor(fetchIntent = fetchEnrollIntentOverHttp, couponClient = new SlBackendCouponClient(), enrollmentClient = new SlBackendEnrollmentClient()) {
         super();
         this.fetchIntent = fetchIntent;
+        this.couponClient = couponClient;
+        this.enrollmentClient = enrollmentClient;
+    }
+
+    /** Aperçu d'un code (aucune réservation) : prix avant/après, ou refus motivé. */
+    async previewCoupon(id, code, email) {
+        const formationId = parseFormationId(id);
+        await this.loadPurchasableIntent(formationId);
+        const { status, data } = await this.couponClient.quote(String(code ?? "").slice(0, 40), formationId, email || null);
+        if (isRetryableCouponStatus(status)) throw new AppError("Les codes sont momentanément indisponibles. Réessayez dans un instant.", 503);
+        if (status !== 200 || !data?.data) throw new AppError("Code impossible à vérifier.", 502);
+        return data.data;
     }
 
     getType() {
@@ -88,7 +105,15 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
         const purchaseEngineUrl = process.env.PURCHASE_ENGINE_URL || "http://localhost:3005";
         const channelRef = typeof data.ref === "string" && AFFILIATE_REF.test(data.ref) ? data.ref : null;
 
-        const result = await OrchestratorService.initializePayment({
+        // Coupon : réservé AVANT d'initier le paiement ; le montant est celui calculé par le backend métier.
+        const coupon = await this.reserveCoupon(data.couponCode, formationId, customerEmail, intent.currency);
+        if (coupon && Number(coupon.finalAmount) === 0) {
+            return this.enrollWithFreeCoupon(coupon, formationId, customerEmail, channelRef, purchaseEngineUrl);
+        }
+
+        let result;
+        try {
+        result = await OrchestratorService.initializePayment({
             customerEmail,
             customerName,
             lmsItemId: String(formationId),
@@ -97,7 +122,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             countryCode: data.countryCode || "CM",
             // Prix et devise du backend : jamais ceux du navigateur.
             currency: intent.currency,
-            amount: intent.price,
+            amount: coupon ? Number(coupon.finalAmount) : intent.price,
             successUrl: `${purchaseEngineUrl}/success`,
             cancelUrl: `${purchaseEngineUrl}/cancel`,
             failedUrl: `${purchaseEngineUrl}/failed`,
@@ -112,10 +137,22 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
                 // Attribution : le lien est enregistré, sa validation arrive au sprint 4.
                 channel: "direct",
                 channel_ref: channelRef,
+                ...(coupon ? {
+                    coupon_code: coupon.code,
+                    coupon_reservation_id: coupon.reservationId,
+                    coupon_list_amount: coupon.listAmount,
+                    coupon_discount: coupon.discountAmount,
+                    coupon_funder: coupon.funder,
+                } : {}),
             },
         });
+        } catch (error) {
+            if (coupon) await this.couponClient.release(coupon.reservationId).catch(() => undefined);
+            throw error;
+        }
 
         if (!result.success) {
+            if (coupon) await this.couponClient.release(coupon.reservationId).catch(() => undefined);
             throw new Error(result.error || "Erreur lors de l'initialisation du paiement B2C.");
         }
 
@@ -127,6 +164,48 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             widgetParams: result.widgetParams,
             clientSecret: result.clientSecret,
             message: "Paiement B2C initialisé avec succès.",
+        };
+    }
+
+    /** Réserve le coupon saisi (ou null sans code) ; refus motivé en 409, indisponibilité en 503. */
+    async reserveCoupon(rawCode, formationId, email, currency) {
+        const code = typeof rawCode === "string" ? rawCode.trim().slice(0, 40) : "";
+        if (!code) return null;
+        if (!email) throw new BadRequestError("Indiquez l'e-mail de l'apprenant pour utiliser un code.");
+        const { status, data } = await this.couponClient.reserve(code, formationId, email);
+        if (isRetryableCouponStatus(status)) throw new AppError("Les codes sont momentanément indisponibles. Réessayez dans un instant.", 503);
+        const quote = data?.data;
+        if (status !== 200 || !quote) throw new AppError(data?.error || "Code impossible à vérifier.", status >= 400 && status < 500 ? status : 502);
+        if (!quote.valid) throw new AppError(quote.message || "Ce code ne s'applique pas.", 409);
+        if (quote.currency !== currency || !/^\d+(\.\d{1,3})?$/.test(String(quote.finalAmount)) || !quote.reservationId) {
+            await this.couponClient.release(quote.reservationId).catch(() => undefined);
+            throw new AppError("Réponse inattendue du service des codes.", 502);
+        }
+        return quote;
+    }
+
+    /** Coupon à 100 % : aucune transaction ; inscription directe puis confirmation du coupon (D6 bis). */
+    async enrollWithFreeCoupon(coupon, formationId, email, channelRef, purchaseEngineUrl) {
+        const orderRef = `COUPON-${coupon.reservationId}`;
+        const { status, data } = await this.enrollmentClient.enroll({
+            email, formationId, orderRef, lineRef: "1", source: "coupon_free", ...(channelRef ? { ref: channelRef } : {}),
+        }, orderRef);
+        if (status !== 200 && status !== 201) {
+            await this.couponClient.release(coupon.reservationId).catch(() => undefined);
+            if (status === 404 && data?.code === "USER_NOT_FOUND") {
+                throw new AppError("Aucun compte Studies Learning ne correspond à cet e-mail : créez votre compte, puis réessayez.", 409);
+            }
+            if (isRetryableEnrollmentStatus(status)) throw new AppError("L'inscription est momentanément indisponible. Réessayez dans un instant.", 503);
+            throw new AppError(data?.error || "L'inscription n'a pas abouti.", 409);
+        }
+        const confirmed = await this.couponClient.confirm(coupon.reservationId, orderRef);
+        if (confirmed.status !== 200) console.error(`[B2cCoursePurchaseStrategy] coupon ${coupon.code} non confirmé (${confirmed.status}) — inscription faite`);
+        return {
+            transactionId: orderRef,
+            status: "COMPLETED",
+            provider: null,
+            redirectUrl: `${purchaseEngineUrl}/success?ref=${encodeURIComponent(orderRef)}`,
+            message: "Inscription offerte confirmée.",
         };
     }
 

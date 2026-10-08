@@ -390,15 +390,34 @@ export class WebhookProcessor {
       },
     );
 
+    const orderId = attempt.paymentIntent?.orderId || attempt.paymentIntentId;
     await Order.update(
       {
         status: OrderStatus.FAILED,
       },
       {
-        where: { id: attempt.paymentIntent?.orderId || attempt.paymentIntentId },
+        where: { id: orderId },
         transaction,
       }
     );
+
+    // Coupon réservé pour cette commande : libéré dès l'échec (sinon il expire seul au bout de 45 min).
+    // Appel HTTP après la validation de la transaction, sans jamais bloquer le traitement du webhook.
+    const releaseCoupon = async () => {
+      try {
+        const order = await Order.findByPk(orderId);
+        const raw = order?.metadata;
+        const metadata = typeof raw === "string" ? JSON.parse(raw) : raw ?? {};
+        if (!metadata?.coupon_reservation_id) return;
+        const { SlBackendCouponClient } = await import("./sl-backend-coupon.client.js");
+        const { status } = await new SlBackendCouponClient().release(metadata.coupon_reservation_id);
+        if (status !== 200) console.error(`[Webhook] coupon de la commande ${order.reference} non libéré (HTTP ${status}) : il expirera seul`);
+      } catch (error) {
+        console.error("[Webhook] libération du coupon impossible (non bloquant) :", error?.message ?? error);
+      }
+    };
+    if (transaction && typeof transaction.afterCommit === "function") transaction.afterCommit(() => { void releaseCoupon(); });
+    else void releaseCoupon();
   }
 
   static async markAsProcessing(attempt, payload, transaction) {

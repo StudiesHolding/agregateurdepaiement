@@ -236,6 +236,25 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
     );
   });
 
+  it('TC-COM-02b: coupon sur la commande → prix avant coupon et financeur transmis (ADR-0012, D13) ; valeurs invalides ignorées', async () => {
+    mockOrderFindOne.mockResolvedValue({
+      ...baseOrder,
+      metadata: { ...baseOrder.metadata, coupon_list_amount: '25000', coupon_funder: 'author', coupon_reservation_id: 'r' },
+    });
+    await strategy.execute(baseEvent);
+    expect(mockCreditCommission).toHaveBeenCalledWith(expect.objectContaining({ listAmount: '25000', couponFunder: 'author' }), 'corr-com-001');
+
+    mockCreditCommission.mockClear();
+    mockOrderFindOne.mockResolvedValue({
+      ...baseOrder,
+      metadata: { ...baseOrder.metadata, coupon_list_amount: '25 000', coupon_funder: 'someone' },
+    });
+    await strategy.execute(baseEvent);
+    const payload = mockCreditCommission.mock.calls[0][0];
+    expect(payload.listAmount).toBeUndefined();
+    expect(payload.couponFunder).toBeUndefined();
+  });
+
   // ─────────────────────────────────────────────────────────
   // Critère 3 : commande QA → aucun appel, aucune trace
   // ─────────────────────────────────────────────────────────

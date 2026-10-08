@@ -92,4 +92,70 @@ describe('B2cCoursePurchaseStrategy', () => {
     await expect(strategy.process({ itemId: 12, customerEmail: 'a@test.cm' })).rejects.toMatchObject({ statusCode: 409 });
     expect(mockInitializePayment).not.toHaveBeenCalled();
   });
+
+  describe('coupons (ADR-0012, D6 bis)', () => {
+    const RES = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+    const okQuote = (over = {}) => ({ valid: true, code: 'MOINS20', label: null, currency: 'XAF', listAmount: '25000', discountAmount: '5000', finalAmount: '20000', funder: 'author', capped: false, reservationId: RES, ...over });
+    const setup = (reserveResult, enrollResult = { status: 201, data: { data: { channel: 'direct' } } }) => {
+      const fetchIntent = jest.fn(async () => ({ status: 200, body: { success: true, data: PURCHASABLE } }));
+      const coupons = {
+        reserve: jest.fn(async () => reserveResult),
+        release: jest.fn(async () => ({ status: 200, data: {} })),
+        confirm: jest.fn(async () => ({ status: 200, data: {} })),
+        quote: jest.fn(async () => ({ status: 200, data: { data: okQuote() } })),
+      };
+      const enrollment = { enroll: jest.fn(async () => enrollResult) };
+      return { strategy: new B2cCoursePurchaseStrategy(fetchIntent, coupons, enrollment), coupons, enrollment };
+    };
+
+    it('code valide → montant payé = prix calculé par le backend, coupon tracé sur la commande', async () => {
+      const { strategy, coupons } = setup({ status: 200, data: { data: okQuote() } });
+      await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: ' moins20 ' });
+      expect(coupons.reserve).toHaveBeenCalledWith('moins20', 12, 'a@test.cm');
+      const call = mockInitializePayment.mock.calls[0][0];
+      expect(call.amount).toBe(20000);
+      expect(call.metadata).toMatchObject({ coupon_code: 'MOINS20', coupon_reservation_id: RES, coupon_list_amount: '25000', coupon_funder: 'author' });
+    });
+
+    it('code refusé → 409 avec le motif, aucun paiement', async () => {
+      const { strategy } = setup({ status: 200, data: { data: { valid: false, reason: 'EXPIRED', message: 'Ce code a expiré.' } } });
+      await expect(strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: 'VIEUX' })).rejects.toMatchObject({ statusCode: 409, message: 'Ce code a expiré.' });
+      expect(mockInitializePayment).not.toHaveBeenCalled();
+    });
+
+    it('service des codes indisponible → 503, aucun paiement au prix plein par surprise', async () => {
+      const { strategy } = setup({ status: 503, data: {} });
+      await expect(strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: 'MOINS20' })).rejects.toMatchObject({ statusCode: 503 });
+      expect(mockInitializePayment).not.toHaveBeenCalled();
+    });
+
+    it('devise de la réservation différente de celle de la formation → réservation libérée, 502', async () => {
+      const { strategy, coupons } = setup({ status: 200, data: { data: okQuote({ currency: 'EUR' }) } });
+      await expect(strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: 'MOINS20' })).rejects.toMatchObject({ statusCode: 502 });
+      expect(coupons.release).toHaveBeenCalledWith(RES);
+    });
+
+    it('échec d\'initialisation du paiement → réservation libérée', async () => {
+      const { strategy, coupons } = setup({ status: 200, data: { data: okQuote() } });
+      mockInitializePayment.mockResolvedValueOnce({ success: false, error: 'PSP indisponible' });
+      await expect(strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: 'MOINS20' })).rejects.toThrow('PSP indisponible');
+      expect(coupons.release).toHaveBeenCalledWith(RES);
+    });
+
+    it('coupon à 100 % → aucune transaction, inscription coupon_free puis confirmation', async () => {
+      const { strategy, coupons, enrollment } = setup({ status: 200, data: { data: okQuote({ funder: 'platform', discountAmount: '25000', finalAmount: '0' }) } });
+      const result = await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: 'OFFERT', ref: 'Ab12Cd34' });
+      expect(mockInitializePayment).not.toHaveBeenCalled();
+      expect(enrollment.enroll.mock.calls[0][0]).toMatchObject({ email: 'a@test.cm', formationId: 12, source: 'coupon_free', orderRef: `COUPON-${RES}`, ref: 'Ab12Cd34' });
+      expect(coupons.confirm).toHaveBeenCalledWith(RES, `COUPON-${RES}`);
+      expect(result).toMatchObject({ status: 'COMPLETED', transactionId: `COUPON-${RES}` });
+    });
+
+    it('coupon à 100 % sans compte apprenant → réservation libérée, message clair', async () => {
+      const { strategy, coupons } = setup({ status: 200, data: { data: okQuote({ finalAmount: '0', discountAmount: '25000' }) } }, { status: 404, data: { code: 'USER_NOT_FOUND' } });
+      await expect(strategy.process({ itemId: 12, customerEmail: 'inconnu@test.cm', couponCode: 'OFFERT' })).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('créez votre compte') });
+      expect(coupons.release).toHaveBeenCalledWith(RES);
+      expect(coupons.confirm).not.toHaveBeenCalled();
+    });
+  });
 });

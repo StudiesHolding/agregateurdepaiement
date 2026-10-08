@@ -8,13 +8,14 @@ import { B2cCourseSagaStrategy, EnrollmentRetryableError, EnrollmentPermanentErr
 
 const order = (metadata = {}) => ({ reference: 'ORD-1', formationId: 43, customerEmail: 'awa@test.sl', metadata: JSON.stringify({ purchase_type: 'B2C_COURSE', formation_id: 43, customer_email: 'awa@test.sl', channel: 'direct', ...metadata }) });
 
-function setup({ status = 201, data = { success: true, data: { enrollmentId: '9', channel: 'trainer_link', alreadyEnrolled: false } }, configured = true, metadata } = {}) {
+function setup({ status = 201, data = { success: true, data: { enrollmentId: '9', channel: 'trainer_link', alreadyEnrolled: false } }, configured = true, metadata, couponStatus = 200 } = {}) {
   const client = { isConfigured: () => configured, enroll: jest.fn(async () => ({ status, data })) };
   const commissionStep = { execute: jest.fn(async () => ({ credited: true })) };
   const orders = { findOne: jest.fn(async () => order(metadata)), update: jest.fn(async () => [1]) };
   const notifyAdmins = jest.fn(async () => undefined);
-  const strategy = new B2cCourseSagaStrategy({ client, commissionStep, orders, notifyAdmins, resolveStudent: async () => 102 });
-  return { strategy, client, commissionStep, orders, notifyAdmins };
+  const couponClient = { confirm: jest.fn(async () => ({ status: couponStatus, data: {} })) };
+  const strategy = new B2cCourseSagaStrategy({ client, commissionStep, orders, notifyAdmins, resolveStudent: async () => 102, couponClient });
+  return { strategy, client, commissionStep, orders, notifyAdmins, couponClient };
 }
 
 const event = { orderReference: 'ORD-1', correlationId: 'c-1' };
@@ -53,5 +54,30 @@ describe('B2cCourseSagaStrategy', () => {
     const { strategy, client } = setup({ metadata: { channel_ref: "x' OR 1=1" } });
     await strategy.execute(event);
     expect(client.enroll.mock.calls[0][0]).not.toHaveProperty('ref');
+  });
+
+  describe('coupon (ADR-0012, D6 bis)', () => {
+    const RES = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+
+    it('paiement confirmé → le coupon est confirmé pour la commande, puis la commission est créditée', async () => {
+      const { strategy, couponClient, commissionStep, orders } = setup({ metadata: { coupon_reservation_id: RES, coupon_code: 'MOINS20' } });
+      await strategy.execute(event);
+      expect(couponClient.confirm).toHaveBeenCalledWith(RES, 'ORD-1');
+      expect(commissionStep.execute).toHaveBeenCalled();
+      expect(orders.update).toHaveBeenCalledWith(expect.objectContaining({ status: OrderStatus.COMPLETED }), expect.anything());
+    });
+
+    it('backend des coupons indisponible → nouvel essai, rien n\'est crédité ni clôturé', async () => {
+      const { strategy, commissionStep, orders } = setup({ metadata: { coupon_reservation_id: RES }, couponStatus: 503 });
+      await expect(strategy.execute(event)).rejects.toBeInstanceOf(EnrollmentRetryableError);
+      expect(commissionStep.execute).not.toHaveBeenCalled();
+      expect(orders.update).not.toHaveBeenCalled();
+    });
+
+    it('sans coupon → aucun appel au service des codes', async () => {
+      const { strategy, couponClient } = setup();
+      await strategy.execute(event);
+      expect(couponClient.confirm).not.toHaveBeenCalled();
+    });
   });
 });

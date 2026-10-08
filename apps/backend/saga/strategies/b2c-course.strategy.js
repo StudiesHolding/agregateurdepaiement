@@ -4,8 +4,10 @@
  * Après un paiement confirmé (webhook signé) :
  *   1. inscription canonique sur le backend métier (`sl_enrollment`, idempotente par commande) — le backend
  *      résout le compte par l'e-mail du bénéficiaire et VÉRIFIE le lien d'auteur (canal 55 % ou 75 %) ;
- *   2. crédit de la commission de l'auteur sur ce canal vérifié (étape existante, idempotente) ;
- *   3. commande marquée COMPLETED.
+ *   2. confirmation du coupon éventuel (idempotente, ADR-0012 D6 bis) ;
+ *   3. crédit de la commission de l'auteur sur ce canal vérifié (étape existante, idempotente), calculé sur le prix
+ *      avant coupon selon qui finance la remise (D13) ;
+ *   4. commande marquée COMPLETED.
  * Un échec réseau ou serveur est rejoué (BullMQ) sans risque de doublon ; un échec définitif (compte inconnu,
  * formation introuvable) passe la commande à vérifier et prévient les administrateurs.
  * L'inscription au cours Moodle part ensuite de l'outbox du backend (`ENROLLMENT_CREATED`).
@@ -14,6 +16,7 @@ import { Order } from '../../models/index.js';
 import { OrderStatus } from '../../enums/index.js';
 import { SlBackendEnrollmentClient, isRetryableEnrollmentStatus } from '../../services/sl-backend-enrollment.client.js';
 import { CommissionCreditStep } from '../steps/commission-credit.step.js';
+import { SlBackendCouponClient, isRetryableCouponStatus } from '../../services/sl-backend-coupon.client.js';
 
 export class EnrollmentRetryableError extends Error {
   constructor(message) {
@@ -39,8 +42,9 @@ const parseMetadata = (raw) => {
 };
 
 export class B2cCourseSagaStrategy {
-  constructor({ client = new SlBackendEnrollmentClient(), commissionStep = new CommissionCreditStep(), orders = Order, notifyAdmins = defaultNotifyAdmins, resolveStudent = null } = {}) {
+  constructor({ client = new SlBackendEnrollmentClient(), commissionStep = new CommissionCreditStep(), orders = Order, notifyAdmins = defaultNotifyAdmins, resolveStudent = null, couponClient = new SlBackendCouponClient() } = {}) {
     this.client = client;
+    this.couponClient = couponClient;
     if (resolveStudent) this.resolveStudentId = resolveStudent;
     this.commissionStep = commissionStep;
     this.orders = orders;
@@ -82,11 +86,19 @@ export class B2cCourseSagaStrategy {
     const enrollment = data.data;
     log(`Inscription ${enrollment.alreadyEnrolled ? 'déjà faite' : 'créée'} (canal ${enrollment.channel})`);
 
-    // 2. Commission de l'auteur, sur le canal VÉRIFIÉ par le backend (jamais celui déclaré par le navigateur)
+    // 2. Coupon : l'utilisation devient définitive (idempotent ; honoré même après expiration de la réservation)
+    if (metadata.coupon_reservation_id) {
+      const confirmed = await this.couponClient.confirm(metadata.coupon_reservation_id, order.reference);
+      if (isRetryableCouponStatus(confirmed.status)) throw new EnrollmentRetryableError(`Coupon non confirmé (HTTP ${confirmed.status}) : nouvel essai`);
+      if (confirmed.status !== 200) console.error(`[B2cCourseSaga:${correlationId}] coupon non confirmé (HTTP ${confirmed.status}) — paiement et inscription conservés`);
+      else log(`Coupon ${metadata.coupon_code ?? ''} confirmé`);
+    }
+
+    // 3. Commission de l'auteur, sur le canal VÉRIFIÉ par le backend (jamais celui déclaré par le navigateur)
     const studentId = await this.resolveStudentId(email);
     const commission = await this.commissionStep.execute({ orderReference: order.reference, studentId, correlationId, channel: enrollment.channel });
 
-    // 3. Commande terminée
+    // 4. Commande terminée
     await this.orders.update({ status: OrderStatus.COMPLETED, completedAt: new Date() }, { where: { reference: order.reference } });
 
     return { status: 'COMPLETED', enrollmentId: enrollment.enrollmentId, channel: enrollment.channel, alreadyEnrolled: Boolean(enrollment.alreadyEnrolled), commission };
