@@ -60,20 +60,30 @@ app.use(
     crossOriginResourcePolicy: false,
   }),
 );
+// Origines autorisées : liste configurée (ou défauts locaux) + TOUJOURS le purchase-engine vers lequel
+// l'agrégateur redirige (PURCHASE_ENGINE_URL) — sinon le tunnel d'achat est bloqué par le navigateur.
+const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3004",
+      "https://dashboard.studieslearning.com",
+      "https://sl-business.studieslearning.com",
+    ];
+const purchaseEngineOrigin = (() => {
+  try {
+    return new URL(process.env.PURCHASE_ENGINE_URL || "http://localhost:3005").origin;
+  } catch {
+    return null;
+  }
+})();
+const allowedOrigins = [...new Set([...configuredOrigins, purchaseEngineOrigin].filter(Boolean))];
+
 app.use(
   cors({
-    origin: process.env.CORS_ALLOWED_ORIGINS
-      ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) =>
-          origin.trim(),
-        )
-      : [
-          "http://localhost:3000",
-          "http://localhost:3001",
-          "http://localhost:3002",
-          "http://localhost:3004",
-          "https://dashboard.studieslearning.com",
-          "https://sl-business.studieslearning.com",
-        ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],

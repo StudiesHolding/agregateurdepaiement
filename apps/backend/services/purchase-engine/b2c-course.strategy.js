@@ -151,7 +151,9 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
         }
         if (!intent.purchasable) {
             throw new AppError(
-                `Cette formation n'est pas encore disponible à l'achat (${intent.unavailableReason || "indisponible"}).`,
+                intent.unavailableReason === "COURSE_NOT_READY"
+                    ? "Cette formation est en préparation sur le campus : les inscriptions ouvrent bientôt."
+                    : "Les inscriptions à cette formation sont momentanément fermées.",
                 409,
             );
         }
