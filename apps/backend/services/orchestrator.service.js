@@ -172,7 +172,7 @@ export class OrchestratorService {
 
     if (routes.length === 0) {
       throw new BadRequestError(
-        `No available provider for ${paymentMethod} in ${countryCode} with ${currency}`,
+        `Aucun prestataire de paiement disponible pour ${paymentMethod === "card" ? "la carte bancaire" : "le Mobile Money"} en ${currency}${countryCode ? ` (pays ${countryCode})` : ""}. Vérifiez les règles de priorité.`,
       );
     }
 

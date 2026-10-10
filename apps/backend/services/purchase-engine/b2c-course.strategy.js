@@ -122,7 +122,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             lmsItemId: String(formationId),
             lmsItemType: "course",
             paymentMethod: data.paymentMethod || "card",
-            countryCode: data.countryCode || "CM",
+            countryCode: data.countryCode || null,
             // Prix et devise du backend : jamais ceux du navigateur.
             currency: intent.currency,
             amount: coupon ? Number(coupon.finalAmount) : intent.price,

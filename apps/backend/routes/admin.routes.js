@@ -4,6 +4,7 @@ import { protectAdmin, auditLog, requirePsp } from "../middlewares/admin.middlew
 import { AnalyticsService } from "../services/analytics.service.js";
 import { LmsBridgeService } from "../services/lms-bridge.service.js";
 import {
+    sequelize,
     PaymentProvider,
     PaymentIntent,
     PaymentAttempt,
@@ -17,6 +18,7 @@ import {
 import { ProviderFactory } from "../providers/index.js";
 import { WebhookProcessor } from "../services/webhook-processor.service.js";
 import { ProviderRouterService } from "../services/provider-router.service.js";
+import { inMaintenance, normalizeRule } from "../services/routing/routing-engine.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
@@ -266,154 +268,131 @@ router.post("/providers/:id/test", auditLog("TEST_PROVIDER", "provider"), requir
 
 /**
  * GET /api/admin/routes
- * All routing rules with provider info
+ * Règles de priorité avec leur prestataire (ADR-0019, D2).
  */
+const ruleView = (r) => ({
+    id: r.id,
+    provider: r.provider ? { id: r.provider.id, name: r.provider.name, code: r.provider.code, isActive: r.provider.isActive, inMaintenance: inMaintenance(r.provider) } : null,
+    countryCode: r.countryCode,
+    currency: r.currency,
+    paymentMethod: r.paymentMethod ?? "any",
+    minAmount: r.minAmount === null ? null : Number(r.minAmount),
+    maxAmount: r.maxAmount === null ? null : Number(r.maxAmount),
+    priority: r.priority,
+    isActive: r.isActive,
+    updatedAt: r.updatedAt,
+});
+
 router.get("/routes", catchAsync(async (req, res) => {
-    const routes = await ProviderRoute.findAll({
-        include: [{ model: PaymentProvider, as: "provider" }],
-        order: [["countryCode", "ASC"], ["priority", "ASC"]],
-    });
-
-    const data = routes.map(r => ({
-        id: r.id,
-        provider: { id: r.provider.id, name: r.provider.name, code: r.provider.code },
-        countryCode: r.countryCode,
-        currency: r.currency,
-        minAmount: r.minAmount,
-        maxAmount: r.maxAmount,
-        priority: r.priority,
-        isActive: r.isActive,
-    }));
-
-    res.json({ status: "success", data });
+    const routes = await ProviderRouterService.loadRules();
+    res.json({ status: "success", data: routes.map(ruleView) });
 }));
 
 /**
  * GET /api/admin/routes/matrix
- * Routing matrix: countries x providers
+ * Couverture : pays × devise × moyen → prestataires dans l'ordre d'essai.
  */
 router.get("/routes/matrix", catchAsync(async (req, res) => {
-    const routes = await ProviderRoute.findAll({
-        include: [{ model: PaymentProvider, as: "provider" }],
-        order: [["priority", "ASC"]],
-    });
-
-    const providers = await PaymentProvider.findAll({ where: { isActive: true } });
-
-    // Build matrix: { [countryCode]: { [providerCode]: route } }
-    const matrix = {};
-    const countries = [...new Set(routes.map(r => r.countryCode))];
-
-    for (const country of countries) {
-        matrix[country] = {};
-        for (const route of routes.filter(r => r.countryCode === country)) {
-            matrix[country][route.provider.code] = {
-                routeId: route.id,
-                priority: route.priority,
-                isActive: route.isActive,
-                currency: route.currency,
-            };
-        }
+    const routes = await ProviderRouterService.loadRules();
+    const providers = await PaymentProvider.findAll({ order: [["name", "ASC"]] });
+    const lanes = {};
+    for (const r of routes) {
+        const key = `${r.countryCode}|${r.currency}|${r.paymentMethod ?? "any"}`;
+        (lanes[key] ??= { countryCode: r.countryCode, currency: r.currency, paymentMethod: r.paymentMethod ?? "any", rules: [] }).rules.push(ruleView(r));
     }
-
-    res.json({
-        status: "success",
-        data: { matrix, countries, providers: providers.map(p => ({ id: p.id, name: p.name, code: p.code })) },
-    });
-}));
-
-/**
- * POST /api/admin/routes/simulate
- * Simulate provider routing for given parameters
- * body: { countryCode, currency, amount, paymentMethod }
- */
-router.post("/routes/simulate", catchAsync(async (req, res) => {
-    const { countryCode = "CM", currency = "XAF", amount = 1000, paymentMethod = "mobile_money" } = req.body;
-
-    const rawRoutes = await ProviderRouterService.findAvailableRoutes(countryCode, currency, amount);
-    const filteredRoutes = ProviderRouterService.filterByPaymentMethod(rawRoutes, paymentMethod);
-
-    const chain = filteredRoutes.map((r, index) => ({
-        position: index + 1,
-        providerId: r.provider.id,
-        providerName: r.provider.name,
-        providerCode: r.provider.code,
-        priority: r.priority,
-        isActive: r.isActive,
-    }));
-
     res.json({
         status: "success",
         data: {
-            input: { countryCode, currency, amount, paymentMethod },
-            selectedProvider: chain[0] || null,
-            fallbackChain: chain.slice(1),
-            totalCandidates: chain.length,
+            lanes: Object.values(lanes).sort((a, b) => a.countryCode.localeCompare(b.countryCode) || a.currency.localeCompare(b.currency)),
+            providers: providers.map((p) => ({ id: p.id, name: p.name, code: p.code, isActive: p.isActive, supportCard: p.supportCard, supportMobileMoney: p.supportMobileMoney, inMaintenance: inMaintenance(p) })),
         },
     });
 }));
 
 /**
+ * POST /api/admin/routes/simulate
+ * Décision expliquée pour une demande : prestataire choisi, bascules, et motif pour chaque règle écartée.
+ * body: { countryCode, currency, amount, paymentMethod }
+ */
+router.post("/routes/simulate", catchAsync(async (req, res) => {
+    let result;
+    try {
+        result = await ProviderRouterService.explain(req.body ?? {});
+    } catch (err) {
+        throw new BadRequestError(err.message);
+    }
+    const chain = result.candidates.map((c) => ({
+        position: c.position, ruleId: c.rule.id, providerId: c.rule.provider.id, providerName: c.rule.provider.name,
+        providerCode: c.rule.provider.code, priority: c.rule.priority, why: c.why,
+    }));
+    res.json({
+        status: "success",
+        data: { input: result.request, selectedProvider: chain[0] ?? null, fallbackChain: chain.slice(1), totalCandidates: chain.length, trace: result.trace },
+    });
+}));
+
+/**
  * POST /api/admin/routes
- * Create a new routing rule
+ * Nouvelle règle (validation stricte : pays ISO ou « * », devise ISO, moyen, tranche, priorité).
  */
 router.post(
     "/routes",
     auditLog("CREATE_ROUTE", "route"),
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
-        const { providerId, countryCode, currency, minAmount, maxAmount, priority } = req.body;
-
-        if (!providerId || !countryCode || !currency) {
-            throw new BadRequestError("providerId, countryCode, and currency are required");
-        }
-
-        const provider = await PaymentProvider.findByPk(providerId);
-        if (!provider) throw new NotFoundError("Provider not found");
-
-        const route = await ProviderRoute.create({
-            providerId,
-            countryCode: countryCode.toUpperCase(),
-            currency: currency.toUpperCase(),
-            minAmount: minAmount || 0,
-            maxAmount: maxAmount || null,
-            priority: priority || 1,
-            isActive: true,
-        });
-
-        res.status(201).json({ status: "success", data: route });
+        const provider = await PaymentProvider.findByPk(req.body?.providerId);
+        if (!provider) throw new BadRequestError("Prestataire introuvable.");
+        let fields;
+        try { fields = normalizeRule(req.body ?? {}); } catch (err) { throw new BadRequestError(err.message); }
+        const route = await ProviderRoute.create({ providerId: provider.id, ...fields, isActive: fields.isActive ?? true });
+        route.provider = provider;
+        res.status(201).json({ status: "success", data: ruleView(route) });
     })
 );
 
 /**
  * PUT /api/admin/routes/:id
- * Update a routing rule
+ * Modification partielle d'une règle (dont l'ordre de priorité).
  */
 router.put(
     "/routes/:id",
     auditLog("UPDATE_ROUTE", "route"),
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
-        const route = await ProviderRoute.findByPk(req.params.id);
-        if (!route) throw new NotFoundError("Route not found");
+        const route = await ProviderRoute.findByPk(req.params.id, { include: [{ model: PaymentProvider, as: "provider" }] });
+        if (!route) throw new NotFoundError("Règle introuvable.");
+        let fields;
+        try {
+            fields = normalizeRule({ minAmount: route.minAmount, maxAmount: route.maxAmount, ...req.body }, { partial: true });
+        } catch (err) { throw new BadRequestError(err.message); }
+        await route.update(fields);
+        res.json({ status: "success", data: ruleView(route) });
+    })
+);
 
-        const { priority, minAmount, maxAmount, isActive, currency } = req.body;
-
-        await route.update({
-            ...(priority !== undefined && { priority }),
-            ...(minAmount !== undefined && { minAmount }),
-            ...(maxAmount !== undefined && { maxAmount }),
-            ...(isActive !== undefined && { isActive }),
-            ...(currency && { currency: currency.toUpperCase() }),
+/**
+ * PUT /api/admin/routes-order
+ * Nouvel ordre d'essai pour une voie (pays × devise × moyen) : priorités réécrites 10, 20, 30…
+ * body: { ruleIds: number[] }
+ */
+router.put(
+    "/routes-order",
+    auditLog("REORDER_ROUTES", "route"),
+    requirePsp("psp.providers.manage"),
+    catchAsync(async (req, res) => {
+        const ids = Array.isArray(req.body?.ruleIds) ? req.body.ruleIds.map(Number).filter(Number.isInteger) : [];
+        if (ids.length < 2 || new Set(ids).size !== ids.length) throw new BadRequestError("Liste de règles invalide.");
+        const rules = await ProviderRoute.findAll({ where: { id: { [Op.in]: ids } } });
+        if (rules.length !== ids.length) throw new BadRequestError("Une des règles n'existe plus.");
+        await sequelize.transaction(async (t) => {
+            for (const [i, id] of ids.entries()) await ProviderRoute.update({ priority: (i + 1) * 10 }, { where: { id }, transaction: t });
         });
-
-        res.json({ status: "success", data: route });
+        res.json({ status: "success", data: ids.map((id, i) => ({ id, priority: (i + 1) * 10 })) });
     })
 );
 
 /**
  * DELETE /api/admin/routes/:id
- * Delete a routing rule
  */
 router.delete(
     "/routes/:id",
@@ -421,10 +400,9 @@ router.delete(
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const route = await ProviderRoute.findByPk(req.params.id);
-        if (!route) throw new NotFoundError("Route not found");
-
+        if (!route) throw new NotFoundError("Règle introuvable.");
         await route.destroy();
-        res.json({ status: "success", message: "Route deleted" });
+        res.json({ status: "success", message: "Règle supprimée." });
     })
 );
 

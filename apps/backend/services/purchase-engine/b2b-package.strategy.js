@@ -81,7 +81,7 @@ export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
       lmsItemId: String(quote.packageId),
       lmsItemType: 'package',
       paymentMethod: data.paymentMethod || 'card',
-      countryCode: data.countryCode || 'CM',
+      countryCode: data.countryCode || null,
       // Devis serveur : total et devise ne viennent jamais du navigateur.
       currency: quote.currency,
       amount: Number(quote.total),

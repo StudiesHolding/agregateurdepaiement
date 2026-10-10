@@ -81,7 +81,7 @@ export class AdmissionPurchaseStrategy extends PurchaseStrategy {
             lmsItemId: String(ctx.formationId),
             lmsItemType: "course",
             paymentMethod: data.paymentMethod || "card",
-            countryCode: data.countryCode || "CM",
+            countryCode: data.countryCode || null,
             // Montant et devise du backend : jamais ceux du navigateur.
             currency: ctx.currency,
             amount: ctx.amount,

@@ -71,7 +71,7 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
       lmsItemId: String(quote.thematiqueId),
       lmsItemType: 'thematique',
       paymentMethod: data.paymentMethod || 'card',
-      countryCode: data.countryCode || 'CM',
+      countryCode: data.countryCode || null,
       // Devis serveur : total et devise ne viennent jamais du navigateur.
       currency: quote.currency,
       amount: Number(quote.total),

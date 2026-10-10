@@ -30,6 +30,12 @@ ProviderRoute.init(
             type: DataTypes.DECIMAL(15, 2),
             allowNull: true,
         },
+        // Moyen de paiement couvert par la règle (ADR-0019, D2) : « any » = carte et Mobile Money.
+        paymentMethod: {
+            type: DataTypes.ENUM("any", "card", "mobile_money"),
+            allowNull: false,
+            defaultValue: "any",
+        },
         priority: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
