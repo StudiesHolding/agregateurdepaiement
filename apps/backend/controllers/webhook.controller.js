@@ -22,7 +22,7 @@ export class WebhookController {
 
     const signature = req.headers["stripe-signature"];
 
-    // Process async (In production we'd validate signature here)
+    // Le contenu du webhook ne prouve rien : le processeur confirme auprès de Stripe (session, référence, montant).
     await WebhookProcessor.processEvent("stripe", req.body, signature);
 
     res.status(HttpStatus.OK).json({ received: true });
