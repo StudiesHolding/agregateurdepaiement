@@ -83,6 +83,9 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             itemId: intent.formationId,
             title: intent.title,
             price: intent.price,
+            // Promotion en cours (ADR-0017, D1) : prix barré affiché au paiement.
+            listPrice: intent.listPrice ?? intent.price,
+            promotion: intent.promotion ? { percent: intent.promotion.percent } : null,
             currency: intent.currency,
             thumbnailUrl: intent.thumbnailUrl ?? null,
             features: [
@@ -138,6 +141,8 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
                 // Attribution : le lien est enregistré, sa validation arrive au sprint 4.
                 channel: "direct",
                 channel_ref: channelRef,
+                // Promotion (ADR-0017, D1) : prix catalogue et financeur, renvoyés au crédit de commission.
+                ...promotionMetadata(intent, coupon),
                 ...(coupon ? {
                     coupon_code: coupon.code,
                     coupon_reservation_id: coupon.reservationId,
@@ -243,6 +248,19 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
         }
         return intent;
     }
+}
+
+/**
+ * Métadonnées de promotion : seulement si elle s'applique vraiment au prix payé (un coupon exclusif plus avantageux
+ * repart du prix catalogue, sans la promotion).
+ */
+export function promotionMetadata(intent, coupon) {
+    const funder = intent?.promotion?.funder;
+    const list = Number(intent?.listPrice);
+    if (!["author", "shared"].includes(funder) || !(list > 0)) return {};
+    const beforeCoupon = coupon ? Number(coupon.listAmount) : Number(intent.price);
+    if (!(beforeCoupon < list)) return {};
+    return { promotion_list_amount: String(intent.listPrice), promotion_funder: funder };
 }
 
 /** Identifiant canonique de formation : entier strictement positif. */

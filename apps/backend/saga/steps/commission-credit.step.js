@@ -145,6 +145,10 @@ export class CommissionCreditStep {
       ...(/^\d+(\.\d{1,3})?$/.test(String(metadata.coupon_list_amount ?? '')) && ['author', 'platform'].includes(metadata.coupon_funder)
         ? { listAmount: String(metadata.coupon_list_amount), couponFunder: metadata.coupon_funder }
         : {}),
+      // Promotion (ADR-0017, D1) : prix catalogue et financeur (auteur seul, ou partagée par l'administration).
+      ...(/^\d+(\.\d{1,3})?$/.test(String(metadata.promotion_list_amount ?? '')) && ['author', 'shared'].includes(metadata.promotion_funder)
+        ? { promotionListAmount: String(metadata.promotion_list_amount), promotionFunder: metadata.promotion_funder }
+        : {}),
     };
 
     log(

@@ -158,4 +158,21 @@ describe('B2cCoursePurchaseStrategy', () => {
       expect(coupons.confirm).not.toHaveBeenCalled();
     });
   });
+
+  describe('promotion (ADR-0017, D1)', () => {
+    let promotionMetadata;
+    beforeAll(async () => { ({ promotionMetadata } = await import('../b2c-course.strategy.js')); });
+    const promo = { ...PURCHASABLE, price: 20000, listPrice: 25000, promotion: { percent: 20, funder: 'shared' } };
+
+    it('transmet le prix catalogue et le financeur quand la promotion s’applique', () => {
+      expect(promotionMetadata(promo, null)).toEqual({ promotion_list_amount: '25000', promotion_funder: 'shared' });
+      expect(promotionMetadata(promo, { listAmount: '20000' })).toEqual({ promotion_list_amount: '25000', promotion_funder: 'shared' });
+    });
+
+    it('rien sans promotion, ou quand un coupon exclusif repart du prix catalogue', () => {
+      expect(promotionMetadata({ ...PURCHASABLE, listPrice: 25000, promotion: null }, null)).toEqual({});
+      expect(promotionMetadata(promo, { listAmount: '25000' })).toEqual({});
+      expect(promotionMetadata({ ...promo, promotion: { percent: 20, funder: 'platform' } }, null)).toEqual({});
+    });
+  });
 });
