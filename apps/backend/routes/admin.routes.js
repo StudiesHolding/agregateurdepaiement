@@ -2,7 +2,6 @@ import { Router } from "express";
 import { catchAsync } from "../middlewares/error.middleware.js";
 import { protectAdmin, auditLog, requirePsp } from "../middlewares/admin.middleware.js";
 import { AnalyticsService } from "../services/analytics.service.js";
-import { LmsBridgeService } from "../services/lms-bridge.service.js";
 import {
     sequelize,
     PaymentProvider,
@@ -20,6 +19,7 @@ import { WebhookProcessor } from "../services/webhook-processor.service.js";
 import { ProviderRouterService } from "../services/provider-router.service.js";
 import { inMaintenance, normalizeRule } from "../services/routing/routing-engine.js";
 import { PROVIDER_CATALOG, isImplemented, mergeSettings, readiness } from "../services/providers/provider-catalog.js";
+import { failuresReport, revenueReport } from "../services/finance/finance-analytics.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
@@ -57,24 +57,8 @@ router.get("/kpis/timeseries", catchAsync(async (req, res) => {
     res.json({ status: "success", data });
 }));
 
-/**
- * GET /api/admin/kpis/lms?period=30d&limit=10
- * LMS-specific analytics: top formations, wallet summary
- */
-router.get("/kpis/lms", catchAsync(async (req, res) => {
-    const { period = "30d", limit = 10 } = req.query;
+/* GET /api/admin/kpis/lms retiré (ADR-0019) : lisait les portefeuilles du backend métier ; remplacé par /finance/revenue. */
 
-    const [topFormations, walletSummary, formationsStats] = await Promise.all([
-        LmsBridgeService.getTopFormations(parseInt(limit), period),
-        LmsBridgeService.getWalletSummary(),
-        LmsBridgeService.getFormationsStats(),
-    ]);
-
-    res.json({
-        status: "success",
-        data: { topFormations, walletSummary, formationsStats },
-    });
-}));
 
 /**
  * GET /api/admin/analytics/geo?period=30d
@@ -269,6 +253,28 @@ router.post("/providers/:id/test", auditLog("TEST_PROVIDER", "provider"), requir
     }
     const ok = checks.every((c) => c.ok);
     res.json({ status: ok ? "success" : "fail", data: { ok, checks, mode: r.mode }, message: ok ? `${provider.name} est prêt.` : `${provider.name} n’est pas prêt.` });
+}));
+
+// ══════════════════════════════════════════════════════════
+// 💰 FINANCE (ADR-0019, D4-D5)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/admin/finance/revenue?range=30d|from=&to=&ref=XOF
+ * Provenance des revenus : brut, frais estimés, net ; par pays, prestataire, moyen, produit, canal ; série par jour.
+ */
+router.get("/finance/revenue", catchAsync(async (req, res) => {
+    try { res.json({ status: "success", data: await revenueReport(req.query) }); }
+    catch (err) { if (/Période/.test(err.message)) throw new BadRequestError(err.message); throw err; }
+}));
+
+/**
+ * GET /api/admin/finance/failures?range=30d|from=&to=&ref=XOF
+ * Entonnoir du canal de paiement, abandons, échecs classés et expliqués, par prestataire, pays et moyen.
+ */
+router.get("/finance/failures", catchAsync(async (req, res) => {
+    try { res.json({ status: "success", data: await failuresReport(req.query) }); }
+    catch (err) { if (/Période/.test(err.message)) throw new BadRequestError(err.message); throw err; }
 }));
 
 // ══════════════════════════════════════════════════════════

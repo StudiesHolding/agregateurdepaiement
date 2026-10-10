@@ -134,9 +134,14 @@ export class OrchestratorService {
       };
     }
 
+    // Provenance du paiement (ADR-0019, D4) : moyen et pays du client, conservés pour l'analyse des revenus et
+    // l'explication des échecs (le pays n'était jamais enregistré).
+    finalMetadata = { ...finalMetadata, payment_method: paymentMethod, country_code: countryCode || null };
+
     // 1. Create or Find Order
     const order = await OrderService.create({
       customerEmail,
+      customerCountry: countryCode || data.customerCountry || null,
       customerName,
       customerSurname,
       customerPhone: customerPhoneNumber,

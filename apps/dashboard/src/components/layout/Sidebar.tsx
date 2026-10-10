@@ -14,6 +14,7 @@ import {
   Users,
   ShieldCheck,
   ArrowUpRight,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,8 @@ const navItems: Array<{ group: string; items: Item[] }> = [
     group: "Pilotage",
     items: [
       { href: "/", label: "Centre de pilotage", icon: LayoutDashboard, anyOf: ["psp.view"] },
-      { href: "/analytics", label: "Ventes par formation", icon: BarChart3, anyOf: ["psp.view"] },
+      { href: "/revenue", label: "Revenus", icon: BarChart3, anyOf: ["psp.view"] },
+      { href: "/failures", label: "Échecs et frictions", icon: AlertTriangle, anyOf: ["psp.view"] },
     ],
   },
   {

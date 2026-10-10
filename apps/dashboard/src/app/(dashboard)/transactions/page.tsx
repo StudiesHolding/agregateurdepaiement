@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { adminApi } from "@/lib/api";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { Transaction, PaymentStatus } from "@/lib/types";
@@ -110,9 +111,15 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
+    return <Suspense fallback={null}><TransactionsExplorer /></Suspense>;
+}
+
+function TransactionsExplorer() {
+    // Lien direct depuis l'analyse des échecs : ?search=<référence de commande>
+    const initialSearch = useSearchParams().get("search") ?? "";
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<Filters>({
-        status: "", provider: "", currency: "", search: "", from: "", to: "", lmsItemId: "", lmsItemType: ""
+        status: "", provider: "", currency: "", search: initialSearch, from: "", to: "", lmsItemId: "", lmsItemType: ""
     });
 
     const params = Object.fromEntries(

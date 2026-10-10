@@ -18,6 +18,7 @@ export class OrderService {
             customerSurname: data.customerSurname,
             customerPhone: data.customerPhone,
             customerCity: data.customerCity,
+            customerCountry: data.customerCountry ?? null,
             customerAddress: data.customerAddress,
             customerState: data.customerState,
             customerZipCode: data.customerZipCode,
