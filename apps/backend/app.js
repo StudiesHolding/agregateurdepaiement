@@ -3,7 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
+import { buildRateLimits } from "./utils/rate-limits.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -17,21 +17,8 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 
 dotenv.config();
 
-// Rate Limiting (désactivé en mode test — les tests E2E génèrent trop d'appels)
-const isTest = process.env.NODE_ENV === "test";
-const limiter = isTest
-  ? null
-  : rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
-      message: {
-        status: "fail",
-        message:
-          "Too many requests from this IP, please try again after 15 minutes",
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
+// Limites de débit par type d'appelant (null en mode test) : voir utils/rate-limits.js.
+const limits = buildRateLimits();
 
 // Global fix for BigInt JSON serialization
 BigInt.prototype.toJSON = function () {
@@ -43,9 +30,11 @@ const app = express();
 // Trust proxy (required for express-rate-limit behind Nginx/PM2)
 app.set("trust proxy", 1);
 
-// Apply Rate Limiter (null en mode test = pas de limitation)
-if (limiter) {
-  app.use("/api/", limiter);
+if (limits) {
+  app.use("/api/admin", limits.admin);
+  app.use(["/api/payments", "/api/checkout"], limits.machine);
+  app.use("/api/webhooks", limits.webhooks);
+  app.use(["/api/b2b", "/api/v1/sso"], limits.public);
 }
 
 // Basic Request Logger

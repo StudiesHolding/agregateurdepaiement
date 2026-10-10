@@ -20,6 +20,7 @@ const ERRORS: Record<string, string> = {
     PSP_UNREACHABLE: "L’agrégateur ne répond pas. Réessayez dans un instant.",
     UNTRUSTED_ORIGIN: "Connexion refusée : elle doit partir de l’administration Studies Learning.",
     INVALID_ASSERTION: "Lien de connexion invalide. Relancez l’ouverture depuis Studies Learning.",
+    SESSION_EXPIRED: "Votre session a expiré. Rouvrez l’espace finance depuis Studies Learning.",
 };
 
 function LoginCard() {

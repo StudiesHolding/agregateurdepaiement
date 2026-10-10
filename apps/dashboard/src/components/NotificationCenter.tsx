@@ -16,7 +16,7 @@ export function NotificationCenter() {
     const { data: notifications = [] } = useQuery({
         queryKey: ["admin-notifications"],
         queryFn: () => adminApi.getAdminNotifications().then((r) => r.data.data),
-        refetchInterval: 10000, // Refresh every 10s
+        refetchInterval: 30_000, // toutes les 30 s (en arrière-plan : suspendu)
     });
     const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 

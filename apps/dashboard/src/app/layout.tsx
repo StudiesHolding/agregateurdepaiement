@@ -3,6 +3,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SessionProvider } from "next-auth/react";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
+import { Toaster } from "sonner";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                             <SessionTimeoutProvider>
                                 <QueryProvider>{children}</QueryProvider>
+                                <Toaster position="top-right" richColors closeButton />
                             </SessionTimeoutProvider>
                     </ThemeProvider>
                 </SessionProvider>
