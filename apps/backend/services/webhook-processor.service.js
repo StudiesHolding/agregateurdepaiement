@@ -208,7 +208,9 @@ export class WebhookProcessor {
             metadata.source === 'AUCTION' ||
             metadata.source === 'MOODLE_HEADLESS' ||
             // Formation canonique (ADR-0012, P5) : l'ancien flux synchrone n'inscrivait personne.
-            metadata.purchase_type === 'B2C_COURSE'
+            metadata.purchase_type === 'B2C_COURSE' ||
+            // Frais d'étude de dossier d'une candidature (ADR-0016, D6 bis).
+            metadata.purchase_type === 'ADMISSION_FEE'
           );
 
           if (isNewSagaEnabled) {

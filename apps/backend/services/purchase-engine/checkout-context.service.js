@@ -5,6 +5,7 @@ import { B2bPackagePurchaseStrategy } from "./b2b-package.strategy.js";
 import { B2bThematiquePurchaseStrategy } from "./b2b-thematique.strategy.js";
 import { AuctionPaymentStrategy } from "./auction-payment.strategy.js";
 import { B2cCoursePurchaseStrategy } from "./b2c-course.strategy.js";
+import { AdmissionPurchaseStrategy } from "./admission.strategy.js";
 
 class CheckoutContextService {
   constructor() {
@@ -15,6 +16,9 @@ class CheckoutContextService {
     this.registerStrategy(new B2bThematiquePurchaseStrategy());
     this.registerStrategy(new AuctionPaymentStrategy());
     this.registerStrategy(new B2cCoursePurchaseStrategy());
+    // Candidatures (ADR-0016, D6 bis) : place d'un admis, frais d'étude de dossier.
+    this.registerStrategy(new AdmissionPurchaseStrategy("offer"));
+    this.registerStrategy(new AdmissionPurchaseStrategy("fee"));
   }
 
   /**

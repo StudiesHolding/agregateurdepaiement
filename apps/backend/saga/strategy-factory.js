@@ -16,6 +16,7 @@ import { B2BThematiqueStrategy } from './strategies/b2b-thematique.strategy.js';
 import { MoodleHeadlessStrategy } from './strategies/moodle-headless.strategy.js';
 import { LegacyStrategy } from './strategies/legacy.strategy.js';
 import { B2cCourseSagaStrategy } from './strategies/b2c-course.strategy.js';
+import { AdmissionFeeSagaStrategy } from './strategies/admission-fee.strategy.js';
 
 /**
  * Stratégies disponibles
@@ -24,6 +25,8 @@ const STRATEGIES = {
   RETAIL: LegacyStrategy,
   // Formation canonique achetée dans le purchase-engine (ADR-0012, P5) : inscription + commission.
   B2C_COURSE: B2cCourseSagaStrategy,
+  // Frais d'étude de dossier d'une candidature (ADR-0016, D6 bis). La place d'un admis passe par B2C_COURSE.
+  ADMISSION_FEE: AdmissionFeeSagaStrategy,
   AUCTION: LegacyStrategy,
   B2B_PACKAGE: B2BPackageStrategy,
   B2B_THEMATIQUE: B2BThematiqueStrategy,

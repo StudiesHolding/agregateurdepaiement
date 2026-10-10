@@ -55,7 +55,7 @@ export async function processPaymentSaga(job) {
     // déjà faite est conservée (idempotence 409 / backend de commission).
     // Le rejeu doit être possible : on enregistre RETRYING (et non PROCESSING)
     // pour que checkIdempotency ne saute pas le prochain essai.
-    const RETRYABLE_ERROR_NAMES = new Set(['MoodleRetryableError', 'CommissionRetryableError', 'EnrollmentRetryableError']);
+    const RETRYABLE_ERROR_NAMES = new Set(['MoodleRetryableError', 'CommissionRetryableError', 'EnrollmentRetryableError', 'AdmissionFeeRetryableError']);
     const isRetryable = RETRYABLE_ERROR_NAMES.has(error.name);
 
     if (!isRetryable) {
