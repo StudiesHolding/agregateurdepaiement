@@ -210,7 +210,7 @@ export default function AnalyticsLmsPage() {
             <div className="flex items-end justify-between">
                 <div>
                     <h1 className="page-title">
-                        Analytics <span className="gradient-text">LMS</span>
+                        Ventes <span className="gradient-text">par formation</span>
                     </h1>
                     <p className="text-sm text-text-light mt-1">
                         Performance des formations et état financier des formateurs (Business Intelligence)

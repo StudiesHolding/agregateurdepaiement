@@ -331,7 +331,7 @@ export default function RoutingPage() {
             <div className="flex items-start justify-between">
                 <div>
                     <h1 className="page-title">
-                        Route <span className="gradient-text">Builder</span>
+                        Règles de <span className="gradient-text">priorité</span>
                     </h1>
                     <p className="text-sm text-text-light mt-1">
                         Configurez et simulez vos règles de routage géographique

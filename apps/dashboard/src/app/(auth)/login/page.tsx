@@ -2,12 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowUpRight, Fingerprint, Lock, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Fingerprint, Lock, ShieldCheck } from "lucide-react";
+import { Blason } from "@/components/brand/BrandMark";
 
 /**
- * Connexion à l'administration du PSP (ADR-0018, D5.2)
- * Une seule porte : l'administration Studies Learning, avec le compte personnel du membre de l'équipe. Elle émet
- * un lien de connexion à usage unique (60 s) ; plus de clé d'accès partagée ni de code par e-mail.
+ * Connexion à l'espace finance (ADR-0018 D5.2, ADR-0019 D1)
+ * Une seule porte : l'administration Studies Learning, avec le compte personnel du membre de l'équipe. Elle émet un lien
+ * de connexion à usage unique (60 s) ; plus de clé d'accès partagée ni de code par e-mail.
  */
 const SL_ADMIN = (process.env.NEXT_PUBLIC_SL_ADMIN_URL || "http://localhost:3004").replace(/\/$/, "");
 
@@ -27,54 +28,46 @@ function LoginCard() {
     const message = code ? ERRORS[code] ?? ERRORS.INVALID_ASSERTION : null;
 
     return (
-        <div className="relative w-full max-w-[480px]">
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-8 shadow-[0_40px_120px_-40px_rgba(124,58,237,0.6)] backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30">
-                        <ShieldCheck className="h-6 w-6" />
-                    </span>
-                    <div>
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-violet-300">Studies Learning</p>
-                        <h1 className="text-[24px] font-semibold text-white">Agrégateur de paiement</h1>
-                    </div>
+        <div className="w-full max-w-md animate-slide-up">
+            <div className="card p-8">
+                <div className="flex flex-col items-center text-center">
+                    <Blason size={84} />
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Studies Learning</p>
+                    <h1 className="mt-1 text-2xl font-bold text-text-main">Espace finance et paiements</h1>
+                    <p className="mt-3 text-sm leading-relaxed text-text-light">
+                        Prestataires, règles de priorité, revenus et supervision des paiements. L’accès s’ouvre depuis votre compte Studies Learning,
+                        avec vos seules permissions ; chaque action est journalisée à votre nom.
+                    </p>
                 </div>
 
-                <p className="mt-6 text-[14.5px] leading-relaxed text-slate-300">
-                    L’administration des paiements s’ouvre depuis votre compte Studies Learning. Vous y entrez avec votre identité et vos seules
-                    permissions ; chaque action est journalisée à votre nom.
-                </p>
-
                 {message && (
-                    <div role="alert" className="mt-5 flex items-start gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[13.5px] text-red-100">
-                        <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div role="alert" className="mt-6 flex items-start gap-3 rounded-2xl border border-danger/20 bg-danger-light px-4 py-3 text-sm text-danger-dark">
+                        <AlertCircle size={18} className="mt-0.5 shrink-0" />
                         <span>{message}</span>
                     </div>
                 )}
 
-                <a
-                    href={`${SL_ADMIN}/admin/agregateur`}
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3.5 text-[15px] font-semibold text-white shadow-[0_14px_32px_-12px_rgba(124,58,237,0.9)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
-                >
+                <a href={`${SL_ADMIN}/admin/agregateur`} className="btn-primary mt-6 w-full justify-center py-3 text-sm">
                     Se connecter avec Studies Learning
-                    <ArrowUpRight className="h-4 w-4" />
+                    <ArrowUpRight size={16} />
                 </a>
 
-                <ul className="mt-6 space-y-2 text-[12.5px] text-slate-400">
-                    <li className="flex items-center gap-2"><Fingerprint className="h-4 w-4 text-violet-300" />Session personnelle de 8 heures</li>
-                    <li className="flex items-center gap-2"><Lock className="h-4 w-4 text-violet-300" />Lien de connexion à usage unique, valable 60 secondes</li>
+                <ul className="mt-6 space-y-2 border-t border-border pt-5 text-xs text-text-light">
+                    <li className="flex items-center gap-2"><Fingerprint size={14} className="text-primary" />Session personnelle de 8 heures</li>
+                    <li className="flex items-center gap-2"><Lock size={14} className="text-primary" />Lien de connexion à usage unique, valable 60 secondes</li>
+                    <li className="flex items-center gap-2"><ShieldCheck size={14} className="text-primary" />Droits attribués dans « Équipe et accès »</li>
                 </ul>
             </div>
-            <p className="mt-6 text-center text-[12px] text-slate-500">Accès réservé à l’équipe Studies Learning</p>
+            <p className="mt-6 text-center text-xs text-text-light">Accès réservé à l’équipe Studies Learning</p>
         </div>
     );
 }
 
 export default function LoginPage() {
     return (
-        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0B0820] px-4 py-12">
-            <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-violet-600/25 blur-[120px]" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-40 h-[560px] w-[560px] rounded-full bg-indigo-500/20 blur-[140px]" />
-            <Suspense fallback={null}><LoginCard /></Suspense>
+        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12">
+            <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-primary/10 blur-[110px]" />
+            <div className="relative w-full flex justify-center"><Suspense fallback={null}><LoginCard /></Suspense></div>
         </main>
     );
 }

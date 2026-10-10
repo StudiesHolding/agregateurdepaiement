@@ -132,7 +132,7 @@ export default function TransactionsPage() {
         <div className="max-w-7xl mx-auto space-y-6 animate-slide-up">
             <div>
                 <h1 className="page-title">
-                    Transaction <span className="gradient-text">Explorer</span>
+                    Explorateur de <span className="gradient-text">transactions</span>
                 </h1>
                 <p className="text-sm text-text-light mt-1">
                     {meta ? `${meta.total.toLocaleString()} transactions trouvées` : "Chargement…"}

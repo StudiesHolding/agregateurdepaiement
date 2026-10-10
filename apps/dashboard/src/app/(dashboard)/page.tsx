@@ -247,8 +247,7 @@ export default function CommandCenterPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="page-title">
-                        Command{" "}
-                        <span className="gradient-text">Center</span>
+                        Centre de <span className="gradient-text">pilotage</span>
                     </h1>
                     <p className="text-sm text-text-light mt-1">
                         Vue globale de votre infrastructure de paiement — Studies Learning PSP

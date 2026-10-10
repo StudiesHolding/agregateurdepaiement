@@ -277,7 +277,7 @@ export default function ProvidersPage() {
             {/* Hero */}
             <div>
                 <h1 className="page-title">
-                    Provider <span className="gradient-text">Health Studio</span>
+                    Santé des <span className="gradient-text">prestataires</span>
                 </h1>
                 <p className="text-sm text-text-light mt-1">
                     Surveillance temps réel de vos agrégateurs de paiement
