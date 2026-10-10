@@ -4,6 +4,7 @@ import { VerifiedEmail } from "../models/index.js";
 import { UnauthorizedError } from "../utils/errors.js";
 import jwt from "jsonwebtoken";
 import crypto from 'node:crypto';
+import { jwtSecret } from "../utils/jwt-secret.js";
 
 export class AdminAuth2FAController {
     /**
@@ -83,14 +84,10 @@ export class AdminAuth2FAController {
 
         // Generate JWT for the dashboard session
         const token = jwt.sign(
-            {
-                id: keyRecord.id,
-                owner: keyRecord.owner,
-                role: 'admin',
-                apiKey: keyRecord.key
-            },
-            process.env.JWT_SECRET || 'fallback_secret',
-            { expiresIn: '12h' }
+            // La session ne transporte jamais la clé d'accès elle-même (ADR-0018, D5) : seulement son identifiant.
+            { id: keyRecord.id, owner: keyRecord.owner, role: 'admin' },
+            jwtSecret(),
+            { expiresIn: '8h' }
         );
 
         res.json({
@@ -99,8 +96,7 @@ export class AdminAuth2FAController {
                 id: "admin-user",
                 name: keyRecord.owner.split(":")[1] || "Admin",
                 email: keyRecord.email,
-                role: "admin",
-                apiKey: keyRecord.key
+                role: "admin"
             },
             token
         });

@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { CompanyAdmin, Company } from "../models/index.js";
 import { UnauthorizedError, NotFoundError, BadRequestError } from "../utils/errors.js";
+import { jwtSecret } from "../utils/jwt-secret.js";
 
 export const b2bAuthController = {
   /**
@@ -110,7 +111,7 @@ export const b2bAuthController = {
 
       const authToken = jwt.sign(
         payload,
-        process.env.JWT_SECRET || "fallback_secret_key_for_b2b",
+        jwtSecret(),
         { expiresIn: "24h" }
       );
 
@@ -196,7 +197,7 @@ export const b2bAuthController = {
 
       const token = jwt.sign(
         payload,
-        process.env.JWT_SECRET || "fallback_secret_key_for_b2b",
+        jwtSecret(),
         { expiresIn: "24h" }
       );
 

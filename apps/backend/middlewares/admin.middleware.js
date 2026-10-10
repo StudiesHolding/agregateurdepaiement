@@ -3,6 +3,8 @@ import { AdminAuditLog } from "../models/admin-audit-log.model.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 import { catchAsync } from "./error.middleware.js";
 import jwt from "jsonwebtoken";
+import { jwtSecret } from "../utils/jwt-secret.js";
+import { ApiKey } from "../models/api-key.model.js";
 
 /**
  * Admin API Key protection middleware.
@@ -13,25 +15,25 @@ import jwt from "jsonwebtoken";
  * Regular API keys have owner = "app:<name>" or just "<name>"
  */
 export const protectAdmin = catchAsync(async (req, res, next) => {
-    let apiKey = req.headers["x-api-key"] || req.headers["X-API-KEY"];
+    const apiKey = req.headers["x-api-key"] || req.headers["X-API-KEY"];
     const authHeader = req.headers["authorization"] || req.headers["Authorization"];
 
-    // 1. Try JWT Bearer Token
-    if (!apiKey && authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split(" ")[1];
+    let keyRecord = null;
+    if (apiKey) {
+        // Intégrations machine : clé d'accès dans l'en-tête.
+        keyRecord = await ApiKeyService.findByKey(apiKey);
+    } else if (authHeader && authHeader.startsWith("Bearer ")) {
+        // Session du tableau de bord : la clé est relue par son identifiant, elle n'est jamais dans le jeton (ADR-0018, D5).
+        let decoded;
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-            apiKey = decoded.apiKey;
+            decoded = jwt.verify(authHeader.split(" ")[1], jwtSecret(), { algorithms: ["HS256"] });
         } catch (err) {
             throw new UnauthorizedError("Session expirée ou token invalide. Veuillez vous reconnecter.");
         }
-    }
-
-    if (!apiKey) {
+        keyRecord = decoded?.id ? await ApiKey.findByPk(decoded.id) : null;
+    } else {
         throw new UnauthorizedError("Admin access requires an API Key or active session");
     }
-
-    const keyRecord = await ApiKeyService.findByKey(apiKey);
 
     if (!keyRecord || !keyRecord.isActive) {
         throw new UnauthorizedError("Session ou clé d'accès invalide. Veuillez vous reconnecter.");

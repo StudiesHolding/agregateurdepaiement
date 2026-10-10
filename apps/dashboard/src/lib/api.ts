@@ -25,13 +25,7 @@ api.interceptors.request.use((config) => {
     config.url = config.url.substring(1);
   }
 
-  // If we're on the server, we need to inject the key for direct calls
-  if (typeof window === "undefined") {
-    const apiKey = process.env.ADMIN_API_KEY;
-    if (apiKey) {
-      config.headers["x-api-key"] = apiKey;
-    }
-  }
+  // Aucune clé injectée : le navigateur passe par le relais /api/psp, qui porte la session (ADR-0018, D5).
 
   return config;
 });

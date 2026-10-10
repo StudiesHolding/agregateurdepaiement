@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 
 /**
- * Secure Proxy Route Handler — Studies PSP Dashboard
- * This handler intercepts client-side calls to /api/psp/* and forwards them
- * to the backend while injecting the ADMIN_API_KEY from environment variables.
+ * Relais sécurisé — tableau de bord du PSP (ADR-0018, D5)
+ * Les appels du navigateur vers /api/psp/admin/* sont relayés au backend avec le jeton de session de la personne
+ * connectée (lu dans le cookie chiffré, côté serveur). Sans session : 401. Aucune clé de repli, aucun autre chemin.
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
+const SAFE_PATH = /^admin\/[A-Za-z0-9/_.-]*$/;
 
 export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
     return handleProxy(req, params.path);
@@ -28,12 +28,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { path: str
 }
 
 async function handleProxy(req: NextRequest, pathSegments: string[]) {
-    // 1. Construct the target URL
+    // 1. Session obligatoire et chemin limité à l'API d'administration
+    const session = await getToken({ req, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET, secureCookie: process.env.NODE_ENV === "production" });
+    const backendToken = (session as { backendToken?: string } | null)?.backendToken;
+    if (!backendToken) return NextResponse.json({ status: "error", message: "Session requise." }, { status: 401 });
     const path = pathSegments.join("/");
+    if (!SAFE_PATH.test(path) || path.includes("..")) return NextResponse.json({ status: "error", message: "Chemin refusé." }, { status: 400 });
     const searchParams = req.nextUrl.search;
     const targetUrl = `${BACKEND_URL}/api/${path}${searchParams}`;
-
-    console.log(`[Dashboard Proxy] ${req.method} ${req.nextUrl.pathname} -> ${targetUrl}`);
 
     // 2. Extract method and body
     const method = req.method;
@@ -46,16 +48,13 @@ async function handleProxy(req: NextRequest, pathSegments: string[]) {
         }
     }
 
-    // 3. Forward the request to the backend with the API Key from session
+    // 3. Relais avec le jeton de session de la personne connectée
     try {
-        const session = await auth();
-        const apiKey = (session?.user as any)?.apiKey || ADMIN_API_KEY;
-
         const axiosConfig: any = {
             method,
             url: targetUrl,
             headers: {
-                "x-api-key": apiKey,
+                Authorization: `Bearer ${backendToken}`,
             },
             validateStatus: () => true,
         };

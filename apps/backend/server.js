@@ -1,11 +1,14 @@
 import app from "./app.js";
 import { sequelize } from "./models/index.js";
 import { validateCommissionCreditConfig } from "./services/sl-backend-commission.client.js";
+import { assertJwtSecretConfigured } from "./utils/jwt-secret.js";
 
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
     try {
+        // Sessions : jamais de secret de repli (ADR-0018, D5) — arrêt en production si JWT_SECRET est faible.
+        try { assertJwtSecretConfigured(); } catch (e) { console.error(` [FATAL] ${e.message}`); process.exit(1); }
         // Validation de configuration — crédit de commission (S1-5) :
         // hors test, refuser le démarrage si SL_BACKEND_URL / INTERNAL_API_KEY
         // sont absentes alors que la fonctionnalité est activée (défaut : activée).

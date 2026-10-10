@@ -36,12 +36,9 @@ export const {
 
                     const data = await res.json();
 
-                    if (data.status === "success" && data.user) {
-                        return {
-                            ...data.user,
-                            apiKey: credentials.apiKey,
-                            token: data.token
-                        };
+                    if (data.status === "success" && data.user && data.token) {
+                        // Seul le jeton de session court est conservé (côté serveur), jamais la clé d'accès (ADR-0018, D5).
+                        return { ...data.user, backendToken: data.token };
                     }
                 } catch (err) {
                     console.error("[Auth] 2FA verification failed:", err);

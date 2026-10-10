@@ -11,21 +11,21 @@ export const authConfig = {
         async jwt({ token, user }) {
             if (user) {
                 token.role = (user as any).role;
-                token.apiKey = (user as any).apiKey;
+                // Jeton de session du backend : reste dans le cookie chiffré, jamais exposé au navigateur.
+                token.backendToken = (user as any).backendToken;
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
-                (session.user as any).apiKey = token.apiKey;
             }
             return session;
         },
     },
     session: {
         strategy: "jwt",
-        maxAge: 12 * 60 * 60, // 12 hours
+        maxAge: 8 * 60 * 60, // 8 h, comme le jeton du backend
     },
     pages: {
         signIn: "/login",

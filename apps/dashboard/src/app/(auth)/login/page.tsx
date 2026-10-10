@@ -63,7 +63,6 @@ export default function LoginPage() {
             if (res?.error) {
                 setError("Code OTP incorrect ou expiré.");
             } else {
-                localStorage.setItem("psp_admin_key", apiKey);
                 router.push("/");
                 router.refresh();
             }
