@@ -43,5 +43,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Fichiers publics (marque, icônes) servis sans session : la page de connexion les affiche.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|brand/).*)"],
 };

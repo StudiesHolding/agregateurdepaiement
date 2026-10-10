@@ -10,7 +10,6 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { PERMISSION_LABELS, ROLE_LABELS, useAccess } from "@/lib/access";
 
 const pageTitles: Array<[string, string]> = [
-    ["/providers/new", "Nouveau prestataire"],
     ["/providers", "Prestataires"],
     ["/routing", "Règles de priorité"],
     ["/transactions", "Transactions"],

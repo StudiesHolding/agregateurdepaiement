@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
+import { jsonColumn } from "../utils/json-column.js";
 
 export class ProviderRoute extends Model { }
 
@@ -47,6 +48,7 @@ ProviderRoute.init(
         metadata: {
             type: DataTypes.JSON,
             allowNull: true,
+            ...jsonColumn("metadata"),
         },
     },
     {

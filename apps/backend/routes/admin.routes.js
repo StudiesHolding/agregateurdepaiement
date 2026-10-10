@@ -19,6 +19,7 @@ import { ProviderFactory } from "../providers/index.js";
 import { WebhookProcessor } from "../services/webhook-processor.service.js";
 import { ProviderRouterService } from "../services/provider-router.service.js";
 import { inMaintenance, normalizeRule } from "../services/routing/routing-engine.js";
+import { PROVIDER_CATALOG, isImplemented, mergeSettings, readiness } from "../services/providers/provider-catalog.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
@@ -100,29 +101,63 @@ router.get("/analytics/providers", catchAsync(async (req, res) => {
 // ══════════════════════════════════════════════════════════
 
 /**
- * GET /api/admin/providers
- * All providers with their 24h health stats
+ * GET /api/admin/providers?period=24h
+ * Fiche de chaque prestataire (ADR-0019, D3) : santé sur la période, préparation technique (identifiants présents,
+ * jamais leur valeur), état (actif, maintenance), barème de frais, délai de reversement, couverture.
  */
+const providerView = (p, stats = {}, rules = []) => {
+    const ready = readiness(p.code);
+    const maint = inMaintenance(p);
+    const meta = p.metadata ?? {};
+    let healthStatus = stats.healthStatus ?? (p.isActive ? "idle" : "inactive");
+    if (!ready.implemented || !ready.ready) healthStatus = "not_configured";
+    else if (maint) healthStatus = "maintenance";
+    return {
+        id: p.id, code: p.code, name: p.name, isActive: p.isActive, supportCard: p.supportCard, supportMobileMoney: p.supportMobileMoney,
+        inMaintenance: maint, maintenance: meta.maintenance ?? { active: false }, fees: meta.fees ?? {}, settlementDays: meta.settlementDays ?? null, note: meta.note ?? null,
+        readiness: ready,
+        stats: {
+            totalAttempts: Number(stats.totalAttempts ?? 0), successCount: Number(stats.successCount ?? 0), failureCount: Number(stats.failureCount ?? 0),
+            successRate: stats.totalAttempts ? Number(stats.successRate) : null, healthStatus,
+        },
+        coverage: {
+            rules: rules.length, activeRules: rules.filter((r) => r.isActive).length,
+            countries: Array.from(new Set(rules.map((r) => r.countryCode))).sort(),
+            currencies: Array.from(new Set(rules.map((r) => r.currency))).sort(),
+        },
+        updatedAt: p.updatedAt,
+    };
+};
+
 router.get("/providers", catchAsync(async (req, res) => {
     const { period = "24h" } = req.query;
-    const providers = await AnalyticsService.getProviderPerformance(period);
-    res.json({ status: "success", data: providers });
+    const [perf, providers, routes] = await Promise.all([
+        AnalyticsService.getProviderPerformance(period),
+        PaymentProvider.findAll({ order: [["name", "ASC"]] }),
+        ProviderRoute.findAll(),
+    ]);
+    const data = providers.map((p) => providerView(p, perf.find((x) => Number(x.providerId) === Number(p.id)), routes.filter((r) => Number(r.providerId) === Number(p.id))));
+    res.json({ status: "success", data });
 }));
 
 /**
- * GET /api/admin/providers/factory-codes
- * Returns the list of provider codes that the ProviderFactory can instantiate.
- * Used by the frontend Add Provider wizard to show which codes are "ready" backend-side.
+ * GET /api/admin/providers/catalog
+ * Prestataires que l'agrégateur sait réellement utiliser, avec leur préparation technique.
  */
+router.get("/providers/catalog", catchAsync(async (req, res) => {
+    const existing = new Set((await PaymentProvider.findAll({ attributes: ["code"] })).map((p) => p.code.toLowerCase()));
+    const data = Object.entries(PROVIDER_CATALOG).map(([code, def]) => ({ code, name: def.name, methods: def.methods, registered: existing.has(code), readiness: readiness(code) }));
+    res.json({ status: "success", data });
+}));
+
+/** Ancienne route, conservée pour compatibilité : codes réellement implémentés. */
 router.get("/providers/factory-codes", catchAsync(async (req, res) => {
-    // These are the codes currently implemented in ProviderFactory
-    const supportedCodes = ["stripe", "cinetpay", "kkiapay", "maviance"];
-    res.json({ status: "success", data: supportedCodes });
+    res.json({ status: "success", data: Object.keys(PROVIDER_CATALOG) });
 }));
 
 /**
  * GET /api/admin/providers/:id/sparkline
- * 48h hourly success rate sparkline for a specific provider
+ * Taux de succès horaire sur 48 h.
  */
 router.get("/providers/:id/sparkline", catchAsync(async (req, res) => {
     const data = await AnalyticsService.getProviderSparkline(req.params.id);
@@ -131,7 +166,7 @@ router.get("/providers/:id/sparkline", catchAsync(async (req, res) => {
 
 /**
  * GET /api/admin/providers/:id/errors?period=24h
- * Top errors for a specific provider
+ * Erreurs les plus fréquentes du prestataire.
  */
 router.get("/providers/:id/errors", catchAsync(async (req, res) => {
     const { period = "24h" } = req.query;
@@ -139,78 +174,65 @@ router.get("/providers/:id/errors", catchAsync(async (req, res) => {
     res.json({ status: "success", data });
 }));
 
+const refuseCredentials = (body) => {
+    if (body && (body.credentials !== undefined || body.credentialsEncrypted !== undefined)) {
+        throw new BadRequestError("Les identifiants d’un prestataire se configurent dans l’environnement du serveur, jamais depuis le tableau de bord.");
+    }
+};
+
 /**
  * POST /api/admin/providers
- * Register a new payment provider in the database
+ * Inscrit un prestataire IMPLÉMENTÉ (catalogue). Créé désactivé : on l'active une fois prêt et routé.
  */
 router.post(
     "/providers",
     auditLog("CREATE_PROVIDER", "provider"),
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
-        const { code, name, apiEndpoint, supportCard, supportMobileMoney, credentials } = req.body;
-
-        if (!code || !name) {
-            throw new BadRequestError("code and name are required");
-        }
-
-        // Check for duplicate code
-        const existing = await PaymentProvider.findOne({ where: { code } });
-        if (existing) {
-            throw new BadRequestError(`Provider with code '${code}' already exists`);
-        }
-
+        refuseCredentials(req.body);
+        const code = String(req.body?.code ?? "").toLowerCase().trim();
+        if (!isImplemented(code)) throw new BadRequestError("Ce prestataire n’est pas implémenté dans l’agrégateur.");
+        if (await PaymentProvider.findOne({ where: { code } })) throw new BadRequestError("Ce prestataire est déjà inscrit.");
+        const def = PROVIDER_CATALOG[code];
+        let metadata;
+        try { metadata = mergeSettings({}, req.body ?? {}); } catch (err) { throw new BadRequestError(err.message); }
         const provider = await PaymentProvider.create({
-            code: code.toLowerCase().trim(),
-            name,
-            apiEndpoint: apiEndpoint || null,
-            supportCard: supportCard ?? false,
-            supportMobileMoney: supportMobileMoney ?? true,
-            isActive: false, // Disabled until routes are configured
-            credentialsEncrypted: credentials || null,
+            code, name: String(req.body?.name ?? def.name).trim().slice(0, 100) || def.name,
+            supportCard: def.methods.includes("card"), supportMobileMoney: def.methods.includes("mobile_money"),
+            isActive: false, credentialsEncrypted: null, metadata,
         });
-
-        res.status(201).json({
-            status: "success",
-            data: { ...provider.toJSON(), credentialsEncrypted: undefined },
-            message: `Provider '${name}' registered. Configure routes to activate.`,
-            webhookUrl: `/api/webhooks/${code.toLowerCase()}`,
-        });
+        res.status(201).json({ status: "success", data: providerView(provider) });
     })
 );
 
 /**
  * PUT /api/admin/providers/:id
- * Update provider details
+ * Réglages : nom, moyens proposés, maintenance, barème de frais, délai de reversement, note.
  */
 router.put(
     "/providers/:id",
     auditLog("UPDATE_PROVIDER", "provider"),
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
+        refuseCredentials(req.body);
         const provider = await PaymentProvider.findByPk(req.params.id);
-        if (!provider) throw new NotFoundError("Provider not found");
-
-        const { name, apiEndpoint, supportCard, supportMobileMoney, credentials } = req.body;
-
+        if (!provider) throw new NotFoundError("Prestataire introuvable.");
+        const { name, supportCard, supportMobileMoney } = req.body ?? {};
+        let metadata;
+        try { metadata = mergeSettings(provider.metadata ?? {}, req.body ?? {}); } catch (err) { throw new BadRequestError(err.message); }
         await provider.update({
-            ...(name && { name }),
-            ...(apiEndpoint !== undefined && { apiEndpoint }),
-            ...(supportCard !== undefined && { supportCard }),
-            ...(supportMobileMoney !== undefined && { supportMobileMoney }),
-            ...(credentials && { credentialsEncrypted: credentials }),
+            ...(typeof name === "string" && name.trim() && { name: name.trim().slice(0, 100) }),
+            ...(supportCard !== undefined && { supportCard: !!supportCard }),
+            ...(supportMobileMoney !== undefined && { supportMobileMoney: !!supportMobileMoney }),
+            metadata,
         });
-
-        res.json({
-            status: "success",
-            data: { ...provider.toJSON(), credentialsEncrypted: undefined },
-        });
+        res.json({ status: "success", data: providerView(provider) });
     })
 );
 
 /**
  * PUT /api/admin/providers/:id/toggle
- * Activate or deactivate a provider
+ * Active ou désactive. Un prestataire sans identifiants ne peut pas être activé.
  */
 router.put(
     "/providers/:id/toggle",
@@ -218,48 +240,35 @@ router.put(
     requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const provider = await PaymentProvider.findByPk(req.params.id);
-        if (!provider) throw new NotFoundError("Provider not found");
-
+        if (!provider) throw new NotFoundError("Prestataire introuvable.");
+        if (!provider.isActive) {
+            const r = readiness(provider.code);
+            if (!r.implemented) throw new BadRequestError("Prestataire non implémenté : activation impossible.");
+            if (!r.ready) throw new BadRequestError(`Identifiants manquants dans l’environnement du serveur : ${r.credentials.filter((c) => !c.present).map((c) => c.env).join(", ")}.`);
+        }
         await provider.update({ isActive: !provider.isActive });
-
-        res.json({
-            status: "success",
-            data: {
-                id: provider.id,
-                name: provider.name,
-                isActive: provider.isActive,
-            },
-            message: `Provider '${provider.name}' is now ${provider.isActive ? "ACTIVE" : "INACTIVE"}`,
-        });
+        res.json({ status: "success", data: providerView(provider), message: provider.isActive ? `${provider.name} est activé.` : `${provider.name} est désactivé.` });
     })
 );
 
 /**
  * POST /api/admin/providers/:id/test
- * Test provider API connectivity (live ping)
+ * Contrôle de préparation : identifiants présents, adaptateur instanciable.
  */
 router.post("/providers/:id/test", auditLog("TEST_PROVIDER", "provider"), requirePsp("psp.providers.manage"), catchAsync(async (req, res) => {
     const provider = await PaymentProvider.findByPk(req.params.id);
-    if (!provider) throw new NotFoundError("Provider not found");
-
-    try {
-        // Try instantiating the adapter — will throw if code is unsupported
-        ProviderFactory.getProvider(provider.code, {
-            apiKey: provider.credentialsEncrypted?.apiKey,
-            siteId: provider.credentialsEncrypted?.siteId,
-            secretKey: provider.credentialsEncrypted?.secretKey,
-        });
-
-        res.json({
-            status: "success",
-            message: `Provider '${provider.name}' adapter instantiated successfully. Credentials format OK.`,
-        });
-    } catch (err) {
-        res.json({
-            status: "fail",
-            message: err.message,
-        });
+    if (!provider) throw new NotFoundError("Prestataire introuvable.");
+    const r = readiness(provider.code);
+    const checks = [
+        { label: "Prestataire implémenté dans l’agrégateur", ok: r.implemented },
+        ...r.credentials.map((c) => ({ label: `${c.label} (${c.env})`, ok: c.present })),
+    ];
+    if (r.implemented && r.ready) {
+        try { ProviderFactory.getProvider(provider.code); checks.push({ label: "Adaptateur initialisé", ok: true }); }
+        catch (err) { checks.push({ label: "Adaptateur initialisé", ok: false, detail: err.message }); }
     }
+    const ok = checks.every((c) => c.ok);
+    res.json({ status: ok ? "success" : "fail", data: { ok, checks, mode: r.mode }, message: ok ? `${provider.name} est prêt.` : `${provider.name} n’est pas prêt.` });
 }));
 
 // ══════════════════════════════════════════════════════════
