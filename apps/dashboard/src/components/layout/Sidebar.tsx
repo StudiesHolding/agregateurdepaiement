@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Bell,
   ShoppingCart,
-  Building2,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,8 +46,6 @@ const navItems = [
     items: [
       { href: "/audit", label: "Journal d'Audit", icon: ShieldCheck },
       { href: "/settings/notifications", label: "Notifications", icon: Bell },
-      { href: "/test-order", label: "Test Commande", icon: ShoppingCart },
-      { href: "/test-b2b", label: "Test B2B", icon: Building2 },
     ],
   },
 ];

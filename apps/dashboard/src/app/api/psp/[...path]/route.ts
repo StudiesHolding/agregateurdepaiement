@@ -29,7 +29,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { path: str
 
 async function handleProxy(req: NextRequest, pathSegments: string[]) {
     // 1. Session obligatoire et chemin limité à l'API d'administration
-    const session = await getToken({ req, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET, secureCookie: process.env.NODE_ENV === "production" });
+    // Cookie « __Secure- » en HTTPS, simple en HTTP local : les deux sont lus, la signature reste vérifiée.
+    const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+    const session = (await getToken({ req, secret, secureCookie: true })) ?? (await getToken({ req, secret, secureCookie: false }));
     const backendToken = (session as { backendToken?: string } | null)?.backendToken;
     if (!backendToken) return NextResponse.json({ status: "error", message: "Session requise." }, { status: 401 });
     const path = pathSegments.join("/");

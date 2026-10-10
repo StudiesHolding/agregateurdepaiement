@@ -162,7 +162,7 @@ export class OrderController {
           {
             status: OrderStatus.VALIDATED,
             validatedAt: new Date(),
-            validatedBy: req.apiKeyId || 0,
+            validatedBy: req.pspAdmin?.id ?? 0,
             adminNotes: notes || null,
           },
           { transaction },
@@ -180,7 +180,7 @@ export class OrderController {
           orderId: order.id,
           orderReference: order.reference,
           action: "ORDER_VALIDATED",
-          actorId: req.apiKeyId,
+          actorId: req.pspAdmin?.id ?? null,
           actorEmail: req.adminIdentifier,
           previousState,
           newState: {
@@ -205,7 +205,7 @@ export class OrderController {
           {
             status: OrderStatus.REJECTED,
             validatedAt: new Date(),
-            validatedBy: req.apiKeyId || 0,
+            validatedBy: req.pspAdmin?.id ?? 0,
             rejectionReason: notes || "Rejetée par l'admin",
           },
           { transaction },
@@ -223,7 +223,7 @@ export class OrderController {
           orderId: order.id,
           orderReference: order.reference,
           action: "ORDER_REJECTED",
-          actorId: req.apiKeyId,
+          actorId: req.pspAdmin?.id ?? null,
           actorEmail: req.adminIdentifier,
           previousState,
           newState: {
@@ -291,7 +291,7 @@ export class OrderController {
         {
           status: OrderStatus.COMPLETED,
           completedAt: new Date(),
-          completedBy: req.apiKeyId || 0,
+          completedBy: req.pspAdmin?.id ?? 0,
           campusUsername: username,
           credentialsSentAt: new Date(),
           credentialsSentTo: recipients,
@@ -311,7 +311,7 @@ export class OrderController {
         orderId: order.id,
         orderReference: order.reference,
         action: "ORDER_COMPLETED",
-        actorId: req.apiKeyId,
+        actorId: req.pspAdmin?.id ?? null,
         actorEmail: req.adminIdentifier,
         previousState,
         newState: {

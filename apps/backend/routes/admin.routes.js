@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { catchAsync } from "../middlewares/error.middleware.js";
-import { protectAdmin, auditLog } from "../middlewares/admin.middleware.js";
+import { protectAdmin, auditLog, requirePsp } from "../middlewares/admin.middleware.js";
 import { AnalyticsService } from "../services/analytics.service.js";
 import { LmsBridgeService } from "../services/lms-bridge.service.js";
 import {
@@ -27,8 +27,9 @@ import { AdminRequestController } from "../controllers/admin-request.controller.
 
 const router = Router();
 
-// All admin routes require admin-level API Key
-router.use(protectAdmin);
+// Toute l'administration exige une session d'équipe (permission psp.view au moins) ou une clé d'intégration
+// administrateur ; chaque action qui modifie quelque chose exige en plus sa permission (ADR-0018, D5.2).
+router.use(protectAdmin, requirePsp("psp.view"));
 
 // ══════════════════════════════════════════════════════════
 // 📊 KPIs & ANALYTICS
@@ -143,6 +144,7 @@ router.get("/providers/:id/errors", catchAsync(async (req, res) => {
 router.post(
     "/providers",
     auditLog("CREATE_PROVIDER", "provider"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const { code, name, apiEndpoint, supportCard, supportMobileMoney, credentials } = req.body;
 
@@ -182,6 +184,7 @@ router.post(
 router.put(
     "/providers/:id",
     auditLog("UPDATE_PROVIDER", "provider"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const provider = await PaymentProvider.findByPk(req.params.id);
         if (!provider) throw new NotFoundError("Provider not found");
@@ -210,6 +213,7 @@ router.put(
 router.put(
     "/providers/:id/toggle",
     auditLog("TOGGLE_PROVIDER", "provider"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const provider = await PaymentProvider.findByPk(req.params.id);
         if (!provider) throw new NotFoundError("Provider not found");
@@ -232,7 +236,7 @@ router.put(
  * POST /api/admin/providers/:id/test
  * Test provider API connectivity (live ping)
  */
-router.post("/providers/:id/test", catchAsync(async (req, res) => {
+router.post("/providers/:id/test", auditLog("TEST_PROVIDER", "provider"), requirePsp("psp.providers.manage"), catchAsync(async (req, res) => {
     const provider = await PaymentProvider.findByPk(req.params.id);
     if (!provider) throw new NotFoundError("Provider not found");
 
@@ -356,6 +360,7 @@ router.post("/routes/simulate", catchAsync(async (req, res) => {
 router.post(
     "/routes",
     auditLog("CREATE_ROUTE", "route"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const { providerId, countryCode, currency, minAmount, maxAmount, priority } = req.body;
 
@@ -387,6 +392,7 @@ router.post(
 router.put(
     "/routes/:id",
     auditLog("UPDATE_ROUTE", "route"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const route = await ProviderRoute.findByPk(req.params.id);
         if (!route) throw new NotFoundError("Route not found");
@@ -412,6 +418,7 @@ router.put(
 router.delete(
     "/routes/:id",
     auditLog("DELETE_ROUTE", "route"),
+    requirePsp("psp.providers.manage"),
     catchAsync(async (req, res) => {
         const route = await ProviderRoute.findByPk(req.params.id);
         if (!route) throw new NotFoundError("Route not found");
@@ -619,6 +626,7 @@ router.get("/webhooks", catchAsync(async (req, res) => {
 router.post(
     "/webhooks/:id/replay",
     auditLog("REPLAY_WEBHOOK", "webhook"),
+    requirePsp("psp.operations.manage"),
     catchAsync(async (req, res) => {
         const event = await WebhookEvent.findByPk(req.params.id, {
             include: [{ model: PaymentProvider, as: "provider" }],
@@ -658,8 +666,8 @@ router.post(
 router.get("/notifications/me", catchAsync(NotificationController.getMe));
 router.get("/notifications", catchAsync(NotificationController.getSettings));
 router.get("/notifications/search", catchAsync(NotificationController.searchAdmins));
-router.post("/notifications", catchAsync(NotificationController.updateSetting));
-router.delete("/notifications/:id", catchAsync(NotificationController.deleteSetting));
+router.post("/notifications", auditLog("UPDATE_NOTIFICATION_SETTING", "notification"), requirePsp("psp.operations.manage"), catchAsync(NotificationController.updateSetting));
+router.delete("/notifications/:id", auditLog("DELETE_NOTIFICATION_SETTING", "notification"), requirePsp("psp.operations.manage"), catchAsync(NotificationController.deleteSetting));
 
 // In-App Alerts (Dashboard Bell)
 router.get("/admin-notifications", catchAsync(AdminNotificationController.list));
@@ -719,6 +727,7 @@ router.get("/orders/:id", catchAsync(async (req, res, next) => {
 router.post(
     "/orders/:id/validate",
     auditLog("VALIDATE_ORDER", "order"),
+    requirePsp("psp.operations.manage"),
     catchAsync(async (req, res, next) => {
         await OrderController.validate(req, res, next);
     })
@@ -731,6 +740,7 @@ router.post(
 router.post(
     "/orders/:id/complete",
     auditLog("COMPLETE_ORDER", "order"),
+    requirePsp("psp.operations.manage"),
     catchAsync(async (req, res, next) => {
         await OrderController.complete(req, res, next);
     })
@@ -833,7 +843,7 @@ router.get("/companies/:id", catchAsync(async (req, res, next) => {
  * PUT /api/admin/companies/admins/:adminId/toggle
  * Activer/Désactiver manuellement un admin entreprise
  */
-router.put("/companies/admins/:adminId/toggle", catchAsync(async (req, res, next) => {
+router.put("/companies/admins/:adminId/toggle", auditLog("TOGGLE_COMPANY_ADMIN", "company_admin"), requirePsp("psp.companies.manage"), catchAsync(async (req, res, next) => {
     await AdminCompanyController.toggleAdminStatus(req, res, next);
 }));
 
@@ -864,6 +874,7 @@ router.get("/requests/:id", catchAsync(async (req, res, next) => {
 router.post(
     "/requests/:id/approve",
     auditLog("APPROVE_REQUEST", "access_request"),
+    requirePsp("psp.companies.manage"),
     catchAsync(async (req, res, next) => {
         await AdminRequestController.approve(req, res, next);
     })
@@ -876,6 +887,7 @@ router.post(
 router.post(
     "/requests/batch-approve",
     auditLog("BATCH_APPROVE_REQUESTS", "access_request"),
+    requirePsp("psp.companies.manage"),
     catchAsync(async (req, res, next) => {
         await AdminRequestController.batchApprove(req, res, next);
     })
@@ -888,6 +900,7 @@ router.post(
 router.post(
     "/requests/:id/reject",
     auditLog("REJECT_REQUEST", "access_request"),
+    requirePsp("psp.companies.manage"),
     catchAsync(async (req, res, next) => {
         await AdminRequestController.reject(req, res, next);
     })
@@ -900,6 +913,7 @@ router.post(
 router.post(
     "/requests/batch-reject",
     auditLog("BATCH_REJECT_REQUESTS", "access_request"),
+    requirePsp("psp.companies.manage"),
     catchAsync(async (req, res, next) => {
         await AdminRequestController.batchReject(req, res, next);
     })

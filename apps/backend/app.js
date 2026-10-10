@@ -7,7 +7,7 @@ import rateLimit from "express-rate-limit";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
+import adminAuthSsoRoutes from "./routes/admin-auth-sso.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import b2bRoutes from "./routes/b2b.routes.js";
 import qaRoutes from "./routes/qa.routes.js";
@@ -103,7 +103,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
-app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
+app.use("/api/admin/auth/sso", adminAuthSsoRoutes);
 app.use("/api/admin", adminRoutes);
 // Routes de simulation de paiement : jamais en production (voir utils/route-gates.js).
 if (isAdminTestRoutesEnabled(process.env)) {

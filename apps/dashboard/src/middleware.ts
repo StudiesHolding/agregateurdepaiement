@@ -9,7 +9,9 @@ const { auth } = NextAuth(authConfig);
  * Ensures only authenticated sessions can access the dashboard routes.
  */
 export default auth((req) => {
-  const isAuth = !!req.auth;
+  // Une session valide a un utilisateur. En cas d'erreur de configuration, Auth.js renvoie un objet d'erreur
+  // ({ message }) : ne jamais le prendre pour une session (fermé par défaut, ADR-0018 D5).
+  const isAuth = !!(req.auth as { user?: unknown } | null)?.user;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
   const isDocsPage = req.nextUrl.pathname.startsWith("/docs");
 

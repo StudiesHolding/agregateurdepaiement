@@ -11,6 +11,7 @@ export const authConfig = {
         async jwt({ token, user }) {
             if (user) {
                 token.role = (user as any).role;
+                token.permissions = (user as any).permissions ?? [];
                 // Jeton de session du backend : reste dans le cookie chiffré, jamais exposé au navigateur.
                 token.backendToken = (user as any).backendToken;
             }
@@ -19,6 +20,7 @@ export const authConfig = {
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
+                (session.user as any).permissions = token.permissions ?? [];
             }
             return session;
         },
@@ -30,4 +32,6 @@ export const authConfig = {
     pages: {
         signIn: "/login",
     },
+    // Servi derrière le proxy de Studies Learning (nginx) : l'hôte transmis est celui du proxy. AUTH_URL reste recommandé.
+    trustHost: true,
 } satisfies NextAuthConfig;

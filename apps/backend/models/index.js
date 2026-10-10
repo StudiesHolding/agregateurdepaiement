@@ -10,6 +10,7 @@ import { InstallmentPayment } from "./installment-payment.model.js";
 import { ApiKey } from "./api-key.model.js";
 import { VerifiedEmail } from "./verified-email.model.js";
 import { AdminAuditLog } from "./admin-audit-log.model.js";
+import { AdminSsoAssertion } from "./admin-sso-assertion.model.js";
 import { ProviderStatsCache } from "./provider-stats-cache.model.js";
 import { NotificationSettings } from "./notification-settings.model.js";
 import { OrderAuditLog } from "./order-audit-log.model.js";
@@ -206,6 +207,7 @@ export {
   ApiKey,
   VerifiedEmail,
   AdminAuditLog,
+  AdminSsoAssertion,
   ProviderStatsCache,
   NotificationSettings,
   OrderAuditLog,
