@@ -43,3 +43,27 @@ export const financeApi = {
 
 export const RANGES = [{ id: "7d", label: "7 jours" }, { id: "30d", label: "30 jours" }, { id: "90d", label: "90 jours" }, { id: "12m", label: "12 mois" }];
 export const REFERENCE_CURRENCIES = ["XOF", "XAF", "EUR", "USD"];
+
+export interface TodoItem { severity: "danger" | "warning"; title: string; detail: string; href: string }
+export interface Overview {
+    referenceCurrency: string;
+    fx: RevenueReport["fx"];
+    revenue: {
+        today: { gross: number; net: number; count: number };
+        week: { gross: number; net: number; count: number; previousGross: number };
+        series: Array<{ date: string; gross: number; count: number }>;
+    };
+    last24h: { funnel: FailuresReport["funnel"]; successRate: number | null; topCause: { label: string; count: number } | null };
+    providers: Array<{ id: number; name: string; code: string; status: string; successRate: number | null; attempts: number; mode: "test" | "live" | null }>;
+    lanes: { total: number; broken: number; noFallback: number };
+    reconciliation: { total: number };
+    todo: TodoItem[];
+}
+export interface ReconciliationGroup {
+    rule: string; label: string; severity: "danger" | "warning"; explanation: string; action: string; count: number;
+    items: Array<{ reference?: string | null; orderId?: number; amount?: number; currency?: string; at: string; status?: string; provider?: string | null; webhookId?: number; reason?: string | null; transactionNumber?: string }>;
+}
+export const overviewApi = {
+    get: (ref: string) => api.get("/finance/overview", { params: { ref } }).then((r) => r.data.data as Overview),
+    reconciliation: (days: number) => api.get("/finance/reconciliation", { params: { days } }).then((r) => r.data.data as { since: string; days: number; total: number; groups: ReconciliationGroup[] }),
+};

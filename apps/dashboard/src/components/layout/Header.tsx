@@ -17,6 +17,7 @@ const pageTitles: Array<[string, string]> = [
     ["/requests", "Demandes d’accès des entreprises"],
     ["/revenue", "Revenus"],
     ["/failures", "Échecs et frictions"],
+    ["/reconciliation", "Rapprochement"],
     ["/webhooks", "Webhooks"],
     ["/audit", "Journal d’audit"],
     ["/settings/notifications", "Notifications"],

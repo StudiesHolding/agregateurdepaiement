@@ -29,7 +29,7 @@ export function resolvePeriod({ range = "30d", from, to } = {}, now = new Date()
     let start;
     if (from) start = new Date(`${from}T00:00:00.000Z`);
     else {
-        const days = { "7d": 7, "30d": 30, "90d": 90, "12m": 365 }[range] ?? 30;
+        const days = { "1d": 1, "7d": 7, "30d": 30, "90d": 90, "12m": 365 }[range] ?? 30;
         start = new Date(end.getTime() - days * DAY);
     }
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) throw new Error("Période invalide.");

@@ -20,6 +20,8 @@ import { ProviderRouterService } from "../services/provider-router.service.js";
 import { inMaintenance, normalizeRule } from "../services/routing/routing-engine.js";
 import { PROVIDER_CATALOG, isImplemented, mergeSettings, readiness } from "../services/providers/provider-catalog.js";
 import { failuresReport, revenueReport } from "../services/finance/finance-analytics.js";
+import { overviewReport } from "../services/finance/overview.js";
+import { reconciliationReport } from "../services/finance/reconciliation.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
@@ -266,6 +268,23 @@ router.post("/providers/:id/test", auditLog("TEST_PROVIDER", "provider"), requir
 router.get("/finance/revenue", catchAsync(async (req, res) => {
     try { res.json({ status: "success", data: await revenueReport(req.query) }); }
     catch (err) { if (/Période/.test(err.message)) throw new BadRequestError(err.message); throw err; }
+}));
+
+/**
+ * GET /api/admin/finance/overview?ref=XOF
+ * Centre de pilotage : revenus du jour et de la semaine, succès sur 24 h, santé des prestataires, risques de
+ * routage, écarts de rapprochement et liste des actions à mener.
+ */
+router.get("/finance/overview", catchAsync(async (req, res) => {
+    res.json({ status: "success", data: await overviewReport({ ref: String(req.query.ref ?? "XOF").toUpperCase() }) });
+}));
+
+/**
+ * GET /api/admin/finance/reconciliation?days=30
+ * Écarts entre paiements confirmés, commandes, accès livrés et notifications des prestataires.
+ */
+router.get("/finance/reconciliation", catchAsync(async (req, res) => {
+    res.json({ status: "success", data: await reconciliationReport({ days: req.query.days }) });
 }));
 
 /**
