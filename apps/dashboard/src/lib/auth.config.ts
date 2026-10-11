@@ -11,23 +11,27 @@ export const authConfig = {
         async jwt({ token, user }) {
             if (user) {
                 token.role = (user as any).role;
-                token.apiKey = (user as any).apiKey;
+                token.permissions = (user as any).permissions ?? [];
+                // Jeton de session du backend : reste dans le cookie chiffré, jamais exposé au navigateur.
+                token.backendToken = (user as any).backendToken;
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
-                (session.user as any).apiKey = token.apiKey;
+                (session.user as any).permissions = token.permissions ?? [];
             }
             return session;
         },
     },
     session: {
         strategy: "jwt",
-        maxAge: 12 * 60 * 60, // 12 hours
+        maxAge: 8 * 60 * 60, // 8 h, comme le jeton du backend
     },
     pages: {
         signIn: "/login",
     },
+    // Servi derrière le proxy de Studies Learning (nginx) : l'hôte transmis est celui du proxy. AUTH_URL reste recommandé.
+    trustHost: true,
 } satisfies NextAuthConfig;

@@ -1,4 +1,6 @@
-node_modules# Logs
+node_modules
+
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -28,3 +30,8 @@ dist-ssr
 .next/*
 .next/
 .next
+
+# Artefacts générés
+coverage/
+*.tsbuildinfo
+apps/backend/database-*-report.json

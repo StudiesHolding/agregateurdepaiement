@@ -1,10 +1,32 @@
 import app from "./app.js";
 import { sequelize } from "./models/index.js";
+import { validateCommissionCreditConfig } from "./services/sl-backend-commission.client.js";
+import { assertJwtSecretConfigured } from "./utils/jwt-secret.js";
 
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
     try {
+        // Sessions : jamais de secret de repli (ADR-0018, D5) — arrêt en production si JWT_SECRET est faible.
+        try { assertJwtSecretConfigured(); } catch (e) { console.error(` [FATAL] ${e.message}`); process.exit(1); }
+        // Validation de configuration — crédit de commission (S1-5) :
+        // hors test, refuser le démarrage si SL_BACKEND_URL / INTERNAL_API_KEY
+        // sont absentes alors que la fonctionnalité est activée (défaut : activée).
+        const commissionConfig = validateCommissionCreditConfig();
+        if (!commissionConfig.valid) {
+            console.error(
+                ` [FATAL] Crédit de commission activé (COMMISSION_CREDIT_ENABLED) mais variables manquantes :` +
+                ` ${commissionConfig.missing.join(', ')}.` +
+                ` Renseignez-les dans .env ou désactivez avec COMMISSION_CREDIT_ENABLED=false.`
+            );
+            process.exit(1);
+        }
+        if (commissionConfig.enabled) {
+            console.log(" Crédit de commission activé (SL_BACKEND_URL + INTERNAL_API_KEY configurés)");
+        } else {
+            console.log(" Crédit de commission désactivé (COMMISSION_CREDIT_ENABLED=false)");
+        }
+
         console.log(" Connecting to database...");
         await sequelize.authenticate();
         console.log(" Database connection established successfully.");
@@ -24,27 +46,17 @@ const startServer = async () => {
             console.log(" Continuing without model synchronization...");
         }
 
-        // Auto-seed default admin key if missing
-        try {
-            const { ApiKey } = await import("./models/index.js");
-            const { ApiKeyService } = await import("./services/api-key.service.js");
-            const adminKeyCount = await ApiKey.count({ where: { owner: { [sequelize.Sequelize.Op.like]: 'admin:%' } } });
-
-            if (adminKeyCount === 0) {
-                const defaultKey = await ApiKeyService.generate("admin:default-key");
-                console.log("\n [SECURITY] No admin key found. Generated default admin key:");
-                console.log(`            KEY: ${defaultKey.key}`);
-                console.log(`            OWNER: admin:default-key`);
-                console.log("   --- Store this safely and delete after first production login ---\n");
-            }
-        } catch (seedError) {
-            console.warn("  Default key seeding skipped:", seedError.message);
-        }
+        // Plus de clé administrateur générée ni écrite dans les journaux au démarrage (ADR-0019) : l'équipe se connecte
+        // par Studies Learning ; une clé d'intégration se crée volontairement avec scripts/create-machine-key.js.
 
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(` Server running on http://0.0.0.0:${PORT}`);
             console.log(` Health check: http://localhost:${PORT}/health`);
         });
+
+        // Notifications de l'espace finance : règles par défaut, surveillances périodiques (ADR-0019, D7).
+        const { startNotificationWatchers } = await import('./services/notifications/notification-engine.js');
+        startNotificationWatchers();
 
         // Workers Saga BullMQ (provisioning post-paiement + assignations B2B)
         try {

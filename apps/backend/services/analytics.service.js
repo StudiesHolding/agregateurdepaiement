@@ -51,15 +51,15 @@ export class AnalyticsService {
         // Failover Rate: intents that needed more than 1 attempt
         const [failoverData] = await sequelize.query(
             `SELECT
-                COUNT(DISTINCT pa.payment_intent_id) AS failoverCount
+                COUNT(DISTINCT pa.paymentIntentId) AS failoverCount
             FROM aggp_payment_attempts pa
             INNER JOIN (
-                SELECT payment_intent_id
+                SELECT paymentIntentId
                 FROM aggp_payment_attempts
-                WHERE created_at >= :start
-                GROUP BY payment_intent_id
+                WHERE createdAt >= :start
+                GROUP BY paymentIntentId
                 HAVING COUNT(*) > 1
-            ) multi ON multi.payment_intent_id = pa.payment_intent_id`,
+            ) multi ON multi.paymentIntentId = pa.paymentIntentId`,
             { replacements: { start: start24h }, type: QueryTypes.SELECT }
         );
 
@@ -156,8 +156,8 @@ export class AnalyticsService {
                 COALESCE(COUNT(CASE WHEN pa.status = 'succeeded' THEN pa.id END), 0) AS succeededAttempts
             FROM aggp_payment_providers pp
             LEFT JOIN aggp_payment_attempts pa 
-                ON pa.provider_id = pp.id 
-                AND pa.created_at >= DATE_SUB(NOW(), INTERVAL :hours HOUR)
+                ON pa.providerId = pp.id 
+                AND pa.createdAt >= DATE_SUB(NOW(), INTERVAL :hours HOUR)
             GROUP BY pp.id, pp.name, pp.code, pp.is_active, pp.support_card, pp.support_mobile_money
             ORDER BY totalAttempts DESC`,
             { replacements: { hours }, type: QueryTypes.SELECT }
@@ -185,15 +185,15 @@ export class AnalyticsService {
 
         return await sequelize.query(
             `SELECT
-                error_code AS errorCode,
-                error_message AS errorMessage,
+                errorCode AS errorCode,
+                errorMessage AS errorMessage,
                 COUNT(*) AS occurrences
             FROM aggp_payment_attempts
-            WHERE provider_id = :providerId
+            WHERE providerId = :providerId
               AND status = 'failed'
-              AND error_code IS NOT NULL
-              AND created_at >= DATE_SUB(NOW(), INTERVAL :hours HOUR)
-            GROUP BY error_code, error_message
+              AND errorCode IS NOT NULL
+              AND createdAt >= DATE_SUB(NOW(), INTERVAL :hours HOUR)
+            GROUP BY errorCode, errorMessage
             ORDER BY occurrences DESC
             LIMIT 10`,
             { replacements: { providerId, hours }, type: QueryTypes.SELECT }
@@ -219,10 +219,10 @@ export class AnalyticsService {
                          ELSE 0 END, 
                 1) AS successRate
             FROM aggp_payment_attempts pa
-            JOIN aggp_payment_intents pi ON pi.id = pa.payment_intent_id
-            JOIN aggp_payment_providers pp ON pp.id = pa.provider_id
+            JOIN aggp_payment_intents pi ON pi.id = pa.paymentIntentId
+            JOIN aggp_payment_providers pp ON pp.id = pa.providerId
             JOIN aggp_provider_routes pr ON pr.provider_id = pp.id
-            WHERE pa.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            WHERE pa.createdAt >= DATE_SUB(NOW(), INTERVAL :days DAY)
             GROUP BY pr.country_code
             ORDER BY volume DESC`,
             { replacements: { days }, type: QueryTypes.SELECT }
@@ -237,12 +237,12 @@ export class AnalyticsService {
             `SELECT
                 COUNT(*) AS total24h,
                 COUNT(CASE WHEN processed = 1 THEN 1 END) AS processedCount,
-                COUNT(CASE WHEN signature_valid = 0 THEN 1 END) AS invalidSignatureCount,
+                COUNT(CASE WHEN signatureValid = 0 THEN 1 END) AS invalidSignatureCount,
                 COUNT(CASE WHEN processed = 0 THEN 1 END) AS pendingCount,
-                AVG(CASE WHEN processed = 1 AND processed_at IS NOT NULL 
-                    THEN TIMESTAMPDIFF(SECOND, created_at, processed_at) END) AS avgProcessingSeconds
+                AVG(CASE WHEN processed = 1 AND processedAt IS NOT NULL 
+                    THEN TIMESTAMPDIFF(SECOND, createdAt, processedAt) END) AS avgProcessingSeconds
             FROM aggp_webhook_events
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+            WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
             { type: QueryTypes.SELECT }
         );
 
@@ -264,7 +264,7 @@ export class AnalyticsService {
     static async getProviderSparkline(providerId) {
         return await sequelize.query(
             `SELECT
-                DATE_FORMAT(created_at, '%Y-%m-%d %H:00') AS hour,
+                DATE_FORMAT(createdAt, '%Y-%m-%d %H:00') AS hour,
                 COUNT(*) AS total,
                 COUNT(CASE WHEN status = 'succeeded' THEN 1 END) AS successes,
                 ROUND(
@@ -273,9 +273,9 @@ export class AnalyticsService {
                          ELSE 0 END, 
                 1) AS successRate
             FROM aggp_payment_attempts
-            WHERE provider_id = :providerId
-              AND created_at >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
-            GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00')
+            WHERE providerId = :providerId
+              AND createdAt >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
+            GROUP BY DATE_FORMAT(createdAt, '%Y-%m-%d %H:00')
             ORDER BY hour ASC`,
             { replacements: { providerId }, type: QueryTypes.SELECT }
         );

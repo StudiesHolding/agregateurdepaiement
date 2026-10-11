@@ -1,5 +1,6 @@
 "use client";
 
+import { agree, purchaseWords } from "@/lib/purchase";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { adminApi } from "@/lib/api";
@@ -177,7 +178,7 @@ export default function OrdersPage() {
     mutationFn: ({ id, action }: { id: number; action: "validate" | "reject" }) =>
       adminApi.validateOrder(id, { action }),
     onSuccess: (_, variables) => {
-      toast.success(variables.action === "validate" ? "Commande validée" : "Commande rejetée");
+      { const w = purchaseWords(orders.find((o) => o.id === variables.id)); toast.success(`${w.Noun} ${agree(w, variables.action === "validate" ? "validé" : "refusé")}`); }
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setActionOrderId(null);
       setActionType(null);
@@ -189,7 +190,7 @@ export default function OrdersPage() {
     mutationFn: ({ id, username, password }: { id: number; username: string; password: string }) =>
       adminApi.completeOrder(id, { username, password }),
     onSuccess: () => {
-      toast.success("Commande finalisée");
+      toast.success("Accès envoyés : achat finalisé");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setActionOrderId(null);
       setActionType(null);
@@ -206,8 +207,8 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title leading-tight">Workflow <span className="gradient-text text-primary">Inscriptions</span></h1>
-          <p className="text-sm text-text-light font-medium mt-1">Gérez le cycle de vie des inscriptions (Formations & Packages) et des paiements.</p>
+          <h1 className="page-title leading-tight">Inscriptions et <span className="gradient-text text-primary">achats de licences</span></h1>
+          <p className="text-sm text-text-light font-medium mt-1">Suivez chaque inscription à une formation et chaque achat de licences d’entreprise, du paiement à l’accès.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -223,7 +224,7 @@ export default function OrdersPage() {
       {/* Stats Cards - Premium Logic */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up">
         {[
-          { label: "Total Commandes", value: meta.total, icon: Package, color: "text-primary bg-primary/10 border-primary/20" },
+          { label: "Total", value: meta.total, icon: Package, color: "text-primary bg-primary/10 border-primary/20" },
           { label: "En Confirmation", value: orders.filter(o => o.status === 'payment_confirmed').length, icon: CreditCard, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
           { label: "A Finaliser", value: orders.filter(o => o.status === 'validated' && (o as any).lmsItemType !== 'package').length, icon: Send, color: "text-info bg-info/10 border-info/20" },
           { label: "Terminées", value: orders.filter(o => o.status === 'completed').length, icon: CheckCircle, color: "text-success bg-success/10 border-success/20" },
@@ -313,7 +314,7 @@ export default function OrdersPage() {
                 ))
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-20 text-center opacity-40 italic">Aucune commande trouvée</td>
+                  <td colSpan={7} className="py-20 text-center opacity-40 italic">Aucune inscription ni aucun achat de licences</td>
                 </tr>
               ) : (
                 orders.map((order: any) => (
@@ -420,12 +421,12 @@ export default function OrdersPage() {
       <ActionModal
         isOpen={actionOrderId && (actionType === "validate" || actionType === "reject")}
         onClose={() => { setActionOrderId(null); setActionType(null); }}
-        title={actionType === "validate" ? "Valider la commande" : "Rejeter la commande"}
-        desc={actionType === "validate" ? "Voulez-vous valider cette inscription ? Le client recevra sa facture par email." : "Souhaitez-vous rejeter cette commande ?"}
+        title={`${actionType === "validate" ? "Valider" : "Refuser"} ${purchaseWords(orders.find((o) => o.id === actionOrderId)).the}`}
+        desc={actionType === "validate" ? "Le client recevra sa facture par e-mail." : "Le client sera prévenu du refus."}
         icon={actionType === "validate" ? CheckCircle : XCircle}
         colorClass={actionType === "validate" ? "bg-success-light text-success-dark" : "bg-danger-light text-danger-dark"}
         action={{
-          label: actionType === "validate" ? "Valider" : "Rejeter",
+          label: actionType === "validate" ? "Valider" : "Refuser",
           bg: actionType === "validate" ? "bg-success hover:bg-success-dark" : "bg-danger hover:bg-danger-dark",
           fn: () => validateMutation.mutate({ id: actionOrderId!, action: actionType as any })
         }}

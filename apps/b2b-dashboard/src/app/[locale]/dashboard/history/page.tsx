@@ -84,7 +84,7 @@ export default function HistoryPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Commande</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Achat de licences</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Date</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Montant</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Licences</th>

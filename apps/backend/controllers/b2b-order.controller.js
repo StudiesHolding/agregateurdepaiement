@@ -182,13 +182,13 @@ export const b2bOrderController = {
       const order = await Order.findByPk(id);
 
       if (!order) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Achat de licences introuvable.");
       }
 
       // Verify ownership
       const metadata = order.metadata || {};
       if (metadata.company_id !== companyId) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Achat de licences introuvable.");
       }
 
       // Get formation package info
@@ -247,7 +247,7 @@ export const b2bOrderController = {
       const order = await Order.findByPk(id);
 
       if (!order) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Achat de licences introuvable.");
       }
 
       // Parse metadata if string
@@ -278,7 +278,7 @@ export const b2bOrderController = {
         !isB2BOrder ||
         !(matchesCompanyId || matchesEmail || matchesName || matchesMetaName)
       ) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Achat de licences introuvable.");
       }
 
       if (
@@ -287,7 +287,7 @@ export const b2bOrderController = {
         order.status !== "validated"
       ) {
         throw new BadRequestError(
-          "La facture n'est disponible que pour les commandes validées ou payées.",
+          "La facture n'est disponible que pour les achats de licences validés ou payés.",
         );
       }
 

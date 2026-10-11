@@ -1,3 +1,5 @@
+import { thematiqueQuoteService } from "../services/pricing/thematique-quote.service.js";
+import { packageQuoteService } from "../services/pricing/package-quote.service.js";
 import {
   CompanyPackage,
   FormationPackage,
@@ -281,10 +283,9 @@ export const b2bPackageController = {
    * @desc Add more licenses to an existing package
    */
   addLicenses: async (req, res, next) => {
-    const transaction = await sequelize.transaction();
     try {
       const { id } = req.params;
-      const { additional_licenses, paymentMethod, countryCode, currency } =
+      const { additional_licenses, paymentMethod, countryCode } =
         req.body;
       const companyId = req.company_id;
 
@@ -312,43 +313,27 @@ export const b2bPackageController = {
       const companyPackage = await CompanyPackage.findOne({
         where: { id, company_id: companyId, status: "active" },
         include: [{ model: FormationPackage, as: "package" }],
-        transaction,
       });
 
       if (!companyPackage) {
         throw new NotFoundError("Package actif introuvable.");
       }
 
-      // 2. Validate number of licenses
-      const additionalCount = parseInt(additional_licenses) || 0;
-      if (additionalCount < 1) {
-        throw new BadRequestError(
-          "Le nombre de licences doit être au moins 1.",
-        );
-      }
-
-      if (additionalCount > 1000) {
-        throw new BadRequestError("Nombre maximum de licences: 1000.");
-      }
-
-      // 3. Calculate price
+      // 2-3. Devis serveur (prix d'une licence × licences − palier de volume) : seule source du montant.
+      const quote = await packageQuoteService.quote(companyPackage.package_id, additional_licenses);
+      const additionalCount = quote.seats;
+      const totalAmount = Number(quote.total);
       const pkg = companyPackage.package;
-      const unitPrice = Number(pkg.price) || 0;
-      const totalAmount = unitPrice * additionalCount;
-
-      if (totalAmount <= 0) {
-        throw new BadRequestError("Prix invalide pour ce package.");
-      }
 
       // 4. Prepare payment data
       const paymentData = {
         customerEmail: companyEmail,
         customerName: companyName,
-        lmsItemId: pkg.id.toString(),
+        lmsItemId: String(quote.packageId),
         lmsItemType: "package", // Use valid enum value - 'package_add_licenses' info goes in metadata
         paymentMethod: paymentMethod || "card",
         countryCode: countryCode || "CM",
-        currency: currency || pkg.currency || "XOF",
+        currency: quote.currency,
         amount: totalAmount,
         successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success&action=add_licenses`,
         cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=cancelled`,
@@ -361,8 +346,12 @@ export const b2bPackageController = {
           company_name: companyName,
           company_admin_email: companyEmail,
           company_package_id: id,
+          package_id: quote.packageId,
           licence_count: additionalCount,
-          unit_price: unitPrice,
+          unit_price: quote.unitPrice,
+          base_price: quote.basePrice,
+          discount_rate: quote.discountRate,
+          discount_label: quote.discountLabel,
           previous_total_licenses: companyPackage.total_licenses,
           source: "b2b_dashboard_add_licenses",
         },
@@ -379,16 +368,6 @@ export const b2bPackageController = {
         );
       }
 
-      // Store pending license addition in metadata for later processing
-      const pendingAddition = {
-        company_package_id: id,
-        additional_licenses: additionalCount,
-        order_reference: result.orderReference,
-        status: "pending_payment",
-      };
-
-      await transaction.commit();
-
       res.status(201).json({
         status: "success",
         data: {
@@ -400,16 +379,29 @@ export const b2bPackageController = {
           provider: result.provider,
           clientSecret: result.clientSecret,
           amount: totalAmount,
-          currency: currency || pkg.currency || "XOF",
+          currency: quote.currency,
+          quote,
           additional_licenses: additionalCount,
           current_licenses: companyPackage.total_licenses,
           new_total_licenses: companyPackage.total_licenses + additionalCount,
-          package_name: pkg.name,
+          package_name: pkg?.name ?? quote.name,
         },
       });
     } catch (err) {
-      await transaction.rollback();
       next(err);
+    }
+  },
+
+  /**
+   * @route GET /api/v1/b2b/packages/:id/quote?seats=N
+   * @desc Devis serveur d'un package vendu à la licence (prix unitaire, remise de volume, total)
+   */
+  quotePackage: async (req, res, next) => {
+    try {
+      const quote = await packageQuoteService.quote(req.params.id, req.query.seats ?? 1);
+      res.status(200).json({ status: "success", data: quote });
+    } catch (error) {
+      next(error);
     }
   },
 
@@ -423,7 +415,7 @@ export const b2bPackageController = {
    */
   purchasePackage: async (req, res, next) => {
     try {
-      const { package_id, total_licenses, paymentMethod, countryCode, currency } = req.body;
+      const { package_id, total_licenses, paymentMethod, countryCode } = req.body;
       const companyId = req.company_id;
       const companyEmail = req.company_email;
       const companyName = req.company_name;
@@ -432,26 +424,26 @@ export const b2bPackageController = {
         throw new BadRequestError("package_id est requis.");
       }
 
-      // Délégation au OrderController.initiatePayment qui utilise OrchestratorService
-      // Cela garantit que le flux officiel est respecté
+      // Délégation à l'OrchestratorService : le flux officiel (Order → PSP → saga) est respecté.
       const { OrchestratorService } = await import("../services/orchestrator.service.js");
 
-      const pkg = await FormationPackage.findByPk(package_id);
-      if (!pkg) {
-        throw new NotFoundError("Package introuvable.");
-      }
-
-      const unitPrice = Number(pkg.price) || 0;
-      const totalAmount = unitPrice * (total_licenses || 1);
+      // Devis serveur (prix d'une licence × licences − palier de volume) : seule source du montant.
+      // Licences non précisées → 1 (comportement historique du dashboard).
+      const quote = await packageQuoteService.quote(
+        package_id,
+        total_licenses === undefined || total_licenses === null || total_licenses === "" ? 1 : total_licenses,
+      );
+      const licenceCount = quote.seats;
+      const totalAmount = Number(quote.total);
 
       const paymentData = {
         customerEmail: companyEmail,
         customerName: companyName,
-        lmsItemId: package_id.toString(),
+        lmsItemId: String(quote.packageId),
         lmsItemType: "package",
         paymentMethod: paymentMethod || "card",
         countryCode: countryCode || "CM",
-        currency: currency || pkg.currency || "XOF",
+        currency: quote.currency,
         amount: totalAmount,
         successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success`,
         cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=cancelled`,
@@ -462,8 +454,13 @@ export const b2bPackageController = {
           company_id: companyId,
           company_name: companyName,
           company_admin_email: companyEmail,
-          licence_count: total_licenses || 1,
-          unit_price: unitPrice,
+          package_id: quote.packageId,
+          package_name: quote.name,
+          licence_count: licenceCount,
+          unit_price: quote.unitPrice,
+          base_price: quote.basePrice,
+          discount_rate: quote.discountRate,
+          discount_label: quote.discountLabel,
           source: "b2b_dashboard",
         },
       };
@@ -488,8 +485,9 @@ export const b2bPackageController = {
           provider: result.provider,
           clientSecret: result.clientSecret,
           amount: totalAmount,
-          currency: currency || pkg.currency || "XOF",
-          licences: total_licenses || 1,
+          currency: quote.currency,
+          quote,
+          licences: licenceCount,
         },
       });
     } catch (err) {
@@ -529,12 +527,25 @@ export const b2bPackageController = {
   },
 
   /**
+   * @route GET /api/v1/b2b/thematiques/:id/quote?seats=N
+   * @desc Devis serveur (prix unitaire, remise de volume, total) pour l'aperçu avant achat
+   */
+  quoteThematique: async (req, res, next) => {
+    try {
+      const quote = await thematiqueQuoteService.quote(req.params.id, req.query.seats ?? 1);
+      res.status(200).json({ status: "success", data: quote });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
    * @route POST /api/v1/b2b/thematiques/purchase
    * @desc Initiate payment for a thematique
    */
   purchaseThematique: async (req, res, next) => {
     try {
-      const { thematique_id, total_licenses, paymentMethod, countryCode, currency } = req.body;
+      const { thematique_id, total_licenses, paymentMethod, countryCode } = req.body;
       const companyId = req.company_id;
       const companyEmail = req.company_email;
       const companyName = req.company_name;
@@ -542,16 +553,17 @@ export const b2bPackageController = {
       if (!thematique_id) {
         throw new BadRequestError("thematique_id est requis.");
       }
+      if (total_licenses === undefined || total_licenses === null || total_licenses === "") {
+        throw new BadRequestError("total_licenses (nombre de licences) est requis.");
+      }
 
       const { OrchestratorService } = await import("../services/orchestrator.service.js");
 
-      const thematique = await BusinessThematique.findByPk(thematique_id);
-      if (!thematique) {
-        throw new NotFoundError("Thématique introuvable.");
-      }
-
-      const unitPrice = 50000;
-      const amount = unitPrice * (total_licenses || 10);
+      // Prix, devise et remise TOUJOURS calculés côté serveur (type de thématique + paliers
+      // de volume du super admin). La devise envoyée par le navigateur est ignorée.
+      const quote = await thematiqueQuoteService.quote(thematique_id, total_licenses);
+      const amount = Number(quote.total);
+      const currency = quote.currency;
 
       const paymentData = {
         customerEmail: companyEmail,
@@ -560,8 +572,8 @@ export const b2bPackageController = {
         lmsItemType: "thematique",
         paymentMethod: paymentMethod || "card",
         countryCode: countryCode || "CM",
-        currency: currency || "XOF",
-        amount: amount,
+        currency,
+        amount,
         successUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/packages?payment=success`,
         cancelUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=cancelled`,
         failedUrl: `${process.env.FRONTEND_URL || "http://localhost:3002"}/fr/dashboard/catalog?payment=failed`,
@@ -571,8 +583,12 @@ export const b2bPackageController = {
           company_id: companyId,
           company_name: companyName,
           company_admin_email: companyEmail,
-          licence_count: total_licenses || 10,
-          unit_price: unitPrice,
+          thematique_id: quote.thematiqueId,
+          licence_count: quote.seats,
+          unit_price: quote.unitPrice,
+          base_price: quote.basePrice,
+          discount_rate: quote.discountRate,
+          discount_label: quote.discountLabel,
           source: "b2b_dashboard",
           purchase_type: "thematique",
         },
@@ -596,8 +612,9 @@ export const b2bPackageController = {
           provider: result.provider,
           clientSecret: result.clientSecret,
           amount: amount,
-          currency: currency || "XOF",
-          licences: total_licenses || 10,
+          currency,
+          licences: quote.seats,
+          quote,
         },
       });
     } catch (err) {

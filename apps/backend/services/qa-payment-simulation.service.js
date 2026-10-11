@@ -17,7 +17,7 @@ export class QaPaymentSimulationService {
   static async simulateSuccess(orderRef) {
     const order = await Order.findOne({ where: { reference: orderRef } });
     if (!order) {
-      throw new Error(`Commande ${orderRef} introuvable`);
+      throw new Error(`Inscription ${orderRef} introuvable`);
     }
 
     const transactionNumber = `QA-${order.reference}-${Date.now().toString(36)}`;

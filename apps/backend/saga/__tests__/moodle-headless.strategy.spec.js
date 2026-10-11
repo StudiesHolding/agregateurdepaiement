@@ -4,11 +4,15 @@
  */
 import { jest, describe, it, expect, beforeEach, afterAll } from '@jest/globals';
 
+// Tester le vrai chemin M2M (mock HTTP via mockM2MPost), pas le mock ATDD
+process.env.SAGA_MOCK_MOODLE_ENROLLMENT = 'false';
+
 // ============================================================
 // Mocks ESM avec jest.unstable_mockModule
 // ============================================================
 const mockDbQuery = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockOrderFindOne = jest.fn();
 const mockSendEmail = jest.fn().mockResolvedValue({ success: true });
 const mockM2MPost = jest.fn();
 
@@ -21,8 +25,8 @@ jest.unstable_mockModule('../../models/index.js', () => {
   const literal = jest.fn((str) => `LITERAL:${str}`);
   const escapeFn = jest.fn((str) => str);
   return {
-    Order: { update: mockOrderUpdate },
-    sequelize: { literal, escape: escapeFn },
+    Order: { update: mockOrderUpdate, findOne: mockOrderFindOne },
+    sequelize: { literal, escape: escapeFn, query: mockDbQuery },
   };
 });
 
@@ -82,6 +86,7 @@ describe('MoodleHeadlessStrategy', () => {
 
   afterAll(() => {
     jest.restoreAllMocks();
+    delete process.env.SAGA_MOCK_MOODLE_ENROLLMENT;
   });
 
   it('TC-SSO-01: should create user, call M2M, mark COMPLETED, send email', async () => {

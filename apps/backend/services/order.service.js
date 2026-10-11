@@ -18,6 +18,7 @@ export class OrderService {
             customerSurname: data.customerSurname,
             customerPhone: data.customerPhone,
             customerCity: data.customerCity,
+            customerCountry: data.customerCountry ?? null,
             customerAddress: data.customerAddress,
             customerState: data.customerState,
             customerZipCode: data.customerZipCode,
@@ -79,7 +80,9 @@ export class OrderService {
      * @returns {string}
      */
     static generateReference(type = "course") {
-        const prefix = type === "package" ? "B2B" : "ORD";
+        // Référence lisible (ADR-0019) : INS- pour une inscription, LIC- pour un achat de licences d'entreprise.
+        // Les références déjà émises (ORD-, B2B-) restent valables et inchangées.
+        const prefix = ["package", "thematique"].includes(type) ? "LIC" : "INS";
         const timestamp = Date.now().toString(36).toUpperCase();
         const random = uuidv4().substring(0, 8).toUpperCase();
         return `${prefix}-${timestamp}-${random}`;

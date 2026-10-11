@@ -1,6 +1,7 @@
 import { PurchaseStrategy } from "./purchase.strategy.js";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import { AppError } from "../../utils/errors.js";
 
 /**
  * Stratégie de paiement pour le règlement d'une enchère remportée (Auctions).
@@ -63,40 +64,14 @@ export class AuctionPaymentStrategy extends PurchaseStrategy {
             };
         } catch (error) {
             console.error(`[AuctionPaymentStrategy] Erreur getContext (${id}):`, error.message);
-            // Fallback gracefully for development if API is unreachable but ID is provided
-            return {
-                title: `Règlement Enchère #${id}`,
-                price: 150.00,
-                currency: "EUR",
-                features: [
-                    "Paiement de l'enchère remportée",
-                    "Service client dédié",
-                    "Livraison express"
-                ],
-                auctionDetails: {
-                    auctionId: id,
-                    winnerEmail: "gagnant@example.com"
-                }
-            };
+            // Aucun faux contexte en repli (auparavant 150 EUR et un gagnant fictif).
+            throw new AppError("Les informations de cette enchère sont momentanément indisponibles.", 503);
         }
     }
 
-    /**
-     * Initialise la saga de paiement (communication avec CinetPay/Stripe, etc.)
-     */
-    async process(data, user) {
-        const transactionId = `TXN-AUC-${Date.now()}-${uuidv4().substring(0, 8)}`;
-        
-        // Logique métier : 
-        // 1. Enregistrer l'intention de paiement dans l'Agrégateur
-        // 2. Générer le lien de paiement PSP
-        // 3. Informer le module d'enchères du statut "pending"
-
-        return {
-            transactionId,
-            status: "PENDING",
-            paymentUrl: `https://mock-psp.studieslearning.com/pay/${transactionId}`,
-            message: "Initialisation du paiement de l'enchère avec succès."
-        };
+    async process(_data, _user) {
+        // Le paiement d'enchère via la passerelle n'était qu'une simulation (URL de PSP fictive).
+        // Il sera implémenté de bout en bout au sprint 13 (enchères temps réel v2).
+        throw new AppError("Le paiement des enchères via la passerelle ouvre au sprint 13.", 501);
     }
 }

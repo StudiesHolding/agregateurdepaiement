@@ -4,6 +4,9 @@ import { ProviderSelectorService } from "./provider-selector.service.js";
 import { ProviderFactory } from "../providers/index.js";
 import { BadRequestError } from "../utils/errors.js";
 import { FormationsService } from "./formations.service.js";
+import { parseJson } from "../utils/json-column.js";
+
+const PROVIDER_UNAVAILABLE = "Le prestataire de paiement ne répond pas pour le moment. Réessayez dans un instant ou choisissez un autre moyen de paiement.";
 
 export class OrchestratorService {
   /**
@@ -44,6 +47,20 @@ export class OrchestratorService {
       company_admin_email,
       licence_count,
     } = data;
+
+    // Idempotence (ADR-0020, D4) : une même session de checkout (double clic, reprise réseau, retour arrière) ne crée
+    // jamais un second achat ni un second paiement. Le lien de paiement déjà émis est renvoyé.
+    if (idempotencyKey) {
+      if (typeof idempotencyKey !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(idempotencyKey)) {
+        throw new BadRequestError("Clé d'idempotence invalide.");
+      }
+      const previous = await PaymentIntentService.findByIdempotencyKey(idempotencyKey);
+      if (previous) {
+        const meta = parseJson(previous.metadata) ?? {};
+        if (meta.checkout_result) return { ...meta.checkout_result, duplicate: true };
+        throw new BadRequestError("Ce paiement est déjà en cours de création : patientez quelques secondes.");
+      }
+    }
 
     console.log("[OrchestratorService] Incoming data:", {
       customerEmail,
@@ -134,9 +151,14 @@ export class OrchestratorService {
       };
     }
 
+    // Provenance du paiement (ADR-0019, D4) : moyen et pays du client, conservés pour l'analyse des revenus et
+    // l'explication des échecs (le pays n'était jamais enregistré).
+    finalMetadata = { ...finalMetadata, payment_method: paymentMethod, country_code: countryCode || null };
+
     // 1. Create or Find Order
     const order = await OrderService.create({
       customerEmail,
+      customerCountry: countryCode || data.customerCountry || null,
       customerName,
       customerSurname,
       customerPhone: customerPhoneNumber,
@@ -172,7 +194,7 @@ export class OrchestratorService {
 
     if (routes.length === 0) {
       throw new BadRequestError(
-        `No available provider for ${paymentMethod} in ${countryCode} with ${currency}`,
+        `Aucun prestataire de paiement disponible pour ${paymentMethod === "card" ? "la carte bancaire" : "le Mobile Money"} en ${currency}${countryCode ? ` (pays ${countryCode})` : ""}. Vérifiez les règles de priorité.`,
       );
     }
 
@@ -219,6 +241,8 @@ export class OrchestratorService {
         currency,
         orderId: order.id,
         orderReference: order.reference,
+        // Libellé lisible chez le prestataire (jamais « Order … »).
+        itemLabel: formation?.name ? `Inscription · ${formation.name}` : (finalMetadata.formation_name || finalMetadata.company_name ? `Studies Learning · ${finalMetadata.formation_name || finalMetadata.company_name}` : null),
         paymentIntentId: intent.id,
         transactionNumber: attempt.transactionNumber,
         customerEmail,
@@ -251,12 +275,14 @@ export class OrchestratorService {
         success: false,
         orderReference: order.reference,
         paymentIntentId: String(intent.id),
-        error: result.error,
+        // Le client voit un message actionnable ; le détail technique (DNS, délai, refus) reste dans les tentatives.
+        error: PROVIDER_UNAVAILABLE,
+        technicalError: result.error,
         errors: result.errors, // Propagate all collected errors
       };
     }
 
-    return {
+    const checkoutResult = {
       success: true,
       orderReference: order.reference,
       paymentIntentId: String(intent.id),
@@ -268,5 +294,11 @@ export class OrchestratorService {
         result.providerResponse?.clientSecret ||
         result.providerResponse?.response?.client_secret,
     };
+    // Mémorisé sur l'intention : une reprise avec la même clé renvoie ce même résultat (sans secret client).
+    if (idempotencyKey) {
+      const { clientSecret: _secret, ...replayable } = checkoutResult;
+      await intent.update({ metadata: { ...(parseJson(intent.metadata) ?? {}), checkout_result: replayable } }).catch(() => {});
+    }
+    return checkoutResult;
   }
 }

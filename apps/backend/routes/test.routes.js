@@ -154,7 +154,7 @@ router.post(
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Commande non trouvée",
+        message: "Inscription non trouvée",
       });
     }
 
@@ -248,7 +248,6 @@ router.post(
       } else {
         await MailService.sendPaymentConfirmed(order);
       }
-      await MailService.notifyLmsAdmins("success", order, intent);
     } else {
       attempt.paymentIntent = intent;
       intent.order = order;
@@ -260,7 +259,6 @@ router.post(
       );
 
       await MailService.sendPaymentFailureNotification(intent, order, "Simulation d'échec");
-      await MailService.notifyLmsAdmins("failure", order, intent);
     }
 
     res.json({
@@ -309,7 +307,7 @@ router.delete(
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Commande non trouvée",
+        message: "Inscription non trouvée",
       });
     }
 
@@ -317,7 +315,7 @@ router.delete(
 
     res.json({
       success: true,
-      message: "Commande supprimée",
+      message: "Inscription supprimée",
     });
   }),
 );
@@ -421,7 +419,7 @@ router.post(
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Commande non trouvée",
+        message: "Inscription non trouvée",
       });
     }
 
@@ -455,14 +453,14 @@ router.post(
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Commande non trouvée",
+        message: "Inscription non trouvée",
       });
     }
 
     if (order.status !== "payment_confirmed") {
       return res.status(400).json({
         success: false,
-        message: "La commande doit être en statut payment_confirmed pour être provisionnée",
+        message: "L’inscription doit être en statut payment_confirmed pour être provisionnée",
       });
     }
 

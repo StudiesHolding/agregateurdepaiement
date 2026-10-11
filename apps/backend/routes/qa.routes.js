@@ -329,7 +329,7 @@ router.post(
 
 /**
  * GET /api/qa/orders/:orderRef/status
- * Vérifie le statut d'une commande après provisioning saga
+ * Vérifie le statut d'une inscription après provisioning saga
  */
 router.get(
   "/orders/:orderRef/status",
@@ -337,7 +337,7 @@ router.get(
     const { orderRef } = req.params;
     const order = await Order.findOne({ where: { reference: orderRef } });
     if (!order) {
-      return res.status(404).json({ status: "fail", message: "Commande introuvable" });
+      return res.status(404).json({ status: "fail", message: "Inscription introuvable" });
     }
     res.json({
       status: "success",

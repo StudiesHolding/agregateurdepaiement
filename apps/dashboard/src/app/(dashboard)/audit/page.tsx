@@ -57,7 +57,7 @@ export default function AuditLogsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="page-title">
-                        Journal <span className="gradient-text">d&apos;Audit</span>
+                        Journal <span className="gradient-text">d’audit</span>
                     </h1>
                     <p className="text-sm text-text-light mt-1">
                         Traçabilité complète des actions administratives et modifications système

@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { I18nProvider } from "@/components/providers/I18nProvider";
 import { SessionProvider } from "next-auth/react";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
+import { Toaster } from "sonner";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-    title: "Studies PSP — Payment Operations",
-    description: "Payment Operations Dashboard — Studies Learning Platform",
+    title: { default: "Studies Learning · Paiements", template: "%s · Studies Learning Paiements" },
+    description: "Espace finance de Studies Learning : prestataires de paiement, règles de priorité, revenus, échecs et supervision.",
+    icons: {
+        icon: [{ url: "/brand/monogram-violet-32.png", sizes: "32x32" }, { url: "/brand/monogram-violet-16.png", sizes: "16x16" }],
+        apple: "/brand/app-violet-180.png",
+    },
+    robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,11 +34,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body>
                 <SessionProvider>
                     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-                        <I18nProvider>
                             <SessionTimeoutProvider>
                                 <QueryProvider>{children}</QueryProvider>
+                                <Toaster position="top-right" richColors closeButton />
                             </SessionTimeoutProvider>
-                        </I18nProvider>
                     </ThemeProvider>
                 </SessionProvider>
             </body>

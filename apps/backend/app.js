@@ -1,12 +1,13 @@
+import { isAdminTestRoutesEnabled } from "./utils/route-gates.js";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
+import { buildRateLimits } from "./utils/rate-limits.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import adminAuth2faRoutes from "./routes/admin-auth-2fa.routes.js";
+import adminAuthSsoRoutes from "./routes/admin-auth-sso.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import b2bRoutes from "./routes/b2b.routes.js";
 import qaRoutes from "./routes/qa.routes.js";
@@ -16,21 +17,8 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 
 dotenv.config();
 
-// Rate Limiting (désactivé en mode test — les tests E2E génèrent trop d'appels)
-const isTest = process.env.NODE_ENV === "test";
-const limiter = isTest
-  ? null
-  : rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
-      message: {
-        status: "fail",
-        message:
-          "Too many requests from this IP, please try again after 15 minutes",
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
+// Limites de débit par type d'appelant (null en mode test) : voir utils/rate-limits.js.
+const limits = buildRateLimits();
 
 // Global fix for BigInt JSON serialization
 BigInt.prototype.toJSON = function () {
@@ -42,9 +30,11 @@ const app = express();
 // Trust proxy (required for express-rate-limit behind Nginx/PM2)
 app.set("trust proxy", 1);
 
-// Apply Rate Limiter (null en mode test = pas de limitation)
-if (limiter) {
-  app.use("/api/", limiter);
+if (limits) {
+  app.use("/api/admin", limits.admin);
+  app.use(["/api/payments", "/api/checkout"], limits.machine);
+  app.use("/api/webhooks", limits.webhooks);
+  app.use(["/api/b2b", "/api/v1/sso"], limits.public);
 }
 
 // Basic Request Logger
@@ -59,20 +49,30 @@ app.use(
     crossOriginResourcePolicy: false,
   }),
 );
+// Origines autorisées : liste configurée (ou défauts locaux) + TOUJOURS le purchase-engine vers lequel
+// l'agrégateur redirige (PURCHASE_ENGINE_URL) — sinon le tunnel d'achat est bloqué par le navigateur.
+const configuredOrigins = process.env.CORS_ALLOWED_ORIGINS
+  ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3004",
+      "https://dashboard.studieslearning.com",
+      "https://sl-business.studieslearning.com",
+    ];
+const purchaseEngineOrigin = (() => {
+  try {
+    return new URL(process.env.PURCHASE_ENGINE_URL || "http://localhost:3005").origin;
+  } catch {
+    return null;
+  }
+})();
+const allowedOrigins = [...new Set([...configuredOrigins, purchaseEngineOrigin].filter(Boolean))];
+
 app.use(
   cors({
-    origin: process.env.CORS_ALLOWED_ORIGINS
-      ? process.env.CORS_ALLOWED_ORIGINS.split(",").map((origin) =>
-          origin.trim(),
-        )
-      : [
-          "http://localhost:3000",
-          "http://localhost:3001",
-          "http://localhost:3002",
-          "http://localhost:3004",
-          "https://dashboard.studieslearning.com",
-          "https://sl-business.studieslearning.com",
-        ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -92,9 +92,13 @@ app.get("/health", (req, res) => {
 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
-app.use("/api/admin/auth/2fa", adminAuth2faRoutes);
+app.use("/api/admin/auth/sso", adminAuthSsoRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/admin/test", testRoutes);
+// Routes de simulation de paiement : jamais en production (voir utils/route-gates.js).
+if (isAdminTestRoutesEnabled(process.env)) {
+  app.use("/api/admin/test", testRoutes);
+  console.warn("[SÉCURITÉ] Routes de simulation /api/admin/test ACTIVES — jamais en production");
+}
 app.use("/api/b2b", b2bRoutes);
 
 app.use("/api/v1/sso", ssoRoutes);
