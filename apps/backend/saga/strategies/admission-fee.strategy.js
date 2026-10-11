@@ -3,8 +3,8 @@
  *
  * Après un paiement confirmé (webhook signé) :
  *   1. le backend métier marque les frais réglés (idempotent) et envoie le dossier s'il est complet ;
- *   2. commande marquée COMPLETED.
- * Réseau ou serveur indisponible → nouvel essai (BullMQ) sans doublon ; refus définitif → commande à vérifier,
+ *   2. inscription marquée COMPLETED.
+ * Réseau ou serveur indisponible → nouvel essai (BullMQ) sans doublon ; refus définitif → inscription à vérifier,
  * administrateurs prévenus. Le reversement des frais à l'établissement reste à décider (aucun crédit ici).
  */
 import { Order } from '../../models/index.js';
@@ -36,11 +36,11 @@ export class AdmissionFeeSagaStrategy {
     if (!this.client.isConfigured()) throw new AdmissionFeeRetryableError('SL_BACKEND_URL / INTERNAL_API_KEY absents : frais non confirmés pour l’instant');
 
     const order = await this.orders.findOne({ where: { reference: orderReference } });
-    if (!order) throw new AdmissionFeePermanentError(`Commande ${orderReference} introuvable`, 'ORDER_NOT_FOUND');
+    if (!order) throw new AdmissionFeePermanentError(`Achat ${orderReference} introuvable`, 'ORDER_NOT_FOUND');
     const metadata = parseMetadata(order.metadata);
     const candidatureId = Number(metadata.admission_candidature_id);
     if (!Number.isInteger(candidatureId) || candidatureId <= 0) {
-      await this.notifyAdmins(order, 'CANDIDATURE_MISSING', 'Commande de frais sans candidature').catch(() => undefined);
+      await this.notifyAdmins(order, 'CANDIDATURE_MISSING', 'Frais de dossier sans candidature').catch(() => undefined);
       throw new AdmissionFeePermanentError(`Candidature absente pour ${orderReference}`, 'CANDIDATURE_MISSING');
     }
 

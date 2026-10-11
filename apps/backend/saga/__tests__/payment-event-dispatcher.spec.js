@@ -2,8 +2,8 @@
  * Tests unitaires — PaymentEventDispatcher (S1-8)
  *
  * Critères d'acceptation :
- * - eventId déterministe par commande (`order-paid-<reference>`) : deux
- *   dispatchs de la même commande produisent le MÊME eventId → la
+ * - eventId déterministe par inscription (`order-paid-<reference>`) : deux
+ *   dispatchs de la même inscription produisent le MÊME eventId → la
  *   déduplication BullMQ (jobId) et la table aggp_saga_idempotency protègent
  *   réellement le rejeu.
  * - companyId présent dans les payloads B2B_PACKAGE / B2B_THEMATIQUE si
@@ -65,9 +65,9 @@ describe('PaymentEventDispatcher — eventId déterministe et companyId', () => 
   });
 
   // ─────────────────────────────────────────────────────────
-  // Critère 1 : eventId déterministe par commande
+  // Critère 1 : eventId déterministe par inscription
   // ─────────────────────────────────────────────────────────
-  it('TC-DIS-01: deux dispatchs de la même commande ⇒ même eventId `order-paid-<reference>`', async () => {
+  it('TC-DIS-01: deux dispatchs de la même inscription ⇒ même eventId `order-paid-<reference>`', async () => {
     const order = { ...baseOrder, metadata: { ...b2bPackageMetadata } };
 
     const first = await dispatchOrderToSaga(order, 'corr-1');
@@ -83,7 +83,7 @@ describe('PaymentEventDispatcher — eventId déterministe et companyId', () => 
     expect(lastDispatchedEvent().eventId).toBe('order-paid-CMD-B2B-001');
   });
 
-  it('TC-DIS-02: deux commandes différentes ⇒ deux eventIds distincts', async () => {
+  it('TC-DIS-02: deux inscriptions différentes ⇒ deux eventIds distincts', async () => {
     const first = await dispatchOrderToSaga(
       { ...baseOrder, metadata: { ...b2bPackageMetadata } }, 'corr-1'
     );

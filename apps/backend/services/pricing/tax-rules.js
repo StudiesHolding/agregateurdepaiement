@@ -1,5 +1,5 @@
 /**
- * Règles de taxe applicables à une commande (ADR-0012, D16).
+ * Règles de taxe applicables à un achat (ADR-0012, D16).
  *
  * Deux sources, dans cet ordre (le moteur prend la première règle de la catégorie de chaque ligne) :
  *   1. les règles du PAYS de l'acheteur (table `aggp_tax_rules`, portée all | b2b | b2c, période de validité) ;

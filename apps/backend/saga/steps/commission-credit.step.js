@@ -2,18 +2,18 @@
  * Étape de saga — Crédit de commission (ticket S1-5)
  *
  * Exécutée par MoodleHeadlessStrategy APRES une inscription réussie
- * (COMPLETED ou COMPLETED_IDEMPOTENT) d'une commande B2C.
+ * (COMPLETED ou COMPLETED_IDEMPOTENT) d'une inscription B2C.
  *
  * Règles métier :
  * - Appelle POST {SL_BACKEND_URL}/api/internal/payments/confirmed
  *   (en-tête X-Internal-Api-Key), idempotent par orderRef + formationId.
- * - Commande QA/mock (référence QA-… ou metadata.qa / is_qa / is_test) → rien.
+ * - Inscription QA/mock (référence QA-… ou metadata.qa / is_qa / is_test) → rien.
  * - Réessais avec attente exponentielle sur réseau / 5xx / 429 uniquement.
  * - 400 / 401 = échec définitif : journalisé en erreur + alerte admin
- *   (AdminNotificationService) — l'inscription et la commande restent acquises.
+ *   (AdminNotificationService) — l'inscription et le paiement restent acquis.
  * - Un échec de crédit n'annule JAMAIS l'inscription déjà faite : l'étape est
  *   compensable par simple rejeu (idempotence côté backend).
- * - Traces dans le journal d'audit de commande (order-audit-log) :
+ * - Traces dans le journal d'audit d’inscription (order-audit-log) :
  *   COMMISSION_CREDIT_REQUESTED (demandé), COMMISSION_CREDIT_CREDITED
  *   (crédité : montant, taux, bénéficiaire), COMMISSION_CREDIT_REPLAY
  *   (rejeu idempotent), COMMISSION_CREDIT_FAILED (échec).
@@ -87,7 +87,7 @@ export class CommissionCreditStep {
    * Exécute l'étape « crédit de commission ».
    *
    * @param {Object} params
-   * @param {string} params.orderReference - Référence de la commande
+   * @param {string} params.orderReference - Référence de l’inscription
    * @param {number} params.studentId - Identifiant apprenant de l'inscription (kyd4_users)
    * @param {string} params.correlationId - ID de corrélation de la saga
    * @returns {Promise<Object>} { credited, skipped?, reason?, beneficiary?, amount?, rate? }
@@ -113,7 +113,7 @@ export class CommissionCreditStep {
       return { skipped: true, reason: 'not_configured' };
     }
 
-    // 3. Charger la commande (montant exact, canal, date de paiement)
+    // 3. Charger l’inscription (montant exact, canal, date de paiement)
     const order = await Order.findOne({ where: { reference: orderReference } });
     if (!order) {
       console.error(
@@ -124,7 +124,7 @@ export class CommissionCreditStep {
 
     const metadata = this.parseMetadata(order.metadata);
 
-    // 4. Commande QA/mock → aucun appel, aucune trace
+    // 4. Inscription QA/mock → aucun appel, aucune trace
     if (this.isQaOrder(orderReference, metadata)) {
       log('QA/mock order — no commission credit');
       return { skipped: true, reason: 'qa_order' };
@@ -137,7 +137,7 @@ export class CommissionCreditStep {
       studentId: Number(studentId),
       grossAmount: toExactDecimalString(order.totalAmount),
       currency: order.currency,
-      // Canal vérifié par le backend à l'inscription (ADR-0012, D14), sinon celui des métadonnées de commande.
+      // Canal vérifié par le backend à l'inscription (ADR-0012, D14), sinon celui des métadonnées d’inscription.
       channel: ALLOWED_CHANNELS.includes(channel) ? channel : this.resolveChannel(metadata),
       paidAt: toIsoPaidAt(order.paidAt),
       correlationId,
@@ -269,7 +269,7 @@ export class CommissionCreditStep {
     return ALLOWED_CHANNELS.includes(metadata?.channel) ? metadata.channel : 'direct';
   }
 
-  /** Commande QA/mock : référence QA-… ou indicateur de test existant */
+  /** Inscription QA/mock : référence QA-… ou indicateur de test existant */
   isQaOrder(orderReference, metadata) {
     return (
       /^QA-/i.test(String(orderReference || '')) ||
@@ -291,7 +291,7 @@ export class CommissionCreditStep {
     return raw;
   }
 
-  /** Trace dans le journal d'audit de commande (order-audit-log) */
+  /** Trace dans le journal d'audit d’inscription (order-audit-log) */
   async audit(order, action, newState) {
     try {
       const { OrderAuditService } = await import('../../services/order-audit.service.js');

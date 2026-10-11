@@ -1,3 +1,4 @@
+import { purchaseWords } from "../utils/purchase-labels.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { InvoiceService } from "./invoice.service.js";
@@ -86,7 +87,7 @@ export class MailService {
         <p>Nous avons le plaisir de vous confirmer la réception de votre paiement.</p>
         <div style="background-color: #f4f7f6; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
           <p style="margin: 0;"><strong>Montant :</strong> ${intent.amount} ${intent.currency}</p>
-          <p style="margin: 0;"><strong>Commande :</strong> ${order.reference}</p>
+          <p style="margin: 0;"><strong>${purchaseWords(order).Noun} :</strong> ${order.reference}</p>
           <p style="margin: 0;"><strong>Référence de paiement :</strong> ${intent.id}</p>
           <p style="margin: 0;"><strong>Statut :</strong> Payé</p>
         </div>
@@ -119,7 +120,7 @@ export class MailService {
       <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
         <h2 style="color: #e74c3c; text-align: center; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;">Problème de Paiement</h2>
         <p>Bonjour <strong>${order.customerName || "client"}</strong>,</p>
-        <p>Nous n'avons pas pu valider votre paiement de <strong>${intent.amount} ${intent.currency}</strong> pour la commande <strong>${order.reference}</strong>.</p>
+        <p>Nous n'avons pas pu valider votre paiement de <strong>${intent.amount} ${intent.currency}</strong> pour ${purchaseWords(order).the} <strong>${order.reference}</strong>.</p>
         <div style="background-color: #fdf2f2; padding: 20px; border-left: 4px solid #e74c3c; margin: 20px 0;">
           <p style="margin: 0;"><strong>Motif :</strong> ${reason}</p>
         </div>
@@ -130,7 +131,7 @@ export class MailService {
 
     return await this.sendEmail({
       to: order.customerEmail,
-      subject: `[Important] Problème de Paiement - Commande ${order.reference}`,
+      subject: `[Important] Problème de paiement - ${purchaseWords(order).Noun} ${order.reference}`,
       html,
     });
   }
@@ -143,7 +144,7 @@ export class MailService {
       <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
         <h2 style="color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Échéancier de Paiement Activé</h2>
         <p>Bonjour <strong>${order.customerName}</strong>,</p>
-        <p>Conformément à votre demande, un plan de paiement en <strong>${plan.numberOfInstallments} fois</strong> a été activé pour votre commande <strong>${order.reference}</strong>.</p>
+        <p>Conformément à votre demande, un plan de paiement en <strong>${plan.numberOfInstallments} fois</strong> a été activé pour ${purchaseWords(order).your} <strong>${order.reference}</strong>.</p>
         
         <h3 style="color: #2980b9; margin-top: 25px;">Votre Calendrier de Paiement</h3>
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
@@ -193,7 +194,7 @@ export class MailService {
       <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
         <h2 style="color: #e67e22; text-align: center; border-bottom: 2px solid #e67e22; padding-bottom: 10px;">Rappel d'Échéance</h2>
         <p>Bonjour <strong>${order.customerName}</strong>,</p>
-        <p>Ceci est un rappel concernant votre prochaine échéance de paiement pour la commande <strong>${order.reference}</strong>.</p>
+        <p>Ceci est un rappel concernant votre prochaine échéance de paiement pour ${purchaseWords(order).the} <strong>${order.reference}</strong>.</p>
         <div style="background-color: #fffaf0; padding: 20px; border-left: 4px solid #e67e22; margin: 20px 0;">
           <p style="margin: 0;"><strong>Échéance N° :</strong> ${installment.installmentNumber}</p>
           <p style="margin: 0;"><strong>Date limite :</strong> ${new Date(installment.dueDate).toLocaleDateString("fr-FR")}</p>
@@ -501,7 +502,7 @@ export class MailService {
   }
 
   /**
-   * Email: Rejet de commande - Phase 3
+   * Email : refus d’une inscription ou d’un achat de licences - Phase 3
    */
   static async sendOrderRejected(order) {
     const html = `
@@ -511,7 +512,7 @@ export class MailService {
         </div>
         <div style="background: #ef4444; padding: 30px; text-align: center; color: white; border-radius: 12px 12px 0 0;">
           <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Information d'Inscription</h1>
-          <p style="margin: 5px 0 0; opacity: 0.9;">Concernant votre commande ${order.reference}</p>
+          <p style="margin: 5px 0 0; opacity: 0.9;">Concernant ${purchaseWords(order).your} ${order.reference}</p>
         </div>
         
         <div style="padding: 40px;">
@@ -644,11 +645,11 @@ export class MailService {
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px; text-align: center; color: white;">
           <h2 style="margin: 0; font-size: 20px;">🚨 Action Requise : Nouveau Paiement</h2>
-          <p style="opacity: 0.8; margin-top: 10px;">Une commande attend votre validation manuelle.</p>
+          <p style="opacity: 0.8; margin-top: 10px;">${purchaseWords(order).Noun} en attente de votre validation.</p>
         </div>
         <div style="padding: 30px; color: #1e293b; line-height: 1.6;">
           <p>Bonjour,</p>
-          <p>La commande <strong>${order.reference}</strong> vient d'être confirmée par le prestataire de paiement.</p>
+          <p>Le paiement de ${purchaseWords(order).the} <strong>${order.reference}</strong> vient d'être confirmé par le prestataire.</p>
           
           <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
              <p style="margin: 0;"><strong>Client :</strong> ${order.customerEmail}</p>
@@ -657,11 +658,11 @@ export class MailService {
           </div>
 
           <div style="text-align: center; margin-top: 30px;">
-            <a href="${orderUrl}" style="background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Accéder à la Commande</a>
+            <a href="${orderUrl}" style="background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Ouvrir ${purchaseWords(order).the}</a>
           </div>
           
           <p style="font-size: 12px; color: #64748b; margin-top: 40px; text-align: center;">
-            Ceci est une notification automatique. Veuillez traiter cette commande dès que possible.
+            Ceci est une notification automatique. Merci de traiter ${purchaseWords(order).this} dès que possible.
           </p>
         </div>
       </div>
@@ -669,7 +670,7 @@ export class MailService {
 
     return this.sendEmail({
       to: adminEmail,
-      subject: `🚨 [Urgent] Validation Requise - Commande ${order.reference}`,
+      subject: `[Urgent] Validation requise - ${purchaseWords(order).Noun} ${order.reference}`,
       html
     });
   }

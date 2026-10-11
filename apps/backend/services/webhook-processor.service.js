@@ -15,6 +15,7 @@ import { LmsBridgeService } from "./lms-bridge.service.js";
 import { B2BProvisioningService } from "./b2b-provisioning.service.js";
 import { bindConfirmation, checkKkiapaySignature, verificationId } from "./payments/confirmation.js";
 import { emit } from "./notifications/notification-engine.js";
+import { purchaseWords } from "../utils/purchase-labels.js";
 import { classify } from "./finance/failure-taxonomy.js";
 
 export class WebhookProcessor {
@@ -140,7 +141,7 @@ export class WebhookProcessor {
           console.warn(`[WebhookProcessor] Signature invalide (${providerCode}) pour ${transactionNumber}`);
           afterCommit.push(() => emit("webhook.bad_signature", {
             title: `Notification ${providerCode} à signature invalide`,
-            lines: [`Commande ${order.reference} : la notification a été rejetée, le paiement n’est pas validé.`, "Vérifiez le secret des webhooks du prestataire ; si la configuration est bonne, traitez-le comme un incident de sécurité."],
+            lines: [`${purchaseWords(order).Noun} ${order.reference} : la notification a été rejetée, le paiement n’est pas validé.`, "Vérifiez le secret des webhooks du prestataire ; si la configuration est bonne, traitez-le comme un incident de sécurité."],
             severity: "danger", href: "/webhooks", key: `badsig:${transactionNumber}`, orderReference: order.reference,
           }));
         } else if (process.env.NODE_ENV === "test" && providerCode === "cinetpay" && payload.cpm_result === "00") {
@@ -249,13 +250,13 @@ export class WebhookProcessor {
           const amountLabel = `${Number(intent.amount).toLocaleString("fr-FR")} ${intent.currency}`;
           afterCommit.push(() => emit("payment.succeeded", {
             title: `Paiement confirmé : ${amountLabel}`,
-            lines: [`Commande ${order.reference}${order.formationName ? ` · ${order.formationName}` : ""}, via ${providerCode}.`],
+            lines: [`${purchaseWords(order).Noun} ${order.reference}${order.formationName ? ` · ${order.formationName}` : ""}, via ${providerCode}.`],
             severity: "info", href: `/transactions?search=${encodeURIComponent(order.reference)}`, key: `paid:${order.reference}`, orderReference: order.reference,
           }, { amount: Number(intent.amount), currency: intent.currency }));
           if (!isNewSagaEnabled) {
-            // Ancien flux : la commande attend une validation manuelle.
+            // Ancien flux : l'achat attend une validation manuelle.
             afterCommit.push(() => emit("order.to_validate", {
-              title: `Commande à valider : ${order.reference}`,
+              title: `${purchaseWords(order).Noun} à valider : ${order.reference}`,
               lines: [`Payée (${amountLabel}) par ${order.customerEmail}, elle attend la validation de l’équipe.`],
               severity: "warning", href: `/orders/${order.id}`, key: `validate:${order.reference}`, orderReference: order.reference,
             }));
@@ -291,7 +292,7 @@ export class WebhookProcessor {
           event.processedAt = new Date();
         }
       } else {
-        // Aucune devinette (l'ancien rapprochement « par montant » permettait de confirmer la mauvaise commande).
+        // Aucune devinette (l'ancien rapprochement « par montant » permettait de confirmer la mauvaise inscription).
         event.errorMessage = `Aucune tentative pour la référence ${transactionNumber ?? "(absente)"}.`;
         console.warn(`[WebhookProcessor] ${event.errorMessage}`);
       }
@@ -380,7 +381,7 @@ export class WebhookProcessor {
       }
     );
 
-    // Coupon réservé pour cette commande : libéré dès l'échec (sinon il expire seul au bout de 45 min).
+    // Coupon réservé pour cette inscription : libéré dès l'échec (sinon il expire seul au bout de 45 min).
     // Appel HTTP après la validation de la transaction, sans jamais bloquer le traitement du webhook.
     const releaseCoupon = async () => {
       try {
@@ -390,7 +391,7 @@ export class WebhookProcessor {
         if (!metadata?.coupon_reservation_id) return;
         const { SlBackendCouponClient } = await import("./sl-backend-coupon.client.js");
         const { status } = await new SlBackendCouponClient().release(metadata.coupon_reservation_id);
-        if (status !== 200) console.error(`[Webhook] coupon de la commande ${order.reference} non libéré (HTTP ${status}) : il expirera seul`);
+        if (status !== 200) console.error(`[Webhook] coupon de l’inscription ${order.reference} non libéré (HTTP ${status}) : il expirera seul`);
       } catch (error) {
         console.error("[Webhook] libération du coupon impossible (non bloquant) :", error?.message ?? error);
       }

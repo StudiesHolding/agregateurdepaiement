@@ -8,7 +8,7 @@ const createTestB2BAccess = async (companyName, adminEmail) => {
   console.log(`🚀 Création d'un accès test B2B pour : ${companyName} (${adminEmail})`);
 
   try {
-    // Simuler une commande (Order) minimale pour le service de provisioning
+    // Simuler un achat (Order) minimal pour le service de provisioning
     const mockOrder = {
       reference: `TEST-B2B-${Date.now()}`,
       customerName: companyName,
@@ -46,7 +46,7 @@ const createTestB2BAccess = async (companyName, adminEmail) => {
   }
 };
 
-// Récupération des arguments de la ligne de commande
+// Récupération des arguments du script
 const args = process.argv.slice(2);
 const name = args[0] || "Entreprise Test";
 const email = args[1] || "admin-test@example.com";

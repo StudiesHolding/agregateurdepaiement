@@ -4,7 +4,7 @@
 import { paymentSagaQueue } from "./saga-queue.service.js";
 
 /**
- * Attend qu'un job saga pour une commande soit terminé (ou échoue après timeout).
+ * Attend qu'un job saga pour une inscription soit terminé (ou échoue après timeout).
  */
 export async function waitForSagaJob(orderReference, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;

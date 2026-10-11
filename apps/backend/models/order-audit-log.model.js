@@ -2,9 +2,9 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
 
 /**
- * OrderAuditLog - Traçabilité complète du cycle de vie des commandes
+ * OrderAuditLog - Traçabilité complète du cycle de vie des inscriptions
  * 
- * Enregistre TOUTES les actions effectuées sur une commande:
+ * Enregistre TOUTES les actions effectuées sur une inscription:
  * - Création, paiement, validation, finalisation
  * - Qui a fait l'action (admin, system, webhook)
  * - État avant/après (pour rollback)
@@ -25,7 +25,7 @@ OrderAuditLog.init(
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: false,
             field: 'order_id',
-            comment: 'ID de la commande',
+            comment: 'ID de l’achat (aggp_orders)',
         },
         orderReference: {
             type: DataTypes.STRING(100),
@@ -44,7 +44,7 @@ OrderAuditLog.init(
             type: DataTypes.STRING(255),
             allowNull: false,
             field: 'action_label',
-            comment: 'Label affiché dans UI ex: "Commande validée"',
+            comment: 'Label affiché dans UI ex: "Achat validé"',
         },
         
         // === Actor (qui a fait l'action) ===
@@ -161,18 +161,18 @@ export const OrderAuditAction = {
  * Action Labels - Human readable labels for UI
  */
 export const OrderAuditActionLabels = {
-    [OrderAuditAction.ORDER_CREATED]: 'Commande créée',
+    [OrderAuditAction.ORDER_CREATED]: 'Achat créé',
     [OrderAuditAction.PAYMENT_INITIATED]: 'Paiement initié',
     [OrderAuditAction.PAYMENT_RECEIVED]: 'Paiement reçu',
     [OrderAuditAction.PAYMENT_FAILED]: 'Paiement échoué',
-    [OrderAuditAction.PAYMENT_CONFIRMED_VIEWED]: 'Commande consultée par l\'admin',
-    [OrderAuditAction.ORDER_VALIDATED]: 'Commande validée',
-    [OrderAuditAction.ORDER_REJECTED]: 'Commande rejetée',
-    [OrderAuditAction.ORDER_COMPLETED]: 'Commande finalisée',
+    [OrderAuditAction.PAYMENT_CONFIRMED_VIEWED]: 'Achat consulté par l\'équipe',
+    [OrderAuditAction.ORDER_VALIDATED]: 'Achat validé',
+    [OrderAuditAction.ORDER_REJECTED]: 'Achat refusé',
+    [OrderAuditAction.ORDER_COMPLETED]: 'Achat finalisé',
     [OrderAuditAction.CREDENTIALS_SENT]: 'Identifiants envoyés',
     [OrderAuditAction.FACTURE_SENT]: 'Facture envoyée',
-    [OrderAuditAction.ORDER_EXPIRED]: 'Commande expirée',
-    [OrderAuditAction.ORDER_CANCELLED]: 'Commande annulée',
+    [OrderAuditAction.ORDER_EXPIRED]: 'Achat expiré',
+    [OrderAuditAction.ORDER_CANCELLED]: 'Achat annulé',
 };
 
 export default OrderAuditLog;

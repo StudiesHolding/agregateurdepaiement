@@ -50,7 +50,7 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
                 <Search size={14} className="text-text-light" />
                 <input
                     className="bg-transparent text-sm flex-1 outline-none placeholder:text-text-light"
-                    placeholder="Email, référence commande…"
+                    placeholder="E-mail, référence d’achat…"
                     value={filters.search}
                     onChange={(e) => onChange({ ...filters, search: e.target.value })}
                 />
@@ -115,7 +115,7 @@ export default function TransactionsPage() {
 }
 
 function TransactionsExplorer() {
-    // Lien direct depuis l'analyse des échecs : ?search=<référence de commande>
+    // Lien direct depuis l'analyse des échecs : ?search=<référence d’achat>
     const initialSearch = useSearchParams().get("search") ?? "";
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<Filters>({

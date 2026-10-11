@@ -5,7 +5,7 @@ import { SlBackendAdmissionClient } from "../sl-backend-admission.client.js";
 /**
  * Paiements des candidatures (ADR-0016, D6 bis) — identifiant reçu : la CANDIDATURE (entier).
  *   ADMISSION_OFFER : la place d'un candidat admis, au prix après bourse ou exonération. Après paiement, la saga
- *                     B2C inscrit le bénéficiaire ; le backend n'accepte que le titulaire de l'offre (ou la commande
+ *                     B2C inscrit le bénéficiaire ; le backend n'accepte que le titulaire de l'offre (ou l’inscription
  *                     engagée avant l'échéance).
  *   ADMISSION_FEE   : les frais d'étude de dossier (non remboursables). Après paiement, la saga ADMISSION_FEE les
  *                     marque réglés et le dossier complet part à l'établissement.
@@ -104,7 +104,7 @@ export class AdmissionPurchaseStrategy extends PurchaseStrategy {
         });
         if (!result?.success) throw new Error(result?.error || "Erreur lors de l'initialisation du paiement.");
 
-        // Paiement engagé : le backend protège l'offre (ou note les frais en attente) pour cette commande.
+        // Paiement engagé : le backend protège l'offre (ou note les frais en attente) pour cette inscription.
         const pending = await this.client.pending(candidatureId, this.kind, result.orderReference);
         if (pending.status !== 200) {
             throw new AppError(REASONS[pending.data?.code] || "Ce paiement ne peut plus être engagé : rechargez votre dossier.", pending.status === 409 ? 409 : 503);

@@ -159,7 +159,7 @@ export const WATCHERS = {
             title: `Résumé du ${new Intl.DateTimeFormat("fr-FR", { timeZone: rule.timezone, day: "numeric", month: "long" }).format(now)}`,
             lines: [
                 `Encaissé sur 24 h : ${money(rev.totals.reference.gross, rev.referenceCurrency)} (${rev.totals.count} paiement(s)), net estimé ${money(rev.totals.reference.net, rev.referenceCurrency)}.`,
-                fail.rates.success == null ? "Aucune commande tranchée sur 24 h." : `Succès des paiements : ${pct(fail.rates.success)} ; abandons ${pct(fail.rates.abandonment ?? 0)}.`,
+                fail.rates.success == null ? "Aucun achat tranché sur 24 h." : `Succès des paiements : ${pct(fail.rates.success)} ; abandons ${pct(fail.rates.abandonment ?? 0)}.`,
                 fail.categories[0] ? `Première cause de perte : ${fail.categories[0].label} (${fail.categories[0].count}).` : null,
             ],
             href: "/", key: `digest:${day}`,

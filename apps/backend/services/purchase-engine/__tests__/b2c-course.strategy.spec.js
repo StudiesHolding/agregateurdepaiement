@@ -77,7 +77,7 @@ describe('B2cCoursePurchaseStrategy', () => {
     }));
   });
 
-  it('la commande porte un formation_id entier et le lien d\'affiliation sûr', async () => {
+  it('l’inscription porte un formation_id entier et le lien d\'affiliation sûr', async () => {
     const { strategy } = strategyReturning(200, PURCHASABLE);
     await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', ref: 'Ab12Cd34' });
     expect(mockInitializePayment.mock.calls[0][0].metadata).toMatchObject({ formation_id: 12, channel_ref: 'Ab12Cd34' });
@@ -108,7 +108,7 @@ describe('B2cCoursePurchaseStrategy', () => {
       return { strategy: new B2cCoursePurchaseStrategy(fetchIntent, coupons, enrollment), coupons, enrollment };
     };
 
-    it('code valide → montant payé = prix calculé par le backend, coupon tracé sur la commande', async () => {
+    it('code valide → montant payé = prix calculé par le backend, coupon tracé sur l’inscription', async () => {
       const { strategy, coupons } = setup({ status: 200, data: { data: okQuote() } });
       await strategy.process({ itemId: 12, customerEmail: 'a@test.cm', couponCode: ' moins20 ' });
       expect(coupons.reserve).toHaveBeenCalledWith('moins20', 12, 'a@test.cm');

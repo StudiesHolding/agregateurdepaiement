@@ -46,7 +46,7 @@ describe('AdmissionPurchaseStrategy', () => {
     await expect(s.getContext(102)).rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('offre') });
   });
 
-  it('paiement : prix et bénéficiaire du serveur (navigateur ignoré), saga B2C, offre protégée pour la commande', async () => {
+  it('paiement : prix et bénéficiaire du serveur (navigateur ignoré), saga B2C, offre protégée pour l’inscription', async () => {
     const client = clientWith({ status: 200, data: { data: CONTEXT } });
     const s = new AdmissionPurchaseStrategy('offer', client);
     const r = await s.initiatePayment({ itemId: 102, amount: 1, currency: 'XAF', customerEmail: 'parent@test.dev', beneficiaryEmail: 'pirate@test.dev' });

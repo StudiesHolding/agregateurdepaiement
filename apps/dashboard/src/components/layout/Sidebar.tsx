@@ -8,7 +8,7 @@ import {
   Activity,
   GitBranch,
   FileText,
-  ShoppingCart,
+  GraduationCap,
   Webhook,
   Bell,
   Users,
@@ -41,7 +41,7 @@ const navItems: Array<{ group: string; items: Item[] }> = [
     group: "Paiements",
     items: [
       { href: "/transactions", label: "Transactions", icon: FileText, anyOf: ["psp.view"] },
-      { href: "/orders", label: "Commandes", icon: ShoppingCart, anyOf: ["psp.view"] },
+      { href: "/orders", label: "Inscriptions et licences", icon: GraduationCap, anyOf: ["psp.view"] },
       { href: "/webhooks", label: "Webhooks", icon: Webhook, anyOf: ["psp.view"] },
     ],
   },

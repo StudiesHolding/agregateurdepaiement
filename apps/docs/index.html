@@ -106,7 +106,7 @@
     totalSteps: 4,
     models: [
         { name: 'Order', fields: 'id, reference, amount, currency, status, customerName, lmsItemId, lmsItemType, metadata', description: 'Le coeur de la transaction commerciale. Identifie maintenant formellement les items LMS.' },
-        { name: 'PaymentIntent', fields: 'id, orderId, amount, status, paymentMethod, selectedProviderId', description: 'Une intention de paiement liée à une commande.' },
+        { name: 'PaymentIntent', fields: 'id, orderId, amount, status, paymentMethod, selectedProviderId', description: 'Une intention de paiement liée à une inscription ou à un achat de licences.' },
         { name: 'PaymentAttempt', fields: 'id, paymentIntentId, providerId, transactionNumber, status, errorCode', description: 'Un essai réel auprès d\'un processeur (Stripe, CinetPay, etc).' },
         { name: 'PaymentProvider', fields: 'id, name, code, is_active, config', description: 'Un agrégateur de paiement configuré.' }
     ],
@@ -212,7 +212,7 @@
                     L'Art de <span class="gradient-text">Maîtriser</span> les Flux.
                 </h2>
                 <p class="text-2xl text-slate-400 leading-relaxed mb-16 max-w-3xl">
-                    Bienvenue dans votre centre de commande. Ici, nous transformons la complexité technique en
+                    Bienvenue dans votre centre d’achats de licences. Ici, nous transformons la complexité technique en
                     intelligence opérationnelle. Une documentation conçue pour être explorée, pas seulement lue.
                 </p>
 

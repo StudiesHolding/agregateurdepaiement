@@ -29,7 +29,7 @@ export const CATEGORIES = Object.freeze({
     },
     abandoned: {
         label: "Abandon avant paiement", owner: "parcours", tone: "neutral",
-        explanation: "La commande a été créée mais aucun paiement n’a abouti dans le délai : le client n’est pas allé au bout.",
+        explanation: "L’achat a été lancé mais aucun paiement n’a abouti dans le délai : le client n’est pas allé au bout.",
         action: "Analyser l’étape d’abandon (choix du moyen, redirection, page du prestataire) et relancer les paniers récents.",
     },
     invalid_details: {
@@ -55,7 +55,7 @@ export const CATEGORIES = Object.freeze({
     fraud_suspected: {
         label: "Suspicion de fraude", owner: "risque", tone: "danger",
         explanation: "Le prestataire a bloqué l’opération par ses contrôles de risque.",
-        action: "Examiner le client et la commande ; ne pas forcer un nouveau paiement sans vérification.",
+        action: "Examiner le client et l’achat ; ne pas forcer un nouveau paiement sans vérification.",
     },
     unknown: {
         label: "Non classé", owner: "à analyser", tone: "neutral",

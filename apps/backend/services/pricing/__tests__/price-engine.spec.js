@@ -22,7 +22,7 @@ describe('unités mineures selon ISO 4217', () => {
   it('refuse montants négatifs, notation scientifique, texte et devises invalides', () => {
     for (const bad of ['-1', '1e3', 'abc', '']) expect(() => toMinor(bad, 2)).toThrow(PriceEngineError);
     expect(() => quote({ currency: 'EURO', lines: [course()] })).toThrow(/Devise invalide/);
-    expect(() => quote({ currency: 'XOF', lines: [] })).toThrow(/Commande vide/);
+    expect(() => quote({ currency: 'XOF', lines: [] })).toThrow(/Aucune ligne à facturer/);
     expect(() => quote({ currency: 'XOF', lines: [course({ quantity: 0 })] })).toThrow(/quantité/);
   });
 });
@@ -53,7 +53,7 @@ describe('promotions, enchères et remises de volume', () => {
   });
 });
 
-describe('coupons (un seul par commande)', () => {
+describe('coupons (un seul par achat)', () => {
   it('pourcentage appliqué APRÈS la promotion', () => {
     const q = quote({ currency: 'XOF', lines: [course({ promotionPercent: 20 })], coupon: { code: 'RENTREE', type: 'percent', value: 10 } });
     expect(q.totalMinor).toBe(10800n); // 15 000 → 12 000 → 10 800
@@ -135,7 +135,7 @@ describe('taxes (D16) — TVA B2B mondiale et règles par pays', () => {
     expect(q.tax).toEqual([{ country: null, scope: 'b2b', rateBps: 1925, inclusive: false, reverseCharge: false, label: 'TVA B2B', amountMinor: 77000n }]);
   });
 
-  it('commande mixte : le B2B est taxé, le cours B2C sans règle ne l’est pas', () => {
+  it('achat mixte : le B2B est taxé, le cours B2C sans règle ne l’est pas', () => {
     const q = quote({ currency: 'XAF', lines: [pkg(), course({ ref: 'c', unitPrice: '15000' })], tax: [b2bVat] });
     expect(q.lines[1].tax).toMatchObject({ rateBps: 0, amountMinor: 0n, exempt: 'NO_RULE' });
     expect(q.lines[1].totalMinor).toBe(15000n);

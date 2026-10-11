@@ -13,7 +13,7 @@ const pageTitles: Array<[string, string]> = [
     ["/providers", "Prestataires"],
     ["/routing", "Règles de priorité"],
     ["/transactions", "Transactions"],
-    ["/orders", "Commandes"],
+    ["/orders", "Inscriptions et achats de licences"],
     ["/requests", "Demandes d’accès des entreprises"],
     ["/revenue", "Revenus"],
     ["/failures", "Échecs et frictions"],

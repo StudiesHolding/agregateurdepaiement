@@ -3,7 +3,7 @@
 /**
  * Échecs et frictions (ADR-0019, D5)
  * ==================================
- * Où le canal de paiement perd des clients : entonnoir (commande créée → paiement lancé → confirmé), abandons, échecs
+ * Où le canal de paiement perd des clients : entonnoir (achat lancé → paiement ouvert → confirmé), abandons, échecs
  * rangés par cause avec une EXPLICATION et une ACTION, taux de succès par prestataire, pays et moyen de paiement.
  */
 import Link from "next/link";
@@ -20,7 +20,7 @@ const duration = (s: number | null) => (s == null ? "—" : s < 60 ? `${Math.rou
 
 function Funnel({ f }: { f: { created: number; attempted: number; succeeded: number; failed: number; abandoned: number; pending: number } }) {
     const steps = [
-        { label: "Commandes créées", value: f.created, hint: "Le client a choisi son offre et lancé le paiement" },
+        { label: "Achats lancés", value: f.created, hint: "Le client a choisi sa formation ou ses licences et lancé le paiement" },
         { label: "Paiement ouvert chez un prestataire", value: f.attempted, hint: `${f.created - f.attempted} n’ont jamais atteint le prestataire` },
         { label: "Paiements confirmés", value: f.succeeded, hint: `${f.failed} échec(s) · ${f.abandoned} abandon(s) · ${f.pending} en cours` },
     ];
@@ -90,7 +90,7 @@ function RateTable({ rows, label, render }: { rows: Rate[]; label: string; rende
             <tbody className="divide-y divide-border">
                 {rows.map((r) => (
                     <tr key={r.key}>
-                        <td className="py-2 font-medium text-text-main">{render ? render(r) : r.label}<span className="block text-[11px] font-normal text-text-light">{r.total} commande(s)</span></td>
+                        <td className="py-2 font-medium text-text-main">{render ? render(r) : r.label}<span className="block text-[11px] font-normal text-text-light">{r.total} achat(s)</span></td>
                         <td className={cn("py-2 text-right font-semibold tabular-nums", r.successRate == null ? "text-text-light" : r.successRate >= 0.8 ? "text-success" : r.successRate >= 0.5 ? "text-warning-dark dark:text-warning" : "text-danger")}>{r.successRate == null ? "—" : percent(r.successRate * 100, 0)}</td>
                         <td className="py-2 text-right tabular-nums text-text-main">{r.failed}</td>
                         <td className="py-2 text-right tabular-nums text-text-main">{r.abandoned}</td>
@@ -118,15 +118,15 @@ export default function FailuresPage() {
             {error && <p className="card p-4 text-sm text-danger">{(error as Error).message}</p>}
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-                <Tile label="Taux de succès" icon={<Target size={16} className="text-success" />} tone="text-success" value={isLoading ? "–" : data!.rates.success == null ? "—" : percent(data!.rates.success * 100, 0)} hint="Paiements confirmés / commandes tranchées" />
+                <Tile label="Taux de succès" icon={<Target size={16} className="text-success" />} tone="text-success" value={isLoading ? "–" : data!.rates.success == null ? "—" : percent(data!.rates.success * 100, 0)} hint="Paiements confirmés / achats tranchés" />
                 <Tile label="Abandons" icon={<UserX size={16} className="text-warning" />} value={isLoading ? "–" : data!.rates.abandonment == null ? "—" : percent(data!.rates.abandonment * 100, 0)} hint={`Sans paiement après ${data?.abandonAfterMinutes ?? 30} min`} />
                 <Tile label="Échecs" icon={<ShieldAlert size={16} className="text-danger" />} value={isLoading ? "–" : data!.rates.failure == null ? "—" : percent(data!.rates.failure * 100, 0)} hint="Refus, erreurs, annulations" />
-                <Tile label="Délai médian de paiement" icon={<Clock size={16} className="text-secondary" />} value={isLoading ? "–" : duration(data!.medianTimeToPaySeconds)} hint="De la commande à la confirmation" />
-                <Tile label="Sauvés par bascule" icon={<RotateCcw size={16} className="text-primary" />} value={isLoading ? "–" : data!.failover.recoveredByFailover} hint={isLoading ? undefined : `${data!.failover.intentsWithSeveralAttempts} commande(s) avec plusieurs tentatives`} />
+                <Tile label="Délai médian de paiement" icon={<Clock size={16} className="text-secondary" />} value={isLoading ? "–" : duration(data!.medianTimeToPaySeconds)} hint="Du lancement du paiement à sa confirmation" />
+                <Tile label="Sauvés par bascule" icon={<RotateCcw size={16} className="text-primary" />} value={isLoading ? "–" : data!.failover.recoveredByFailover} hint={isLoading ? undefined : `${data!.failover.intentsWithSeveralAttempts} achat(s) avec plusieurs tentatives`} />
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-                <Panel title="Entonnoir du canal de paiement" subtitle="Commandes de la période">
+                <Panel title="Entonnoir du canal de paiement" subtitle="Achats lancés sur la période">
                     {isLoading ? <div className="skeleton h-56 rounded-xl" /> : <Funnel f={data!.funnel} />}
                 </Panel>
                 <Panel title="Pourquoi les paiements échouent" subtitle={`Classés par cause, avec la marche à suivre · montants en équivalent ${cur}`}>
@@ -150,7 +150,7 @@ export default function FailuresPage() {
                 </Panel>
             </div>
 
-            <p className="flex items-center gap-2 text-xs text-text-light"><AlertTriangle size={13} />Une commande « avant choix du prestataire » n’a jamais atteint de prestataire : souvent un abandon sur la page de paiement, ou une voie sans règle.</p>
+            <p className="flex items-center gap-2 text-xs text-text-light"><AlertTriangle size={13} />Un achat « avant choix du prestataire » n’a jamais atteint de prestataire : souvent un abandon sur la page de paiement, ou une voie sans règle.</p>
         </div>
     );
 }

@@ -116,7 +116,7 @@ export class AdminNotificationService {
                 correlationId,
             } = details;
 
-            const message = `Le crédit de commission pour la commande ${orderReference} a échoué définitivement (HTTP ${status}).`;
+            const message = `Le crédit de commission pour l’inscription ${orderReference} a échoué définitivement (HTTP ${status}).`;
             const emailBody = `${message}\n\n` +
                 `- Erreur: ${error || "inconnue"}\n` +
                 `- Canal: ${channel || "N/A"}\n` +
@@ -124,7 +124,7 @@ export class AdminNotificationService {
                 `- Formation ID: ${formationId ?? "N/A"}\n` +
                 `- Apprenant ID: ${studentId ?? "N/A"}\n` +
                 `- Corrélation: ${correlationId || "N/A"}\n\n` +
-                `L'inscription de l'apprenant et la commande payée restent acquises ; ` +
+                `L'inscription de l'apprenant et le paiement restent acquis ; ` +
                 `le crédit doit être rejoué après correction de la configuration.`;
 
             // Create in-app notification
@@ -167,9 +167,9 @@ export class AdminNotificationService {
     static async notifyEnrollmentFailure(orderReference, details = {}) {
         try {
             const { code, message: reason, formationId, correlationId } = details;
-            const message = `Paiement reçu pour la commande ${orderReference}, mais l'inscription n'a pas pu être créée (${code || "erreur"}).`;
+            const message = `Paiement reçu (réf. ${orderReference}), mais l'inscription n'a pas pu être créée (${code || "erreur"}).`;
             const emailBody = `${message}\n\n- Motif : ${reason || "inconnu"}\n- Formation ID : ${formationId ?? "N/A"}\n- Corrélation : ${correlationId || "N/A"}\n\n` +
-                `Le paiement est acquis : inscrivez l'apprenant à la main, puis rejouez la commande.`;
+                `Le paiement est acquis : inscrivez l'apprenant à la main, puis relancez le traitement de l'achat.`;
             await AdminNotification.create({
                 type: "enrollment_failed",
                 title: "Paiement reçu, inscription à faire",

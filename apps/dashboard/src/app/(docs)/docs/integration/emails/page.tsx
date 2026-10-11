@@ -15,7 +15,7 @@ const emailTemplates = [
     name: "Order Validation",
     trigger: "Admin validates order in dashboard",
     icon: CheckCircle2,
-    subject: "Votre commande a été validée",
+    subject: "Votre inscription a été validée",
     description: "Sent when admin validates the order"
   },
   {
@@ -29,7 +29,7 @@ const emailTemplates = [
     name: "Order Rejection",
     trigger: "Admin rejects order",
     icon: Mail,
-    subject: "Commande refusée - Studies Learning",
+    subject: "Inscription refusée - Studies Learning",
     description: "Sent when payment cannot be validated"
   }
 ];

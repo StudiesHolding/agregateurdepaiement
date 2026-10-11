@@ -21,7 +21,7 @@ function setup({ status = 201, data = { success: true, data: { enrollmentId: '9'
 const event = { orderReference: 'ORD-1', correlationId: 'c-1' };
 
 describe('B2cCourseSagaStrategy', () => {
-  it('inscrit, crédite sur le canal vérifié (75 %) et termine la commande', async () => {
+  it('inscrit, crédite sur le canal vérifié (75 %) et termine l’inscription', async () => {
     const { strategy, client, commissionStep, orders } = setup({ metadata: { channel_ref: 'Ab3dEf7h' } });
     const res = await strategy.execute(event);
     expect(client.enroll).toHaveBeenCalledWith({ email: 'awa@test.sl', formationId: 43, orderRef: 'ORD-1', lineRef: '1', source: 'purchase', ref: 'Ab3dEf7h' }, 'c-1');
@@ -59,7 +59,7 @@ describe('B2cCourseSagaStrategy', () => {
   describe('coupon (ADR-0012, D6 bis)', () => {
     const RES = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
-    it('paiement confirmé → le coupon est confirmé pour la commande, puis la commission est créditée', async () => {
+    it('paiement confirmé → le coupon est confirmé pour l’inscription, puis la commission est créditée', async () => {
       const { strategy, couponClient, commissionStep, orders } = setup({ metadata: { coupon_reservation_id: RES, coupon_code: 'MOINS20' } });
       await strategy.execute(event);
       expect(couponClient.confirm).toHaveBeenCalledWith(RES, 'ORD-1');

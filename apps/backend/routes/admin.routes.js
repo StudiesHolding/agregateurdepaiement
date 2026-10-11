@@ -284,7 +284,7 @@ router.get("/finance/overview", catchAsync(async (req, res) => {
 
 /**
  * GET /api/admin/finance/reconciliation?days=30
- * Écarts entre paiements confirmés, commandes, accès livrés et notifications des prestataires.
+ * Écarts entre paiements confirmés, inscriptions, accès livrés et notifications des prestataires.
  */
 router.get("/finance/reconciliation", catchAsync(async (req, res) => {
     res.json({ status: "success", data: await reconciliationReport({ days: req.query.days }) });
@@ -775,7 +775,7 @@ router.get("/audit-logs", catchAsync(async (req, res) => {
 
 /**
  * GET /api/admin/orders
- * Liste des commandes avec filtres
+ * Liste des inscriptions avec filtres
  */
 router.get("/orders", catchAsync(async (req, res, next) => {
     await OrderController.list(req, res, next);
@@ -783,7 +783,7 @@ router.get("/orders", catchAsync(async (req, res, next) => {
 
 /**
  * GET /api/admin/orders/:id
- * Détail d'une commande avec historique d'audit
+ * Détail d'une inscription avec historique d'audit
  */
 router.get("/orders/:id", catchAsync(async (req, res, next) => {
     await OrderController.getById(req, res, next);
@@ -791,7 +791,7 @@ router.get("/orders/:id", catchAsync(async (req, res, next) => {
 
 /**
  * POST /api/admin/orders/:id/validate
- * Valider ou rejeter une commande
+ * Valider ou rejeter une inscription
  */
 router.post(
     "/orders/:id/validate",
@@ -804,7 +804,7 @@ router.post(
 
 /**
  * POST /api/admin/orders/:id/complete
- * Finaliser une commande - envoyer credentials
+ * Finaliser une inscription - envoyer credentials
  */
 router.post(
     "/orders/:id/complete",
@@ -817,7 +817,7 @@ router.post(
 
 /**
  * GET /api/admin/orders/:id/audit
- * Historique d'audit d'une commande
+ * Historique d'audit d'une inscription
  */
 router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
     await OrderController.getAuditHistory(req, res, next);
@@ -825,14 +825,14 @@ router.get("/orders/:id/audit", catchAsync(async (req, res, next) => {
 
 /**
  * GET /api/admin/orders/:id/provisioning
- * Retourne le statut du provisioning B2B pour une commande
+ * Retourne le statut du provisioning B2B pour une inscription
  */
 router.get("/orders/:id/provisioning", catchAsync(async (req, res) => {
     const { id } = req.params;
 
     const order = await Order.findByPk(id);
     if (!order) {
-        throw new NotFoundError("Commande non trouvée");
+        throw new NotFoundError("Inscription non trouvée");
     }
 
     const metadata = order.metadata || {};
@@ -843,7 +843,7 @@ router.get("/orders/:id/provisioning", catchAsync(async (req, res) => {
             status: "success",
             data: {
                 isB2B: false,
-                message: "Cette commande n'est pas un achat B2B"
+                message: "Cet achat n'est pas un achat de licences B2B"
             }
         });
     }

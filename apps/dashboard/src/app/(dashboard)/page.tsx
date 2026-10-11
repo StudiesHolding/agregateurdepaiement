@@ -63,7 +63,7 @@ export default function CommandCenter() {
                     label="7 derniers jours" icon={<TrendingUp size={16} className="text-success" />} value={isLoading ? "–" : fmt(data!.revenue.week.gross)}
                     hint={weekTrend == null ? (isLoading ? undefined : `${data!.revenue.week.count} paiement(s)`) : <span className={weekTrend >= 0 ? "text-success" : "text-danger"}>{weekTrend >= 0 ? "+" : "−"}{percent(Math.abs(weekTrend) * 100, 0)} vs 7 jours précédents</span>}
                 />
-                <Tile label="Succès des paiements (24 h)" icon={<Target size={16} className="text-secondary" />} value={isLoading ? "–" : data!.last24h.successRate == null ? "—" : percent(data!.last24h.successRate * 100, 0)} hint={isLoading ? undefined : data!.last24h.topCause ? `Première cause d’échec : ${data!.last24h.topCause.label}` : `${data!.last24h.funnel.created} commande(s) sur 24 h`} />
+                <Tile label="Succès des paiements (24 h)" icon={<Target size={16} className="text-secondary" />} value={isLoading ? "–" : data!.last24h.successRate == null ? "—" : percent(data!.last24h.successRate * 100, 0)} hint={isLoading ? undefined : data!.last24h.topCause ? `Première cause d’échec : ${data!.last24h.topCause.label}` : `${data!.last24h.funnel.created} achat(s) sur 24 h`} />
                 <Tile label="Écarts de rapprochement" icon={<Scale size={16} className={data?.reconciliation.total ? "text-danger" : "text-success"} />} tone={data?.reconciliation.total ? "text-danger" : "text-text-main"} value={isLoading ? "–" : data!.reconciliation.total} hint={<Link href="/reconciliation" className="font-semibold text-primary">Voir le rapprochement</Link>} />
             </div>
 

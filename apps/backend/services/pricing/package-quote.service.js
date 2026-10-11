@@ -10,11 +10,11 @@ import { maxSeatsFromEnv, normalizeCurrency, parsePositiveInt, parseSeats, price
  * Un package se vend À LA LICENCE (décision d'Albert, 06/10/2026), comme les thématiques :
  *   prix unitaire = course_packages.price (prix d'UNE licence, fixé par le super admin)
  *                   × (1 − remise du palier de volume actif, sl_volume_breakpoints)
- *   total         = prix unitaire × nombre de licences de la commande
+ *   total         = prix unitaire × nombre de licences de l’achat
  *
- * `max_licenses` ne plafonne plus la commande (il décrivait le contenu d'un forfait) ;
- * le plafond par commande est PACKAGE_MAX_SEATS_PER_ORDER (défaut 5000).
- * Le palier est choisi sur le nombre de licences de la commande (achat initial comme ajout).
+ * `max_licenses` ne plafonne plus l’achat (il décrivait le contenu d'un forfait) ;
+ * le plafond par achat est PACKAGE_MAX_SEATS_PER_ORDER (défaut 5000).
+ * Le palier est choisi sur le nombre de licences de l’achat (achat initial comme ajout).
  */
 const SELLABLE_STATUSES = new Set(["published", "active"]);
 

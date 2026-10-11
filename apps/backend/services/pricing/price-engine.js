@@ -6,14 +6,14 @@
  * l'exposant ISO 4217 de la devise (XOF/XAF : 0 décimale, EUR/USD : 2).
  *
  * Ordre d'application par ligne : prix catalogue → promotion SL → prix d'enchère (remplace tout) → remise de
- * volume (B2B) → coupon (un seul par commande) → taxe du pays de l'acheteur (D16) ; puis conversion éventuelle
- * vers la devise de règlement au taux fourni (figé dans la commande par l'appelant).
+ * volume (B2B) → coupon (un seul par achat) → taxe du pays de l'acheteur (D16) ; puis conversion éventuelle
+ * vers la devise de règlement au taux fourni (figé dans l’achat par l'appelant).
  *
  * Taxe : la règle (taux, prix TTC ou HT, autoliquidation B2B) est résolue par l'appelant depuis la table des
  * règles par pays ; le moteur la calcule ligne à ligne et la trace (base, taux, montant).
  *
  * Règles de cumul (D7) : une ligne d'enchère n'accepte aucune remise ; un coupon s'applique au prix promotionnel,
- * sauf coupon « exclusif » : on retient alors, pour la commande, la meilleure option entre promotions seules et
+ * sauf coupon « exclusif » : on retient alors, pour l’achat, la meilleure option entre promotions seules et
  * coupon seul (jamais les deux), au bénéfice de l'acheteur.
  */
 
@@ -304,8 +304,8 @@ function normalizeTaxRule(rule) {
 export function quote(input) {
   const currency = normalizeCurrencyCode(input?.currency);
   const exponent = currencyExponent(currency);
-  if (!Array.isArray(input.lines) || input.lines.length === 0) throw new PriceEngineError("EMPTY_ORDER", "Commande vide.");
-  if (input.lines.length > 200) throw new PriceEngineError("TOO_MANY_LINES", "Trop de lignes dans la commande.");
+  if (!Array.isArray(input.lines) || input.lines.length === 0) throw new PriceEngineError("EMPTY_ORDER", "Aucune ligne à facturer.");
+  if (input.lines.length > 200) throw new PriceEngineError("TOO_MANY_LINES", "Trop de lignes dans l’achat.");
   const lines = input.lines.map((l, i) => normalizeLine(l, i, exponent));
   const coupon = input.coupon ?? null;
 

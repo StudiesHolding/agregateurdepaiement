@@ -1,3 +1,4 @@
+import { agree, purchaseWords } from "../utils/purchase-labels.js";
 import { Sequelize, Op } from "sequelize";
 import { Order } from "../models/index.js";
 import { OrderStatus } from "../enums/index.js";
@@ -11,7 +12,7 @@ import {
 } from "../utils/errors.js";
 
 /**
- * OrderController - Gestion du cycle de vie des commandes LMS
+ * OrderController - Gestion du cycle de vie des inscriptions LMS
  *
  * Endpoints pour:
  * - Validation admin
@@ -21,7 +22,7 @@ import {
 export class OrderController {
   /**
    * GET /api/admin/orders
-   * Liste des commandes avec filtres
+   * Liste des inscriptions avec filtres
    */
   static async list(req, res, next) {
     try {
@@ -87,7 +88,7 @@ export class OrderController {
 
   /**
    * GET /api/admin/orders/:id
-   * Détail d'une commande avec historique d'audit
+   * Détail d'une inscription avec historique d'audit
    */
   static async getById(req, res, next) {
     try {
@@ -96,7 +97,7 @@ export class OrderController {
       const order = await Order.findByPk(id);
 
       if (!order) {
-        throw new NotFoundError("Commande non trouvée");
+        throw new NotFoundError("Achat introuvable.");
       }
 
       // Récupérer l'historique d'audit
@@ -116,7 +117,7 @@ export class OrderController {
 
   /**
    * POST /api/admin/orders/:id/validate
-   * Valider ou rejeter une commande
+   * Valider ou rejeter une inscription
    *
    * Action: validate -> Envoie facture + passe en VALIDATED
    * Action: reject -> Passe en REJECTED + notifie client
@@ -138,13 +139,13 @@ export class OrderController {
       const order = await Order.findByPk(id, { transaction });
 
       if (!order) {
-        throw new NotFoundError("Commande non trouvée");
+        throw new NotFoundError("Achat introuvable.");
       }
 
-      // Vérifier que la commande est en attente de validation
+      // Vérifier que l’inscription est en attente de validation
       if (order.status !== OrderStatus.PAYMENT_CONFIRMED) {
         throw new BadRequestError(
-          `Cette commande ne peut pas être validée. Statut actuel: ${order.status}`,
+          `Validation impossible dans l’état actuel (${order.status}).`,
         );
       }
 
@@ -196,7 +197,7 @@ export class OrderController {
 
         res.json({
           success: true,
-          message: "Commande validée. Email avec facture envoyé.",
+          message: `${purchaseWords(order).Noun} ${agree(purchaseWords(order), "validé")} : facture envoyée par e-mail.`,
           data: { order },
         });
       } else {
@@ -239,7 +240,7 @@ export class OrderController {
 
         res.json({
           success: true,
-          message: "Commande rejetée. Client notifié.",
+          message: "Refus enregistré : le client est prévenu.",
           data: { order },
         });
       }
@@ -251,7 +252,7 @@ export class OrderController {
 
   /**
    * POST /api/admin/orders/:id/complete
-   * Finaliser une commande - envoyer credentials
+   * Finaliser une inscription - envoyer credentials
    */
   static async complete(req, res, next) {
     const transaction = await sequelize.transaction();
@@ -268,13 +269,13 @@ export class OrderController {
       const order = await Order.findByPk(id, { transaction });
 
       if (!order) {
-        throw new NotFoundError("Commande non trouvée");
+        throw new NotFoundError("Achat introuvable.");
       }
 
-      // Vérifier que la commande est validée
+      // Vérifier que l’inscription est validée
       if (order.status !== OrderStatus.VALIDATED) {
         throw new BadRequestError(
-          `Cette commande ne peut pas être finalisée. Statut actuel: ${order.status}`,
+          `Finalisation impossible dans l’état actuel (${order.status}).`,
         );
       }
 
@@ -286,7 +287,7 @@ export class OrderController {
           ? `${order.customerEmail} (Acheteur) & ${order.beneficiaryEmail} (Bénéficiaire)`
           : order.customerEmail;
 
-      // Mettre à jour la commande
+      // Mettre à jour l’inscription
       await order.update(
         {
           status: OrderStatus.COMPLETED,
@@ -328,7 +329,7 @@ export class OrderController {
 
       res.json({
         success: true,
-        message: "Commande finalisée. Credentials envoyés au client.",
+        message: "Accès envoyés au client : achat finalisé.",
         data: { order },
       });
     } catch (error) {
@@ -339,7 +340,7 @@ export class OrderController {
 
   /**
    * GET /api/admin/orders/:id/audit
-   * Historique d'audit d'une commande
+   * Historique d'audit d'une inscription
    */
   static async getAuditHistory(req, res, next) {
     try {
@@ -349,7 +350,7 @@ export class OrderController {
       const order = await Order.findByPk(id);
 
       if (!order) {
-        throw new NotFoundError("Commande non trouvée");
+        throw new NotFoundError("Achat introuvable.");
       }
 
       const auditLogs = await OrderAuditService.getOrderHistory(order.id, {

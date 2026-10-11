@@ -2,7 +2,7 @@
  * Tests unitaires — B2BPackageStrategy (S1-8)
  *
  * Critères d'acceptation :
- * - commande déjà COMPLETED ⇒ aucune licence ajoutée, aucun e-mail ;
+ * - inscription déjà COMPLETED ⇒ aucune licence ajoutée, aucun e-mail ;
  * - admin existant actif ⇒ reste actif, pas d'e-mail ;
  * - admin existant inactif ⇒ nouveau jeton + e-mail ; nouvel admin ⇒ création + e-mail ;
  * - companyId fourni ⇒ cette entreprise (pas de recherche par e-mail) ; inconnu ⇒ erreur ;
@@ -89,7 +89,7 @@ describe('B2BPackageStrategy — provisionnement sûr et rejeu idempotent', () =
     jest.clearAllMocks();
     mockTransaction.commit.mockResolvedValue();
     mockTransaction.rollback.mockResolvedValue();
-    // Comportement nominal : commande payée non complétée, entreprise et admin
+    // Comportement nominal : inscription payée non complétée, entreprise et admin
     // existants (admin inactif), pool à créer.
     mockOrderFindOne.mockResolvedValue({ id: 101, reference: 'CMD-PKG-001', status: 'payment_confirmed' });
     mockCompanyFindOne.mockResolvedValue(company);
@@ -107,9 +107,9 @@ describe('B2BPackageStrategy — provisionnement sûr et rejeu idempotent', () =
   });
 
   // ─────────────────────────────────────────────────────────
-  // Critère : commande déjà COMPLETED ⇒ rien
+  // Critère : inscription déjà COMPLETED ⇒ rien
   // ─────────────────────────────────────────────────────────
-  it('TC-PKG-01: commande déjà COMPLETED ⇒ aucune licence ajoutée, aucun e-mail, transaction validée', async () => {
+  it('TC-PKG-01: inscription déjà COMPLETED ⇒ aucune licence ajoutée, aucun e-mail, transaction validée', async () => {
     mockOrderFindOne.mockResolvedValueOnce({
       id: 101,
       reference: 'CMD-PKG-001',
@@ -120,7 +120,7 @@ describe('B2BPackageStrategy — provisionnement sûr et rejeu idempotent', () =
 
     expect(result).toEqual({ success: true, alreadyProvisioned: true, orderReference: 'CMD-PKG-001' });
 
-    // La commande est lue avec verrou AVANT tout effet
+    // L’inscription est lue avec verrou AVANT tout effet
     expect(mockOrderFindOne).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { reference: 'CMD-PKG-001' },
@@ -138,7 +138,7 @@ describe('B2BPackageStrategy — provisionnement sûr et rejeu idempotent', () =
     expect(mockTransaction.rollback).not.toHaveBeenCalled();
   });
 
-  it('TC-PKG-02: commande introuvable ⇒ erreur définitive, rien de provisionné', async () => {
+  it('TC-PKG-02: inscription introuvable ⇒ erreur définitive, rien de provisionné', async () => {
     mockOrderFindOne.mockResolvedValueOnce(null);
     await expect(strategy.execute(baseEvent)).rejects.toThrow(/not found/);
     expect(mockPackageCreate).not.toHaveBeenCalled();

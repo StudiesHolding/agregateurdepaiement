@@ -45,7 +45,7 @@ export class MoodleHeadlessStrategy {
 
     const userCtx = await this.resolveUser(customerEmail, customerName, customerSurname, correlationId);
     
-    // Token idempotent : si un token existe déjà dans la commande (retry BullMQ),
+    // Token idempotent : si un token existe déjà dans l’inscription (retry BullMQ),
     // on le conserve pour que le lien dans l'email déjà envoyé reste valide.
     let magicToken = null;
     if (userCtx.ssoPending) {
@@ -119,7 +119,7 @@ export class MoodleHeadlessStrategy {
           customerEmail,
         );
         // Étape « crédit de commission » (S1-5) — après inscription réussie.
-        // Un échec définitif est journalisé + alerté sans impact sur la commande ;
+        // Un échec définitif est journalisé + alerté sans impact sur l’inscription ;
         // un échec réessayable propage une CommissionRetryableError (rejeu idempotent).
         const commissionCredit = await this.commissionStep.execute({
           orderReference,

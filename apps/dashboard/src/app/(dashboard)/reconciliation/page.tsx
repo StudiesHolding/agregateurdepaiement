@@ -3,7 +3,7 @@
 /**
  * Rapprochement (ADR-0019, D6)
  * ============================
- * Paiements confirmés ↔ commandes ↔ accès livrés ↔ notifications des prestataires. Chaque écart est un client payé
+ * Paiements confirmés ↔ inscriptions ↔ accès livrés ↔ notifications des prestataires. Chaque écart est un client payé
  * sans être servi, un accès sans paiement, ou une notification qui n'a pas abouti — avec la marche à suivre.
  */
 import Link from "next/link";
@@ -60,7 +60,7 @@ export default function ReconciliationPage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="page-title"><span className="gradient-text">Rapprochement</span></h1>
-                    <p className="mt-1 max-w-2xl text-sm text-text-light">Chaque paiement confirmé doit avoir sa commande à jour et son accès livré ; chaque commande payée, sa preuve de paiement ; chaque notification, son traitement.</p>
+                    <p className="mt-1 max-w-2xl text-sm text-text-light">Chaque paiement confirmé doit avoir son inscription ou son achat de licences à jour, et son accès livré ; chaque achat payé, sa preuve de paiement ; chaque notification, son traitement.</p>
                 </div>
                 <div className="flex rounded-xl border border-border bg-surface p-1" role="tablist" aria-label="Fenêtre">
                     {WINDOWS.map((d) => <button key={d} type="button" role="tab" aria-selected={days === d} onClick={() => setDays(d)} className={cn("rounded-lg px-3 py-1.5 text-xs font-semibold", days === d ? "bg-primary text-white" : "text-text-light hover:text-text-main")}>{d} jours</button>)}
@@ -71,7 +71,7 @@ export default function ReconciliationPage() {
                 <div className="card flex flex-col items-center gap-2 p-12 text-center">
                     <CheckCircle2 size={32} className="text-success" />
                     <p className="text-sm font-semibold text-text-main">Aucun écart sur {days} jours</p>
-                    <p className="max-w-sm text-xs text-text-light">Paiements, commandes, accès et notifications concordent.</p>
+                    <p className="max-w-sm text-xs text-text-light">Paiements, inscriptions, licences, accès et notifications concordent.</p>
                 </div>
             ) : (
                 <>

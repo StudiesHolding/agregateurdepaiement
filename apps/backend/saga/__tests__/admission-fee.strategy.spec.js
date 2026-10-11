@@ -1,4 +1,4 @@
-/** Tests unitaires — saga des frais de dossier (ADR-0016, D6 bis). Backend métier et commandes simulés. */
+/** Tests unitaires — saga des frais de dossier (ADR-0016, D6 bis). Backend métier et inscriptions simulés. */
 import { jest, describe, it, expect } from '@jest/globals';
 import { AdmissionFeeSagaStrategy } from '../strategies/admission-fee.strategy.js';
 
@@ -11,7 +11,7 @@ const build = (status, data = {}) => {
 };
 
 describe('AdmissionFeeSagaStrategy', () => {
-  it('frais confirmés → backend prévenu pour la candidature, commande terminée', async () => {
+  it('frais confirmés → backend prévenu pour la candidature, inscription terminée', async () => {
     const { saga, client, orders } = build(200, { data: { submitted: true } });
     const r = await saga.execute({ orderReference: 'ORD-9', correlationId: 'c1' });
     expect(client.feePaid).toHaveBeenCalledWith(105, 'ORD-9', 'c1');
@@ -19,7 +19,7 @@ describe('AdmissionFeeSagaStrategy', () => {
     expect(r).toMatchObject({ status: 'COMPLETED', candidatureId: 105, submitted: true });
   });
 
-  it('backend indisponible → erreur réessayable, commande non terminée', async () => {
+  it('backend indisponible → erreur réessayable, inscription non terminée', async () => {
     const { saga, orders } = build(503);
     await expect(saga.execute({ orderReference: 'ORD-9', correlationId: 'c2' })).rejects.toMatchObject({ name: 'AdmissionFeeRetryableError' });
     expect(orders.update).not.toHaveBeenCalled();

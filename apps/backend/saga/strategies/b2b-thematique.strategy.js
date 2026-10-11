@@ -6,8 +6,8 @@
  * 1. Créer/trouver l'entreprise (Company)
  * 2. Créer le CompanyAdmin avec token d'activation
  * 3. Créer/mettre à jour la CompanyThematique (pool de licences pour une thématique)
- * 4. Lier la commande à l'entreprise (company_id)
- * 5. Marquer la commande comme COMPLETED
+ * 4. Lier l'achat de licences à l'entreprise (company_id)
+ * 5. Marquer l'achat comme COMPLETED
  * 6. Envoyer l'email d'activation au Manager B2B
  */
 import crypto from 'crypto';
@@ -48,8 +48,8 @@ export class B2BThematiqueStrategy {
     const transaction = await sequelize.transaction();
 
     try {
-      // 0. Idempotence par commande : verrouiller la commande AVANT tout effet.
-      //    Un rejeu ne doit pas re-provisionner une commande déjà traitée.
+      // 0. Idempotence par achat : verrouiller l'achat AVANT tout effet.
+      //    Un rejeu ne doit pas re-provisionner un achat déjà traité.
       const order = await Order.findOne({
         where: { reference: orderReference },
         transaction,
@@ -57,7 +57,7 @@ export class B2BThematiqueStrategy {
       });
 
       if (!order) {
-        // Erreur définitive : jamais de provisionnement sans commande connue.
+        // Erreur définitive : jamais de provisionnement sans achat connu.
         throw new Error(`Order ${orderReference} not found: nothing provisioned`);
       }
       if (order.status === OrderStatus.COMPLETED) {
@@ -234,7 +234,7 @@ export class B2BThematiqueStrategy {
           <div style="padding: 40px;">
             <p>Bonjour,</p>
             <p>Votre achat de thématique a été validé avec succès.</p>
-            <p>Commande : <strong>${orderReference}</strong></p>
+            <p>Achat de licences : <strong>${orderReference}</strong></p>
             <div style="text-align: center; margin: 40px 0;">
               <a href="${activationLink}"
                  style="background: #e63946; color: white; padding: 16px 32px;

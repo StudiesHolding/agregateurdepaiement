@@ -50,7 +50,7 @@ describe('PackageQuoteService', () => {
     });
   });
 
-  it('au-delà de l\'ancien max_licenses : une grosse commande reste possible (20 licences, −60 %)', async () => {
+  it('au-delà de l\'ancien max_licenses : un gros achat de licences reste possible (20 licences, −60 %)', async () => {
     await expect(service({ ...PUBLISHED, max_licenses: 10 }).quote(1, 20)).resolves.toMatchObject({
       seats: 20, unitPrice: '10000.00', total: '200000.00',
     });

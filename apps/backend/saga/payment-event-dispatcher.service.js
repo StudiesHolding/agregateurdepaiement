@@ -10,9 +10,9 @@ import { dispatchPaymentEvent } from './saga-queue.service.js';
 
 /**
  * Identifiant d'événement déterministe : deux notifications PSP pour la MÊME
- * commande produisent le MÊME eventId → la déduplication BullMQ (jobId /
+ * inscription produisent le MÊME eventId → la déduplication BullMQ (jobId /
  * deduplication.id) et la table aggp_saga_idempotency protègent réellement
- * le rejeu de la même commande.
+ * le rejeu de la même inscription.
  */
 function buildEventId(order) {
   // Sert aussi de jobId BullMQ : « : » y est interdit (« Custom Id cannot contain : »).
@@ -20,7 +20,7 @@ function buildEventId(order) {
 }
 
 /**
- * Résout l'entreprise côté serveur à partir des métadonnées de la commande
+ * Résout l'entreprise côté serveur à partir des métadonnées de l’inscription
  * (fixé par le dashboard B2B authentifié) :
  * entier > 0 sinon null (recherche par e-mail dans la stratégie).
  */
@@ -43,7 +43,7 @@ export const SAGA_SOURCES = {
  * Crée et dispatch un événement de paiement dans la file BullMQ.
  * Appelé APRES markAsSucceeded() dans le WebhookProcessor.
  *
- * @param {Object} order - Commande aggp_orders
+ * @param {Object} order - Inscription aggp_orders
  * @param {string} correlationId - ID de corrélation
  * @returns {Promise<Object>} Résultat du dispatch
  */

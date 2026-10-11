@@ -65,7 +65,7 @@ describe('B2BThematiqueStrategy — provisionnement sûr et rejeu idempotent', (
     strategy = new B2BThematiqueStrategy();
   });
 
-  it('TC-TH-01: commande déjà COMPLETED ⇒ rien de modifié, aucun e-mail', async () => {
+  it('TC-TH-01: inscription déjà COMPLETED ⇒ rien de modifié, aucun e-mail', async () => {
     mockOrderFindOne.mockResolvedValueOnce({ id: 1, reference: 'CMD-TH-001', status: OrderStatus.COMPLETED });
     await expect(strategy.execute(event)).resolves.toEqual({
       success: true, alreadyProvisioned: true, orderReference: 'CMD-TH-001',
@@ -76,7 +76,7 @@ describe('B2BThematiqueStrategy — provisionnement sûr et rejeu idempotent', (
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
-  it('TC-TH-02: commande introuvable ⇒ erreur définitive', async () => {
+  it('TC-TH-02: inscription introuvable ⇒ erreur définitive', async () => {
     mockOrderFindOne.mockResolvedValueOnce(null);
     await expect(strategy.execute(event)).rejects.toThrow(/not found/);
     expect(mockThematiqueCreate).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('B2BThematiqueStrategy — provisionnement sûr et rejeu idempotent', (
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
-  it('TC-TH-04: premier achat ⇒ droit créé avec échéance à +12 mois, commande COMPLETED', async () => {
+  it('TC-TH-04: premier achat ⇒ droit créé avec échéance à +12 mois, achat COMPLETED', async () => {
     const before = new Date();
     await strategy.execute(event);
     const [data] = mockThematiqueCreate.mock.calls[0];

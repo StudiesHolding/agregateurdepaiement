@@ -52,7 +52,7 @@ export class HttpClient {
       
       const message = `Échec de la notification inter-services après 3 tentatives.\n` +
                       `URL: ${url}\n` +
-                      `Commande: ${orderRef}\n` +
+                      `Inscription: ${orderRef}\n` +
                       `Auction ID: ${auctionId}\n` +
                       `Erreur: ${error.message}`;
 

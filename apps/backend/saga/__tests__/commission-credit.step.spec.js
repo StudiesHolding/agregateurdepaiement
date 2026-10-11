@@ -3,7 +3,7 @@
  *
  * Vérifie les critères d'acceptation du ticket : appel au backend métier
  * après inscription COMPLETED / COMPLETED_IDEMPOTENT, corps exact, canal,
- * skip des commandes QA, réessais 503→200, échec définitif 401 (alerte,
+ * skip des inscriptions QA, réessais 503→200, échec définitif 401 (alerte,
  * inscription intacte), épuisement des essais (réessayable).
  *
  * HTTP simulé : le module client (axios) est mocké via jest.unstable_mockModule.
@@ -236,7 +236,7 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
     );
   });
 
-  it('TC-COM-02b: coupon sur la commande → prix avant coupon et financeur transmis (ADR-0012, D13) ; valeurs invalides ignorées', async () => {
+  it('TC-COM-02b: coupon sur l’inscription → prix avant coupon et financeur transmis (ADR-0012, D13) ; valeurs invalides ignorées', async () => {
     mockOrderFindOne.mockResolvedValue({
       ...baseOrder,
       metadata: { ...baseOrder.metadata, coupon_list_amount: '25000', coupon_funder: 'author', coupon_reservation_id: 'r' },
@@ -255,7 +255,7 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
     expect(payload.couponFunder).toBeUndefined();
   });
 
-  it('TC-COM-02c: promotion sur la commande → prix catalogue et financeur transmis (ADR-0017, D1) ; valeurs invalides ignorées', async () => {
+  it('TC-COM-02c: promotion sur l’inscription → prix catalogue et financeur transmis (ADR-0017, D1) ; valeurs invalides ignorées', async () => {
     mockOrderFindOne.mockResolvedValue({
       ...baseOrder,
       metadata: { ...baseOrder.metadata, promotion_list_amount: '30000', promotion_funder: 'shared' },
@@ -273,9 +273,9 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
   });
 
   // ─────────────────────────────────────────────────────────
-  // Critère 3 : commande QA → aucun appel, aucune trace
+  // Critère 3 : inscription QA → aucun appel, aucune trace
   // ─────────────────────────────────────────────────────────
-  it('TC-COM-03: commande QA (référence QA-… ou indicateur de test) → aucun appel backend, aucune trace d\'audit', async () => {
+  it('TC-COM-03: inscription QA (référence QA-… ou indicateur de test) → aucun appel backend, aucune trace d\'audit', async () => {
     // Référence QA-…
     mockOrderFindOne.mockResolvedValue({ ...baseOrder, reference: 'QA-CMD-001' });
     const qaEvent = {
@@ -327,7 +327,7 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
   // ─────────────────────────────────────────────────────────
   // Critère 5 : 401 → échec définitif, alerte admin, inscription intacte
   // ─────────────────────────────────────────────────────────
-  it('TC-COM-05: 401 → échec définitif (un seul essai), alerte admin, inscription et commande intactes', async () => {
+  it('TC-COM-05: 401 → échec définitif (un seul essai), alerte admin, inscription et paiement intacts', async () => {
     mockCreditCommission.mockResolvedValueOnce({
       status: 401,
       data: { message: 'Clé interne invalide' },

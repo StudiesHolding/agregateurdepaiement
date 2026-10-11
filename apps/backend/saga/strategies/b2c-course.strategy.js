@@ -2,14 +2,14 @@
  * Saga — achat B2C d'une formation canonique (ADR-0012, P5 / D8).
  *
  * Après un paiement confirmé (webhook signé) :
- *   1. inscription canonique sur le backend métier (`sl_enrollment`, idempotente par commande) — le backend
+ *   1. inscription canonique sur le backend métier (`sl_enrollment`, idempotente par inscription) — le backend
  *      résout le compte par l'e-mail du bénéficiaire et VÉRIFIE le lien d'auteur (canal 55 % ou 75 %) ;
  *   2. confirmation du coupon éventuel (idempotente, ADR-0012 D6 bis) ;
  *   3. crédit de la commission de l'auteur sur ce canal vérifié (étape existante, idempotente), calculé sur le prix
  *      avant coupon selon qui finance la remise (D13) ;
- *   4. commande marquée COMPLETED.
+ *   4. inscription marquée COMPLETED.
  * Un échec réseau ou serveur est rejoué (BullMQ) sans risque de doublon ; un échec définitif (compte inconnu,
- * formation introuvable) passe la commande à vérifier et prévient les administrateurs.
+ * formation introuvable) passe l’inscription à vérifier et prévient les administrateurs.
  * L'inscription au cours Moodle part ensuite de l'outbox du backend (`ENROLLMENT_CREATED`).
  */
 import { Order } from '../../models/index.js';
@@ -60,7 +60,7 @@ export class B2cCourseSagaStrategy {
     }
 
     const order = await this.orders.findOne({ where: { reference: orderReference } });
-    if (!order) throw new EnrollmentPermanentError(`Commande ${orderReference} introuvable`, 'ORDER_NOT_FOUND');
+    if (!order) throw new EnrollmentPermanentError(`Achat ${orderReference} introuvable`, 'ORDER_NOT_FOUND');
     const metadata = parseMetadata(order.metadata);
     const email = metadata.beneficiary_email || metadata.customer_email || order.customerEmail;
     const formationId = Number(metadata.formation_id ?? order.formationId);
@@ -98,7 +98,7 @@ export class B2cCourseSagaStrategy {
     const studentId = await this.resolveStudentId(email);
     const commission = await this.commissionStep.execute({ orderReference: order.reference, studentId, correlationId, channel: enrollment.channel });
 
-    // 4. Commande terminée
+    // 4. Inscription terminée
     await this.orders.update({ status: OrderStatus.COMPLETED, completedAt: new Date() }, { where: { reference: order.reference } });
 
     return { status: 'COMPLETED', enrollmentId: enrollment.enrollmentId, channel: enrollment.channel, alreadyEnrolled: Boolean(enrollment.alreadyEnrolled), commission };

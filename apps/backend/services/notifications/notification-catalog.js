@@ -22,13 +22,13 @@ export const EVENTS = Object.freeze({
         params: {},
     },
     "order.to_validate": {
-        kind: "instant", label: "Commande à valider", severity: "warning",
-        description: "Une commande payée attend une validation manuelle de l’équipe.",
+        kind: "instant", label: "Inscription ou achat de licences à valider", severity: "warning",
+        description: "Une inscription ou un achat de licences payé attend une validation manuelle de l’équipe.",
         params: {},
     },
     "confirmation.suspicious": {
         kind: "instant", label: "Confirmation de paiement suspecte", severity: "danger",
-        description: "Le prestataire confirme un paiement qui ne correspond pas à la commande (référence, montant ou devise).",
+        description: "Le prestataire confirme un paiement qui ne correspond pas à l’achat (référence, montant ou devise).",
         params: {},
     },
     "webhook.bad_signature": {
@@ -64,7 +64,7 @@ export const EVENTS = Object.freeze({
     },
     "reconciliation.gap": {
         kind: "watch", label: "Écart de rapprochement", severity: "danger",
-        description: "Un client a payé sans être servi, ou une commande est payée sans preuve de paiement.",
+        description: "Un client a payé sans être servi, ou un achat est payé sans preuve de paiement.",
         params: {},
     },
     "digest.daily": {

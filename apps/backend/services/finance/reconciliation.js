@@ -3,25 +3,25 @@ import sequelize from "../../config/database.js";
 import { parseJson } from "../../utils/json-column.js";
 
 /**
- * Rapprochement (ADR-0019, D6) — paiements ↔ commandes ↔ accès livrés ↔ notifications
+ * Rapprochement (ADR-0019, D6) — paiements ↔ inscriptions ↔ accès livrés ↔ notifications
  * ===================================================================================
  * Chaque écart est un problème concret pour un client ou pour la caisse. Fonction pure + lecture des données.
  */
 
 export const RULES = Object.freeze({
     paid_order_not_confirmed: {
-        label: "Paiement confirmé, commande non à jour", severity: "danger",
-        explanation: "Le prestataire a confirmé le paiement mais la commande n’est pas passée à « payée » : le client a payé sans être servi.",
-        action: "Ouvrir la commande et relancer son traitement ; vérifier le journal de la commande.",
+        label: "Paiement confirmé, achat non à jour", severity: "danger",
+        explanation: "Le prestataire a confirmé le paiement mais l’achat n’est pas passé à « payé » : le client a payé sans être servi.",
+        action: "Ouvrir l’achat et relancer son traitement ; vérifier son journal.",
     },
     access_not_delivered: {
         label: "Accès non livré après paiement", severity: "danger",
         explanation: "Paiement confirmé depuis plus de 30 minutes, mais aucune inscription ou livraison n’est enregistrée.",
-        action: "Vérifier le provisionnement de la commande (campus, licences) et relancer l’étape en échec.",
+        action: "Vérifier le provisionnement de l’achat (inscription au campus, licences) et relancer l’étape en échec.",
     },
     order_paid_without_payment: {
-        label: "Commande « payée » sans paiement confirmé", severity: "danger",
-        explanation: "La commande est marquée payée alors qu’aucun paiement confirmé ne lui correspond.",
+        label: "Achat « payé » sans paiement confirmé", severity: "danger",
+        explanation: "L’inscription ou l’achat de licences est marqué payé alors qu’aucun paiement confirmé ne lui correspond.",
         action: "Contrôler l’origine du changement d’état (journal) ; si aucune preuve de paiement, suspendre l’accès.",
     },
     stuck_attempt: {

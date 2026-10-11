@@ -8,7 +8,7 @@ import { AppError, BadRequestError } from "../../utils/errors.js";
  */
 export const DEFAULT_MAX_SEATS_PER_ORDER = 5000;
 
-/** Plafond de licences par commande lu dans `envName` (entier > 0), sinon le défaut. */
+/** Plafond de licences par achat lu dans `envName` (entier > 0), sinon le défaut. */
 export function maxSeatsFromEnv(envName) {
   const configured = Number(process.env[envName]);
   return Number.isInteger(configured) && configured > 0 ? configured : DEFAULT_MAX_SEATS_PER_ORDER;
@@ -23,7 +23,7 @@ export function parsePositiveInt(raw, message) {
 
 /** Nombre de licences valide : entier entre 1 et `maxSeats`, sinon 400. */
 export function parseSeats(raw, maxSeats) {
-  const message = `Nombre de licences invalide : entre 1 et ${maxSeats} par commande.`;
+  const message = `Nombre de licences invalide : entre 1 et ${maxSeats} par achat.`;
   const seats = parsePositiveInt(raw, message);
   if (seats > maxSeats) throw new BadRequestError(message);
   return seats;

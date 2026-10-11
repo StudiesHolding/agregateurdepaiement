@@ -1,11 +1,11 @@
 import { isDelivered, reconcile } from "../../services/finance/reconciliation.js";
 
-/** Rapprochement (ADR-0019, D6) : chaque écart entre paiement, commande, accès et notification est signalé. */
+/** Rapprochement (ADR-0019, D6) : chaque écart entre paiement, inscription, accès et notification est signalé. */
 describe("rapprochement", () => {
     const now = new Date("2026-10-10T12:00:00Z");
     const o = (over) => ({ id: 1, reference: "ORD-1", status: "pending", totalAmount: "60000", currency: "XOF", createdAt: "2026-10-10T10:00:00Z", meta: {}, ...over });
 
-    it("paiement confirmé mais commande en attente", () => {
+    it("paiement confirmé mais inscription en attente", () => {
         const g = reconcile({ intents: [{ orderId: 1, status: "succeeded", updatedAt: "2026-10-10T11:00:00Z" }], orders: [o({})], now });
         expect(g.map((x) => x.rule)).toEqual(["paid_order_not_confirmed"]);
     });
@@ -17,7 +17,7 @@ describe("rapprochement", () => {
         expect(isDelivered({ status: "completed", meta: {} })).toBe(true);
     });
 
-    it("commande payée sans paiement, tentative bloquée, webhooks", () => {
+    it("inscription payée sans paiement, tentative bloquée, webhooks", () => {
         const g = reconcile({
             orders: [o({ status: "completed" })],
             attempts: [{ transactionNumber: "T1", status: "processing", createdAt: "2026-10-10T08:00:00Z" }],
