@@ -23,7 +23,7 @@ describe("OrderService", () => {
         expect(Order.create).toHaveBeenCalledWith(expect.objectContaining({
             customerEmail: mockOrderData.customerEmail,
             totalAmount: mockOrderData.totalAmount,
-            reference: expect.stringMatching(/^ORD-/)
+            reference: expect.stringMatching(/^INS-/)
         }));
         expect(order.id).toBe(1);
     });
@@ -33,6 +33,12 @@ describe("OrderService", () => {
         const ref2 = OrderService.generateReference();
 
         expect(ref1).not.toBe(ref2);
-        expect(ref1).toMatch(/^ORD-/);
+        expect(ref1).toMatch(/^INS-/);
+    });
+
+    test("références lisibles : INS- pour une inscription, LIC- pour un achat de licences", () => {
+        expect(OrderService.generateReference("course")).toMatch(/^INS-/);
+        expect(OrderService.generateReference("package")).toMatch(/^LIC-/);
+        expect(OrderService.generateReference("thematique")).toMatch(/^LIC-/);
     });
 });
