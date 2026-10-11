@@ -13,12 +13,6 @@ export default auth((req) => {
   // ({ message }) : ne jamais le prendre pour une session (fermé par défaut, ADR-0018 D5).
   const isAuth = !!(req.auth as { user?: unknown } | null)?.user;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
-  const isDocsPage = req.nextUrl.pathname.startsWith("/docs");
-
-  // Allow access to docs pages without authentication
-  if (isDocsPage) {
-    return NextResponse.next();
-  }
 
   if (isLoginPage) {
     if (isAuth) {

@@ -21,6 +21,7 @@ const pageTitles: Array<[string, string]> = [
     ["/webhooks", "Webhooks"],
     ["/audit", "Journal d’audit"],
     ["/settings/notifications", "Notifications"],
+    ["/guide", "Guide de l’espace finance"],
 ];
 
 interface HeaderProps {

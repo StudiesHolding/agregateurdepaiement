@@ -11,7 +11,7 @@ interne du backend Studies Learning.
 | `apps/backend` | API de paiement, webhooks signés, saga, stratégies d'achat du purchase-engine. Port local 3000. | Node 22, Express, Sequelize, Jest |
 | `apps/dashboard` | Tableau de bord PSP (routage, priorités, transactions). | Next.js |
 | `apps/b2b-dashboard` | Espace entreprise (licences, packages). | Next.js |
-| `apps/docs` | Documentation technique des API. | — |
+| `apps/dashboard` → « Guide » | Guide de l’espace finance (utilisation et intégration), réservé à l’équipe connectée. | — |
 
 `docs/` : analyses et audits historiques (`docs/analyses/`), gabarits d'e-mails.
 

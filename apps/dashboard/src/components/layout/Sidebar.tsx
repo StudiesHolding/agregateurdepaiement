@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   AlertTriangle,
   Scale,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +60,10 @@ const navItems: Array<{ group: string; items: Item[] }> = [
   },
   {
     group: "Gouvernance",
-    items: [{ href: "/audit", label: "Journal d’audit", icon: ShieldCheck, anyOf: ["psp.view"] }],
+    items: [
+      { href: "/audit", label: "Journal d’audit", icon: ShieldCheck, anyOf: ["psp.view"] },
+      { href: "/guide", label: "Guide", icon: BookOpen, anyOf: ["psp.view"] },
+    ],
   },
 ];
 
