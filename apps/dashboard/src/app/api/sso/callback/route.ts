@@ -29,3 +29,11 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.redirect(new URL("/", req.url), 303);
 }
+
+/**
+ * Ouverture sans assertion (onglet rechargé, rouvert ou fenêtre surgissante débloquée après coup) : le navigateur
+ * repart en GET et l'assertion, à usage unique, n'existe plus. On explique au lieu d'afficher une page vide.
+ */
+export function GET(req: NextRequest) {
+    return toLogin(req, "SSO_RELAUNCH");
+}

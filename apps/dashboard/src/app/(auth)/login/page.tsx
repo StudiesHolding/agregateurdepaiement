@@ -19,6 +19,7 @@ const ERRORS: Record<string, string> = {
     SSO_DISABLED: "La connexion de l’équipe n’est pas configurée sur l’agrégateur (PSP_SSO_SECRET).",
     PSP_UNREACHABLE: "L’agrégateur ne répond pas. Réessayez dans un instant.",
     UNTRUSTED_ORIGIN: "Connexion refusée : elle doit partir de l’administration Studies Learning.",
+    SSO_RELAUNCH: "Ce lien de connexion ne sert qu’une fois et ne peut pas être rechargé. Rouvrez l’espace finance depuis Studies Learning.",
     INVALID_ASSERTION: "Lien de connexion invalide. Relancez l’ouverture depuis Studies Learning.",
     SESSION_EXPIRED: "Votre session a expiré. Rouvrez l’espace finance depuis Studies Learning.",
 };
