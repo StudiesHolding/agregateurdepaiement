@@ -248,7 +248,6 @@ router.post(
       } else {
         await MailService.sendPaymentConfirmed(order);
       }
-      await MailService.notifyLmsAdmins("success", order, intent);
     } else {
       attempt.paymentIntent = intent;
       intent.order = order;
@@ -260,7 +259,6 @@ router.post(
       );
 
       await MailService.sendPaymentFailureNotification(intent, order, "Simulation d'échec");
-      await MailService.notifyLmsAdmins("failure", order, intent);
     }
 
     res.json({

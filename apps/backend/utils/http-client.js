@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { MailService } from '../services/mail.service.js';
 import { AdminNotification } from '../models/index.js';
 
 /**
@@ -70,13 +69,6 @@ export class HttpClient {
         }
       });
 
-      // 2. Email alert (Wait for implementation in MailService or use generic one)
-      // For now, using a generic notification mechanism if available
-      if (MailService.notifyLmsAdmins) {
-         // Reusing existing admin notification if possible
-         // Or we could add a specific method to MailService later
-      }
-      
       console.log("[HttpClient] Admin alerts dispatched.");
     } catch (alertError) {
       console.error("[HttpClient] Failed to send admin alerts:", alertError);

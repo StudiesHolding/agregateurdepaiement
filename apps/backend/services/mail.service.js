@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { InvoiceService } from "./invoice.service.js";
-import { NotificationSettings } from "../models/index.js";
 import { resolveMailTransportFromEnv } from "../config/mail-transport.js";
 
 dotenv.config();
@@ -276,45 +275,7 @@ export class MailService {
   /**
    * Notify LMS Admins based on their settings
    */
-  static async notifyLmsAdmins(eventType, order, intent = null) {
-    try {
-      const admins = await NotificationSettings.findAll({ where: { isActive: true } });
-      if (!admins.length) return;
 
-      const adminEmails = admins.filter(admin => {
-        if (eventType === 'success' && admin.notifyOnSuccess) return true;
-        if (eventType === 'failure' && admin.notifyOnFailure) return true;
-        if (eventType === 'suspicious' && admin.notifyOnSuspicious) return true;
-        return false;
-      }).map(a => a.adminEmail);
-
-      if (!adminEmails.length) return;
-
-      let subject = '';
-      let message = '';
-
-      if (eventType === 'success') {
-        subject = `✅ Succès Paiement LMS - ${order.reference}`;
-        message = `Une nouvelle vente a été effectuée avec succès !\n\n` +
-          `Client: ${order.customerName} (${order.customerEmail})\n` +
-          `Montant: ${intent ? intent.amount + ' ' + intent.currency : 'N/A'}\n` +
-          `Produit LMS: ID ${order.lmsItemId} (${order.lmsItemType})\n` +
-          `Référence: ${order.reference}`;
-      } else if (eventType === 'failure') {
-        subject = `❌ Échec Paiement LMS - ${order.reference}`;
-        message = `Une tentative de paiement a échoué.\n\n` +
-          `Client: ${order.customerName} (${order.customerEmail})\n` +
-          `Produit LMS: ID ${order.lmsItemId} (${order.lmsItemType})\n` +
-          `Référence: ${order.reference}`;
-      }
-
-      for (const email of adminEmails) {
-        await this.sendAdminNotification(subject, message, email);
-      }
-    } catch (error) {
-      console.error("[MailService] Failed to notify LMS admins:", error);
-    }
-  }
 
   // ============================================================================
   // NOUVEAUX TEMPLATES - WORKFLOW LMS ORDERS

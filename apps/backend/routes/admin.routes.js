@@ -4,6 +4,8 @@ import { protectAdmin, auditLog, requirePsp } from "../middlewares/admin.middlew
 import { AnalyticsService } from "../services/analytics.service.js";
 import {
     sequelize,
+    NotificationRule,
+    NotificationDelivery,
     PaymentProvider,
     PaymentIntent,
     PaymentAttempt,
@@ -22,10 +24,11 @@ import { PROVIDER_CATALOG, isImplemented, mergeSettings, readiness } from "../se
 import { failuresReport, revenueReport } from "../services/finance/finance-analytics.js";
 import { overviewReport } from "../services/finance/overview.js";
 import { reconciliationReport } from "../services/finance/reconciliation.js";
+import { EVENTS as NOTIFICATION_EVENTS, normalizeRule as normalizeNotificationRule } from "../services/notifications/notification-catalog.js";
+import { deliver as deliverNotification, ensureDefaultRules } from "../services/notifications/notification-engine.js";
 import { NotFoundError, BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
 import { OrderController } from "../controllers/order.controller.js";
-import { NotificationController } from "../controllers/notification.controller.js";
 import { AdminNotificationController } from "../controllers/admin-notification.controller.js";
 import { AdminCompanyController } from "../controllers/admin-company.controller.js";
 import { AdminRequestController } from "../controllers/admin-request.controller.js";
@@ -674,12 +677,66 @@ router.post(
 // 🔔 NOTIFICATIONS & ALERTS
 // ══════════════════════════════════════════════════════════
 
-// Preferences (Email alerts)
-router.get("/notifications/me", catchAsync(NotificationController.getMe));
-router.get("/notifications", catchAsync(NotificationController.getSettings));
-router.get("/notifications/search", catchAsync(NotificationController.searchAdmins));
-router.post("/notifications", auditLog("UPDATE_NOTIFICATION_SETTING", "notification"), requirePsp("psp.operations.manage"), catchAsync(NotificationController.updateSetting));
-router.delete("/notifications/:id", auditLog("DELETE_NOTIFICATION_SETTING", "notification"), requirePsp("psp.operations.manage"), catchAsync(NotificationController.deleteSetting));
+// Règles de notification (ADR-0019, D7) : événements, seuils, canaux, destinataires, heures calmes, anti-répétition.
+const notificationRuleView = (r) => ({
+    id: r.id, event: r.event, name: r.name, enabled: r.enabled, severity: r.severity, params: r.params ?? {},
+    channels: r.channels ?? {}, recipients: r.recipients ?? { emails: [] }, quietHours: r.quietHours ?? null,
+    timezone: r.timezone, cooldownMinutes: r.cooldownMinutes, updatedBy: r.updatedBy, updatedAt: r.updatedAt,
+});
+
+router.get("/notification-catalog", catchAsync(async (req, res) => {
+    res.json({ status: "success", data: Object.entries(NOTIFICATION_EVENTS).map(([event, def]) => ({ event, ...def })) });
+}));
+
+router.get("/notification-rules", catchAsync(async (req, res) => {
+    await ensureDefaultRules();
+    const rules = await NotificationRule.findAll({ order: [["id", "ASC"]] });
+    res.json({ status: "success", data: rules.map(notificationRuleView) });
+}));
+
+router.post("/notification-rules", auditLog("CREATE_NOTIFICATION_RULE", "notification_rule"), requirePsp("psp.operations.manage"), catchAsync(async (req, res) => {
+    let fields;
+    try { fields = normalizeNotificationRule(req.body ?? {}); } catch (err) { throw new BadRequestError(err.message); }
+    const rule = await NotificationRule.create({ ...fields, enabled: req.body?.enabled ?? true, updatedBy: req.adminIdentifier });
+    res.status(201).json({ status: "success", data: notificationRuleView(rule) });
+}));
+
+router.put("/notification-rules/:id", auditLog("UPDATE_NOTIFICATION_RULE", "notification_rule"), requirePsp("psp.operations.manage"), catchAsync(async (req, res) => {
+    const rule = await NotificationRule.findByPk(req.params.id);
+    if (!rule) throw new NotFoundError("Règle introuvable.");
+    let fields;
+    try { fields = normalizeNotificationRule({ event: rule.event, ...req.body }, { partial: true }); } catch (err) { throw new BadRequestError(err.message); }
+    delete fields.event;
+    await rule.update({ ...fields, updatedBy: req.adminIdentifier });
+    res.json({ status: "success", data: notificationRuleView(rule) });
+}));
+
+router.delete("/notification-rules/:id", auditLog("DELETE_NOTIFICATION_RULE", "notification_rule"), requirePsp("psp.operations.manage"), catchAsync(async (req, res) => {
+    const rule = await NotificationRule.findByPk(req.params.id);
+    if (!rule) throw new NotFoundError("Règle introuvable.");
+    await rule.destroy();
+    res.json({ status: "success", message: "Règle supprimée." });
+}));
+
+/** Envoi d'essai d'une règle (canaux et destinataires réels, sans tenir compte de l'anti-répétition). */
+router.post("/notification-rules/:id/test", auditLog("TEST_NOTIFICATION_RULE", "notification_rule"), requirePsp("psp.operations.manage"), catchAsync(async (req, res) => {
+    const rule = await NotificationRule.findByPk(req.params.id);
+    if (!rule) throw new NotFoundError("Règle introuvable.");
+    const def = NOTIFICATION_EVENTS[rule.event];
+    const result = await deliverNotification(rule, rule.event, {
+        title: `Essai : ${def?.label ?? rule.event}`,
+        lines: [`Ceci est un envoi d’essai demandé par ${req.adminEmail ?? req.adminIdentifier}.`, def?.description ?? ""],
+        key: `test:${Date.now()}`, href: "/settings/notifications",
+    }, { force: true });
+    res.json({ status: "success", data: result, message: "Envoi d’essai effectué : consultez le journal d’envoi." });
+}));
+
+router.get("/notification-deliveries", catchAsync(async (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+    const where = req.query.ruleId ? { ruleId: Number(req.query.ruleId) } : {};
+    const rows = await NotificationDelivery.findAll({ where, order: [["id", "DESC"]], limit });
+    res.json({ status: "success", data: rows.map((d) => ({ id: d.id, ruleId: d.ruleId, event: d.event, channel: d.channel, recipient: d.recipient, status: d.status, title: d.title, detail: d.detail, createdAt: d.createdAt })) });
+}));
 
 // In-App Alerts (Dashboard Bell)
 router.get("/admin-notifications", catchAsync(AdminNotificationController.list));

@@ -116,12 +116,6 @@ export const adminApi = {
     api.get("/audit-logs", { params }),
 
   // Notifications
-  getNotifications: () => api.get("/notifications"),
-  getMyNotifications: () => api.get("/notifications/me"),
-  searchLmsAdmins: (q: string) => api.get(`/notifications/search?q=${q}`),
-  updateNotificationSetting: (data: Record<string, unknown>) =>
-    api.post("/notifications", data),
-  deleteNotificationSetting: (id: number) => api.delete(`/notifications/${id}`),
 
   // Admin In-App Notifications
   getAdminNotifications: () => api.get("/admin-notifications"),

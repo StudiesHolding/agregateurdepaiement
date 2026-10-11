@@ -7,7 +7,6 @@ import {
   Order,
   sequelize,
   AdminNotification,
-  NotificationSettings,
 } from "../models/index.js";
 import { PaymentStatus, AttemptStatus, OrderStatus } from "../enums/index.js";
 import { ProviderFactory } from "../providers/index.js";
@@ -15,6 +14,8 @@ import { MailService } from "./mail.service.js";
 import { LmsBridgeService } from "./lms-bridge.service.js";
 import { B2BProvisioningService } from "./b2b-provisioning.service.js";
 import { bindConfirmation, checkKkiapaySignature, verificationId } from "./payments/confirmation.js";
+import { emit } from "./notifications/notification-engine.js";
+import { classify } from "./finance/failure-taxonomy.js";
 
 export class WebhookProcessor {
   static parseOrderMetadata(raw) {
@@ -35,6 +36,8 @@ export class WebhookProcessor {
   static async processEvent(providerCode, payload, signature = null) {
     let transaction = null;
     let notificationData = null;
+    // Notifications de l'équipe (ADR-0019, D7) : émises APRÈS la validation de la transaction, jamais dedans.
+    const afterCommit = [];
 
     try {
       transaction = await sequelize.transaction();
@@ -135,6 +138,11 @@ export class WebhookProcessor {
           event.signatureValid = false;
           event.errorMessage = "Signature du webhook invalide : notification rejetée.";
           console.warn(`[WebhookProcessor] Signature invalide (${providerCode}) pour ${transactionNumber}`);
+          afterCommit.push(() => emit("webhook.bad_signature", {
+            title: `Notification ${providerCode} à signature invalide`,
+            lines: [`Commande ${order.reference} : la notification a été rejetée, le paiement n’est pas validé.`, "Vérifiez le secret des webhooks du prestataire ; si la configuration est bonne, traitez-le comme un incident de sécurité."],
+            severity: "danger", href: "/webhooks", key: `badsig:${transactionNumber}`, orderReference: order.reference,
+          }));
         } else if (process.env.NODE_ENV === "test" && providerCode === "cinetpay" && payload.cpm_result === "00") {
           // ATDD : payload QA simulé (cpm_result=00) — pas d'appel API CinetPay
           finalStatus = PaymentStatus.SUCCEEDED;
@@ -157,13 +165,12 @@ export class WebhookProcessor {
             } else {
               event.errorMessage = `Confirmation refusée : ${binding.reason}.`;
               console.warn(`[WebhookProcessor] ${event.errorMessage} (${order.reference})`);
-              await AdminNotification.create({
-                type: "DANGER",
+              afterCommit.push(() => emit("confirmation.suspicious", {
                 title: "Confirmation de paiement suspecte",
-                message: `${order.reference} : ${binding.reason}. Le paiement n'a pas été validé.`,
-                orderReference: order.reference,
-                metadata: { providerCode, transactionNumber: attempt.transactionNumber, kind: "suspicious_confirmation" },
-              }, { transaction }).catch(() => {});
+                lines: [`${order.reference} : ${binding.reason}.`, "Le paiement n’a pas été validé. Examinez la transaction chez le prestataire avant toute action."],
+                severity: "danger", href: `/transactions?search=${encodeURIComponent(order.reference)}`, key: `suspicious:${attempt.transactionNumber}`, orderReference: order.reference,
+                payload: { providerCode, transactionNumber: attempt.transactionNumber },
+              }));
             }
           } else if (verification.status === PaymentStatus.FAILED || verification.status === PaymentStatus.CANCELED) {
             finalStatus = PaymentStatus.FAILED;
@@ -238,8 +245,21 @@ export class WebhookProcessor {
             // await LmsBridgeService.syncEnrollment(order);
           }
 
-          // ── Admin Alerts (toujours synchrones, quel que soit le flux) ──
-          await this.notifyAdminsForValidation(order);
+          // ── Alertes de l'équipe, selon les règles de notification ──
+          const amountLabel = `${Number(intent.amount).toLocaleString("fr-FR")} ${intent.currency}`;
+          afterCommit.push(() => emit("payment.succeeded", {
+            title: `Paiement confirmé : ${amountLabel}`,
+            lines: [`Commande ${order.reference}${order.formationName ? ` · ${order.formationName}` : ""}, via ${providerCode}.`],
+            severity: "info", href: `/transactions?search=${encodeURIComponent(order.reference)}`, key: `paid:${order.reference}`, orderReference: order.reference,
+          }, { amount: Number(intent.amount), currency: intent.currency }));
+          if (!isNewSagaEnabled) {
+            // Ancien flux : la commande attend une validation manuelle.
+            afterCommit.push(() => emit("order.to_validate", {
+              title: `Commande à valider : ${order.reference}`,
+              lines: [`Payée (${amountLabel}) par ${order.customerEmail}, elle attend la validation de l’équipe.`],
+              severity: "warning", href: `/orders/${order.id}`, key: `validate:${order.reference}`, orderReference: order.reference,
+            }));
+          }
 
           // Phase 2: Send payment confirmation WITHOUT invoice
           await MailService.sendPaymentConfirmed(order);
@@ -252,7 +272,12 @@ export class WebhookProcessor {
             reason: providerResponse.message || "Payment failed",
           };
 
-          await MailService.notifyLmsAdmins("failure", order, intent);
+          const cause = classify({ errorCode: providerResponse?.code ?? providerResponse?.errorCode, errorMessage: providerResponse?.message, response: providerResponse });
+          afterCommit.push(() => emit("payment.failed", {
+            title: `Paiement échoué : ${order.reference}`,
+            lines: [`${cause.label} — ${cause.explanation}`, cause.action],
+            severity: "warning", href: "/failures", key: `failed:${attempt.transactionNumber}`, orderReference: order.reference,
+          }));
 
           await MailService.sendPaymentFailureNotification(
             intent,
@@ -273,6 +298,7 @@ export class WebhookProcessor {
 
       await event.save({ transaction });
       await transaction.commit();
+      for (const notify of afterCommit) await notify();
 
       // Trigger notifications AFTER commit
       // (Handled directly above now for better control)
@@ -386,27 +412,5 @@ export class WebhookProcessor {
   /**
    * Notify administrators that a new order is waiting for validation
    */
-  static async notifyAdminsForValidation(order) {
-    try {
-      // 1. In-App Notification (for Dashboard Bell)
-      await AdminNotification.create({
-        type: "WARNING",
-        title: "Nouveau paiement à valider",
-        message: `La commande ${order.reference} de ${order.customerEmail} est confirmée et attend votre validation.`,
-        orderReference: order.reference,
-        metadata: { orderId: order.id }
-      });
 
-      // 2. Email Notifications (based on Admin Preferences)
-      const admins = await NotificationSettings.findAll({
-        where: { notifyOnNewOrder: true, isActive: true }
-      });
-
-      for (const admin of admins) {
-        await MailService.sendAdminOrderValidationAlert(admin.adminEmail, order);
-      }
-    } catch (error) {
-      console.error("[WebhookProcessor] Error notifying admins:", error);
-    }
-  }
 }

@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 import { bindConfirmation, checkKkiapaySignature, fromStripeAmount, verificationId } from "../../services/payments/confirmation.js";
 import { WebhookProcessor } from "../../services/webhook-processor.service.js";
 import { ProviderFactory } from "../../providers/index.js";
-import { WebhookEvent, PaymentAttempt, AdminNotification, sequelize } from "../../models/index.js";
+import { WebhookEvent, PaymentAttempt, AdminNotification, NotificationRule, NotificationDelivery, sequelize } from "../../models/index.js";
 import { MailService } from "../../services/mail.service.js";
 import { AttemptStatus } from "../../enums/index.js";
 
@@ -60,11 +60,13 @@ describe("traitement d'un webhook", () => {
         jest.spyOn(WebhookEvent, "create").mockResolvedValue(event);
         jest.spyOn(PaymentAttempt, "findOne").mockResolvedValue(attempt);
         jest.spyOn(AdminNotification, "create").mockResolvedValue({});
-        jest.spyOn(MailService, "notifyLmsAdmins").mockResolvedValue();
+        // Alertes de l'équipe : une règle active par événement, centre de notifications seulement.
+        jest.spyOn(NotificationRule, "findAll").mockImplementation(async ({ where }) => [{ id: 1, event: where.event, severity: "danger", channels: { inApp: true, email: false, sound: false }, recipients: { emails: [] }, quietHours: null, timezone: "Africa/Douala", cooldownMinutes: 0, params: {} }]);
+        jest.spyOn(NotificationDelivery, "create").mockResolvedValue({});
+        jest.spyOn(NotificationDelivery, "count").mockResolvedValue(0);
         jest.spyOn(MailService, "sendPaymentFailureNotification").mockResolvedValue();
         jest.spyOn(WebhookProcessor, "markAsSucceeded").mockResolvedValue();
         jest.spyOn(WebhookProcessor, "markAsFailed").mockResolvedValue();
-        jest.spyOn(WebhookProcessor, "notifyAdminsForValidation").mockResolvedValue();
         jest.spyOn(MailService, "sendPaymentConfirmed").mockResolvedValue();
     });
     afterEach(() => jest.restoreAllMocks());
@@ -84,7 +86,7 @@ describe("traitement d'un webhook", () => {
         await WebhookProcessor.processEvent("stripe", stripePayload, null);
         expect(WebhookProcessor.markAsSucceeded).not.toHaveBeenCalled();
         expect(event.errorMessage).toMatch(/Confirmation refusée/);
-        expect(AdminNotification.create).toHaveBeenCalledWith(expect.objectContaining({ type: "DANGER" }), expect.anything());
+        expect(AdminNotification.create).toHaveBeenCalledWith(expect.objectContaining({ type: "DANGER", title: "Confirmation de paiement suspecte" }));
     });
 
     it("confirmation serveur conforme : paiement validé", async () => {

@@ -46,27 +46,17 @@ const startServer = async () => {
             console.log(" Continuing without model synchronization...");
         }
 
-        // Auto-seed default admin key if missing
-        try {
-            const { ApiKey } = await import("./models/index.js");
-            const { ApiKeyService } = await import("./services/api-key.service.js");
-            const adminKeyCount = await ApiKey.count({ where: { owner: { [sequelize.Sequelize.Op.like]: 'admin:%' } } });
-
-            if (adminKeyCount === 0) {
-                const defaultKey = await ApiKeyService.generate("admin:default-key");
-                console.log("\n [SECURITY] No admin key found. Generated default admin key:");
-                console.log(`            KEY: ${defaultKey.key}`);
-                console.log(`            OWNER: admin:default-key`);
-                console.log("   --- Store this safely and delete after first production login ---\n");
-            }
-        } catch (seedError) {
-            console.warn("  Default key seeding skipped:", seedError.message);
-        }
+        // Plus de clé administrateur générée ni écrite dans les journaux au démarrage (ADR-0019) : l'équipe se connecte
+        // par Studies Learning ; une clé d'intégration se crée volontairement avec scripts/create-machine-key.js.
 
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(` Server running on http://0.0.0.0:${PORT}`);
             console.log(` Health check: http://localhost:${PORT}/health`);
         });
+
+        // Notifications de l'espace finance : règles par défaut, surveillances périodiques (ADR-0019, D7).
+        const { startNotificationWatchers } = await import('./services/notifications/notification-engine.js');
+        startNotificationWatchers();
 
         // Workers Saga BullMQ (provisioning post-paiement + assignations B2B)
         try {
