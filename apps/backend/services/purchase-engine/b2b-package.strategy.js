@@ -1,7 +1,7 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
 import { FormationPackage } from '../../models/index.js';
 import { packageQuoteService } from '../pricing/package-quote.service.js';
-import { BadRequestError } from '../../utils/errors.js';
+import { AppError, BadRequestError } from '../../utils/errors.js';
 
 const DEFAULT_FEATURES = [
   'Dashboard entreprise dédié',
@@ -111,7 +111,7 @@ export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
     });
 
     if (!result.success) {
-      throw new Error(result.error || "Erreur lors de l'initialisation du paiement B2B.");
+      throw new AppError(result.error || "Erreur lors de l'initialisation du paiement B2B.", 502);
     }
 
     return {

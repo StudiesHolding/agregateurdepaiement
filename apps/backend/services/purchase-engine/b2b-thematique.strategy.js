@@ -1,6 +1,6 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
 import { thematiqueQuoteService } from '../pricing/thematique-quote.service.js';
-import { BadRequestError } from '../../utils/errors.js';
+import { AppError, BadRequestError } from '../../utils/errors.js';
 
 /**
  * Stratégie de paiement B2B : licences d'une thématique complète (ADR-0001, ADR-0004).
@@ -100,7 +100,7 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
     });
 
     if (!result.success) {
-      throw new Error(result.error || "Erreur lors de l'initialisation du paiement B2B Thématique.");
+      throw new AppError(result.error || "Erreur lors de l'initialisation du paiement B2B Thématique.", 502);
     }
 
     return {

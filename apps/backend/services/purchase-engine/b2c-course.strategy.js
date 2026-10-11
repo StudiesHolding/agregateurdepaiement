@@ -161,7 +161,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
 
         if (!result.success) {
             if (coupon) await this.couponClient.release(coupon.reservationId).catch(() => undefined);
-            throw new Error(result.error || "Erreur lors de l'initialisation du paiement B2C.");
+            throw new AppError(result.error || "Erreur lors de l'initialisation du paiement B2C.", 502);
         }
 
         return {

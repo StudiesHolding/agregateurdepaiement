@@ -6,6 +6,8 @@ import { BadRequestError } from "../utils/errors.js";
 import { FormationsService } from "./formations.service.js";
 import { parseJson } from "../utils/json-column.js";
 
+const PROVIDER_UNAVAILABLE = "Le prestataire de paiement ne répond pas pour le moment. Réessayez dans un instant ou choisissez un autre moyen de paiement.";
+
 export class OrchestratorService {
   /**
    * Initialize a payment from end-to-end
@@ -273,7 +275,9 @@ export class OrchestratorService {
         success: false,
         orderReference: order.reference,
         paymentIntentId: String(intent.id),
-        error: result.error,
+        // Le client voit un message actionnable ; le détail technique (DNS, délai, refus) reste dans les tentatives.
+        error: PROVIDER_UNAVAILABLE,
+        technicalError: result.error,
         errors: result.errors, // Propagate all collected errors
       };
     }

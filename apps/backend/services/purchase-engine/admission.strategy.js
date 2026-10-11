@@ -103,7 +103,7 @@ export class AdmissionPurchaseStrategy extends PurchaseStrategy {
                 channel: "direct",
             },
         });
-        if (!result?.success) throw new Error(result?.error || "Erreur lors de l'initialisation du paiement.");
+        if (!result?.success) throw new AppError(result?.error || "Erreur lors de l'initialisation du paiement.", 502);
 
         // Paiement engagé : le backend protège l'offre (ou note les frais en attente) pour cette inscription.
         const pending = await this.client.pending(candidatureId, this.kind, result.orderReference);
