@@ -27,3 +27,14 @@ describe("taxonomie des échecs", () => {
         for (const c of Object.values(CATEGORIES)) { expect(c.label).toBeTruthy(); expect(c.explanation.length).toBeGreaterThan(20); expect(c.action.length).toBeGreaterThan(20); }
     });
 });
+
+describe("customerReason", () => {
+    it("explique à l'acheteur sans jargon ni détail technique", async () => {
+        const { customerReason } = await import("../../services/finance/failure-taxonomy.js");
+        expect(customerReason({ errorCode: "602" })).toMatchObject({ category: "insufficient_funds", title: "Solde insuffisant" });
+        const net = customerReason({ errorMessage: "fetch failed" });
+        expect(net.category).toBe("provider_unavailable");
+        expect(net.advice).not.toMatch(/fetch|ENOTFOUND/i);
+        expect(customerReason({}).title).toBe("Le paiement n’a pas abouti");
+    });
+});

@@ -3,7 +3,8 @@ import { catchAsync } from "../middlewares/error.middleware.js";
 import rateLimit from "express-rate-limit";
 import { checkoutContextService } from "../services/purchase-engine/checkout-context.service.js";
 import { ProviderRouterService } from "../services/provider-router.service.js";
-import { Order, PaymentIntent } from "../models/index.js";
+import { Order, PaymentIntent, PaymentAttempt } from "../models/index.js";
+import { customerReason } from "../services/finance/failure-taxonomy.js";
 import { purchaseKind } from "../utils/purchase-labels.js";
 import { parseJson } from "../utils/json-column.js";
 
@@ -143,10 +144,16 @@ router.get("/status", catchAsync(async (req, res) => {
         : s === "payment_confirmed" ? "confirmed"
         : ["payment_failed", "rejected", "cancelled", "expired"].includes(s) || intent?.status === "failed" ? "failed"
         : "pending";
+    // Échec : motif compris par l'acheteur, tiré de la dernière tentative (jamais la réponse brute du prestataire).
+    let reason = null;
+    if (state === "failed" && intent) {
+        const attempt = await PaymentAttempt.findOne({ where: { paymentIntentId: intent.id }, order: [["id", "DESC"]] });
+        reason = customerReason({ errorCode: attempt?.errorCode, errorMessage: attempt?.errorMessage, status: attempt?.status });
+    }
     res.json({
         success: true,
         data: {
-            reference: order.reference, state, kind: purchaseKind(order),
+            reference: order.reference, state, kind: purchaseKind(order), reason,
             title: order.formationName ?? (parseJson(order.metadata)?.formation_name || parseJson(order.metadata)?.company_name || null),
             amount: Number(order.totalAmount), currency: order.currency,
             paidAt: order.paidAt ?? null,

@@ -86,9 +86,9 @@ export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
       // Devis serveur : total et devise ne viennent jamais du navigateur.
       currency: quote.currency,
       amount: Number(quote.total),
-      successUrl: `${purchaseEngineUrl}/success`,
-      cancelUrl: `${purchaseEngineUrl}/cancel`,
-      failedUrl: `${purchaseEngineUrl}/failed`,
+      successUrl: `${purchaseEngineUrl}/success?type=B2B_PACKAGE&id=${quote.packageId}`,
+      cancelUrl: `${purchaseEngineUrl}/cancel?type=B2B_PACKAGE&id=${quote.packageId}`,
+      failedUrl: `${purchaseEngineUrl}/failed?type=B2B_PACKAGE&id=${quote.packageId}`,
       metadata: {
         source: 'purchase_engine',
         purchase_type: 'B2B_PACKAGE',

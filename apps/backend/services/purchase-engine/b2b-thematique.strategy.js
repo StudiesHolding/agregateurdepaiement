@@ -76,9 +76,9 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
       // Devis serveur : total et devise ne viennent jamais du navigateur.
       currency: quote.currency,
       amount: Number(quote.total),
-      successUrl: `${purchaseEngineUrl}/success`,
-      cancelUrl: `${purchaseEngineUrl}/cancel`,
-      failedUrl: `${purchaseEngineUrl}/failed`,
+      successUrl: `${purchaseEngineUrl}/success?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
+      cancelUrl: `${purchaseEngineUrl}/cancel?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
+      failedUrl: `${purchaseEngineUrl}/failed?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
       metadata: {
         source: 'purchase_engine',
         purchase_type: 'B2B_THEMATIQUE',

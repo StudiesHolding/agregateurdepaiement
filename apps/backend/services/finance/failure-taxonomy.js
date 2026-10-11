@@ -104,3 +104,27 @@ export function classify(input = {}) {
     if (input.status === "canceled") return { category: "customer_cancelled", ...CATEGORIES.customer_cancelled };
     return { category: "unknown", ...CATEGORIES.unknown };
 }
+
+/**
+ * Même catégorie, vue de l'acheteur (pages de retour du checkout) : ce qui s'est passé et quoi faire, sans jargon
+ * ni détail technique. Les catégories internes (configuration, fraude, non classé) restent volontairement neutres.
+ */
+const FOR_CUSTOMER = {
+    insufficient_funds: { title: "Solde insuffisant", advice: "Le montant n’était pas disponible sur votre compte. Rechargez-le ou choisissez un autre moyen de paiement." },
+    declined: { title: "Paiement refusé par votre banque ou opérateur", advice: "Votre banque ou votre opérateur a refusé l’opération. Essayez une autre carte ou le Mobile Money, ou contactez-les." },
+    customer_cancelled: { title: "Paiement interrompu", advice: "Le paiement a été annulé avant sa validation. Vous pouvez le reprendre quand vous voulez." },
+    validation_failed: { title: "Validation non reçue", advice: "La confirmation sur votre téléphone n’est pas arrivée à temps. Relancez le paiement et validez la notification de votre opérateur." },
+    abandoned: { title: "Paiement non finalisé", advice: "Le paiement n’a pas été mené à son terme. Vous pouvez le reprendre en quelques secondes." },
+    invalid_details: { title: "Coordonnées de paiement invalides", advice: "Le numéro ou la carte saisis ne sont pas valides. Vérifiez-les ou essayez un autre moyen." },
+    amount_limit: { title: "Montant hors plafond", advice: "Ce montant dépasse un plafond de votre moyen de paiement. Essayez un autre moyen de paiement." },
+    provider_unavailable: { title: "Service de paiement momentanément indisponible", advice: "Le prestataire n’a pas répondu. Réessayez dans un instant ou choisissez un autre moyen." },
+    configuration: { title: "Paiement momentanément indisponible", advice: "Ce moyen de paiement est en cours de rétablissement. Choisissez-en un autre ou réessayez plus tard." },
+    fraud_suspected: { title: "Paiement non autorisé", advice: "Le prestataire n’a pas autorisé cette opération. Contactez-nous pour finaliser votre achat." },
+    unknown: { title: "Le paiement n’a pas abouti", advice: "Aucun montant n’a été prélevé. Réessayez ou choisissez un autre moyen de paiement." },
+};
+
+/** @returns {{ category: string, title: string, advice: string }} */
+export function customerReason(input = {}) {
+    const { category } = classify(input);
+    return { category, ...(FOR_CUSTOMER[category] ?? FOR_CUSTOMER.unknown) };
+}
