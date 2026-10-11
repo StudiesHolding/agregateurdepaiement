@@ -82,6 +82,7 @@ export class B2bPackagePurchaseStrategy extends PurchaseStrategy {
       lmsItemType: 'package',
       paymentMethod: data.paymentMethod || 'card',
       countryCode: data.countryCode || null,
+      idempotencyKey: typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
       // Devis serveur : total et devise ne viennent jamais du navigateur.
       currency: quote.currency,
       amount: Number(quote.total),

@@ -2,6 +2,10 @@ import { Router } from "express";
 import { catchAsync } from "../middlewares/error.middleware.js";
 import rateLimit from "express-rate-limit";
 import { checkoutContextService } from "../services/purchase-engine/checkout-context.service.js";
+import { ProviderRouterService } from "../services/provider-router.service.js";
+import { Order, PaymentIntent } from "../models/index.js";
+import { purchaseKind } from "../utils/purchase-labels.js";
+import { parseJson } from "../utils/json-column.js";
 
 // Note: Ensure the strategies are registered elsewhere (e.g. at startup)
 // import { B2bPackagePurchaseStrategy } from "../services/purchase-engine/b2b-package.strategy.js";
@@ -98,6 +102,55 @@ router.post("/process", catchAsync(async (req, res) => {
     res.json({
         success: true,
         data: result
+    });
+}));
+
+/**
+ * GET /api/checkout/methods?currency=XOF&country=SN&amount=45000
+ * Moyens de paiement réellement disponibles pour cette devise et ce pays (règles de priorité, ADR-0019 D2) :
+ * le checkout ne propose jamais un moyen qui ne passerait pas. Aucune information sensible (ni prestataire, ni règle).
+ */
+router.get("/methods", catchAsync(async (req, res) => {
+    const currency = String(req.query.currency ?? "").toUpperCase();
+    const country = String(req.query.country ?? "").toUpperCase();
+    const amount = Number(req.query.amount ?? 1) || 1;
+    if (!/^[A-Z]{3}$/.test(currency)) return res.status(400).json({ success: false, message: "Devise invalide." });
+    const methods = [];
+    for (const method of ["mobile_money", "card"]) {
+        try {
+            const { candidates } = await ProviderRouterService.explain({ countryCode: /^[A-Z]{2}$/.test(country) ? country : "", currency, amount, paymentMethod: method });
+            methods.push({ method, available: candidates.length > 0, fallback: candidates.length > 1 });
+        } catch {
+            methods.push({ method, available: false, fallback: false });
+        }
+    }
+    res.json({ success: true, data: { currency, country: /^[A-Z]{2}$/.test(country) ? country : null, methods } });
+}));
+
+/**
+ * GET /api/checkout/status?ref=INS-…
+ * Suivi d'un achat pour les pages de retour : état, nature, montant. La référence (horodatage + aléa) sert de jeton ;
+ * aucune donnée personnelle n'est renvoyée.
+ */
+router.get("/status", catchAsync(async (req, res) => {
+    const ref = String(req.query.ref ?? "");
+    if (!/^[A-Z]{2,4}-[A-Z0-9-]{6,40}$/.test(ref)) return res.status(400).json({ success: false, message: "Référence invalide." });
+    const order = await Order.findOne({ where: { reference: ref } });
+    if (!order) return res.status(404).json({ success: false, message: "Achat introuvable." });
+    const intent = await PaymentIntent.findOne({ where: { orderId: order.id }, order: [["id", "DESC"]] });
+    const s = order.status;
+    const state = ["completed", "validated"].includes(s) ? "delivered"
+        : s === "payment_confirmed" ? "confirmed"
+        : ["payment_failed", "rejected", "cancelled", "expired"].includes(s) || intent?.status === "failed" ? "failed"
+        : "pending";
+    res.json({
+        success: true,
+        data: {
+            reference: order.reference, state, kind: purchaseKind(order),
+            title: order.formationName ?? (parseJson(order.metadata)?.formation_name || parseJson(order.metadata)?.company_name || null),
+            amount: Number(order.totalAmount), currency: order.currency,
+            paidAt: order.paidAt ?? null,
+        },
     });
 }));
 

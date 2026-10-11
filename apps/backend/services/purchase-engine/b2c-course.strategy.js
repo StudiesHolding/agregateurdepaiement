@@ -123,6 +123,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
             lmsItemType: "course",
             paymentMethod: data.paymentMethod || "card",
             countryCode: data.countryCode || null,
+            idempotencyKey: typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
             // Prix et devise du backend : jamais ceux du navigateur.
             currency: intent.currency,
             amount: coupon ? Number(coupon.finalAmount) : intent.price,
@@ -138,6 +139,7 @@ export class B2cCoursePurchaseStrategy extends PurchaseStrategy {
                 payer_email: data.customerEmail || customerEmail,
                 beneficiary_email: data.beneficiaryEmail || null,
                 formation_id: formationId,
+                formation_name: intent.title ?? null,
                 // Attribution : le lien est enregistré, sa validation arrive au sprint 4.
                 channel: "direct",
                 channel_ref: channelRef,

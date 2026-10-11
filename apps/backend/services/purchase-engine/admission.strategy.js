@@ -82,6 +82,7 @@ export class AdmissionPurchaseStrategy extends PurchaseStrategy {
             lmsItemType: "course",
             paymentMethod: data.paymentMethod || "card",
             countryCode: data.countryCode || null,
+            idempotencyKey: typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
             // Montant et devise du backend : jamais ceux du navigateur.
             currency: ctx.currency,
             amount: ctx.amount,
