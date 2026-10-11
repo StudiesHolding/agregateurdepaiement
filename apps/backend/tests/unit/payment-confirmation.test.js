@@ -114,3 +114,12 @@ describe("traitement d'un webhook", () => {
         expect(WebhookProcessor.markAsSucceeded).not.toHaveBeenCalled();
     });
 });
+
+import { toStripeAmount } from "../../services/payments/confirmation.js";
+describe("montant envoyé à Stripe", () => {
+    it("devises sans décimales (XOF, XAF) : montant tel quel ; EUR : centimes", () => {
+        expect(toStripeAmount(45000, "XAF")).toBe(45000);
+        expect(toStripeAmount(60000, "xof")).toBe(60000);
+        expect(toStripeAmount(49.9, "EUR")).toBe(4990);
+    });
+});

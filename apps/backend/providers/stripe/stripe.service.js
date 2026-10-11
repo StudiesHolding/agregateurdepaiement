@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { PaymentProviderInterface } from "../base/provider.interface.js";
+import { toStripeAmount } from "../../services/payments/confirmation.js";
 import { PaymentStatus } from "../../enums/index.js";
 
 export class StripeService extends PaymentProviderInterface {
@@ -27,14 +28,17 @@ export class StripeService extends PaymentProviderInterface {
                         price_data: {
                             currency: paymentData.currency.toLowerCase(),
                             product_data: {
-                                name: `Order ${paymentData.orderReference || paymentData.orderId}`,
+                                name: paymentData.itemLabel || `Studies Learning · ${paymentData.orderReference || paymentData.orderId}`,
                             },
-                            unit_amount: Math.round(paymentData.amount * 100), // Stripe uses cents
+                            // Unités mineures, sauf devises sans décimales (XOF, XAF…) : 45 000 FCFA = 45000, pas 4 500 000.
+                            unit_amount: toStripeAmount(paymentData.amount, paymentData.currency),
                         },
                         quantity: 1,
                     },
                 ],
                 mode: 'payment',
+                locale: 'fr',
+                ...(paymentData.customerEmail ? { customer_email: paymentData.customerEmail } : {}),
                 client_reference_id: paymentData.transactionNumber,
                 success_url: paymentData.successUrl,
                 cancel_url: paymentData.cancelUrl,

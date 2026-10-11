@@ -8,7 +8,13 @@ import crypto from "node:crypto";
  * qui doit en plus correspondre À CETTE tentative : même référence, même montant, même devise.
  */
 
-const ZERO_DECIMAL = new Set(["XOF", "XAF", "GNF", "RWF", "UGX", "KMF", "JPY", "KRW", "VND", "BIF", "DJF", "MGA", "PYG", "VUV", "XPF", "CLP"]);
+export const ZERO_DECIMAL = new Set(["XOF", "XAF", "GNF", "RWF", "UGX", "KMF", "JPY", "KRW", "VND", "BIF", "DJF", "MGA", "PYG", "VUV", "XPF", "CLP"]);
+
+/** Montant de la devise → montant Stripe (unités mineures ; XOF, XAF… n'en ont pas). */
+export function toStripeAmount(amount, currency) {
+    const c = String(currency ?? "").toUpperCase();
+    return ZERO_DECIMAL.has(c) ? Math.round(Number(amount)) : Math.round(Number(amount) * 100);
+}
 
 /** Montant Stripe (unités mineures) → montant de la devise. */
 export function fromStripeAmount(amount, currency) {

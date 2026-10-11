@@ -224,6 +224,8 @@ export class OrchestratorService {
         currency,
         orderId: order.id,
         orderReference: order.reference,
+        // Libellé lisible chez le prestataire (jamais « Order … »).
+        itemLabel: formation?.name ? `Inscription · ${formation.name}` : (finalMetadata.formation_name || finalMetadata.company_name ? `Studies Learning · ${finalMetadata.formation_name || finalMetadata.company_name}` : null),
         paymentIntentId: intent.id,
         transactionNumber: attempt.transactionNumber,
         customerEmail,
