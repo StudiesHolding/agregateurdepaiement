@@ -20,7 +20,7 @@ export class ProviderSelectorService {
      * @param {string} countryCode 
      * @returns {Promise<ProviderRoute[]>}
      */
-    async initialize(paymentMethod, countryCode = "CM") {
+    async initialize(paymentMethod, countryCode = null) {
         const rawRoutes = await ProviderRouterService.findAvailableRoutes(
             countryCode,
             this.paymentIntent.currency,

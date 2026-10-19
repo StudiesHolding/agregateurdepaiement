@@ -1,3 +1,5 @@
+import { BadRequestError } from '../../utils/errors.js';
+
 /**
  * Base Strategy interface for the Purchase Engine.
  * All specific purchase types (B2B_PACKAGE, B2C_COURSE, etc.) must implement these methods.
@@ -37,6 +39,14 @@ export class PurchaseStrategy {
    */
   async initiatePayment(data) {
     throw new Error('initiatePayment() must be implemented by concrete strategy');
+  }
+
+  /**
+   * Server-side quote for `seats` licences (offers sold per licence: B2B packages and thematiques).
+   * @returns {Promise<Object>} { seats, currency, basePrice, unitPrice, discountRate, discountLabel, total, breakpoint }
+   */
+  async getQuote(_id, _seats) {
+    throw new BadRequestError(`Le type ${this.getType()} ne se vend pas à la licence.`);
   }
 
   /**

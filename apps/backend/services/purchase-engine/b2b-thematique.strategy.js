@@ -1,18 +1,23 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
-import { Course } from '../../models/index.js';
+import { thematiqueQuoteService } from '../pricing/thematique-quote.service.js';
+import { AppError, BadRequestError } from '../../utils/errors.js';
 
 /**
- * Stratégie de paiement pour l'achat B2B d'une Thématique (un lot de cours).
+ * Stratégie de paiement B2B : licences d'une thématique complète (ADR-0001, ADR-0004).
  *
- * Flux métier complet :
- *   1. getContext()          → Récupère la thématique
- *   2. validateEligibility() → Vérifie disponibilité
- *   3. initiatePayment()     → Crée le payload pour l'Orchestrateur → PSP
- *   4. getSagaRoutingType()  → Retourne "B2B_THEMATIQUE" → déclenche B2BThematiqueStrategy (saga)
+ *   1. getContext()          → devis 1 licence (prix de base du type, devise) pour l'affichage
+ *   2. getQuote()            → devis serveur pour N licences (affichage du total avant paiement)
+ *      validateEligibility() → identifiant valide, thématique vendable
+ *   3. initiatePayment()     → devis serveur (paliers de volume) → Orchestrateur → PSP
+ *   4. getSagaRoutingType()  → "B2B_THEMATIQUE" → stratégie de saga B2BThematique (provisionnement)
+ *
+ * Le prix vient TOUJOURS de ThematiqueQuoteService ; rien de ce que le navigateur envoie
+ * comme montant ou devise n'est utilisé.
  */
 export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
-  constructor() {
+  constructor(quoteService = thematiqueQuoteService) {
     super();
+    this.quoteService = quoteService;
   }
 
   getType() {
@@ -24,82 +29,56 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
   }
 
   async getContext(id) {
-    console.log(`[B2B_THEMATIQUE] Fetching context for thematique ID: ${id}`);
-
-    try {
-      // Pour l'instant, on suppose que Course représente aussi des thématiques
-      // ou qu'il y a un modèle Thematique spécifique. Adapt to actual model.
-      // Assuming Course for now based on what we see in b2b-package-strategy.js
-      // Let's use a mock or check what the DB holds if we need to.
-      // Wait, is there a Thematique model? Let's check.
-      const thematique = await Course.findByPk(id, {
-        attributes: ['id', 'title', 'price', 'currency', 'status'],
-      });
-
-      if (!thematique) {
-        throw new Error(`Thématique B2B #${id} introuvable en base de données.`);
-      }
-
-      return {
-        type: this.getType(),
-        itemId: id,
-        title: thematique.title || `Thématique #${id}`,
-        description: `Thématique d'apprentissage entreprise`,
-        price: parseFloat(thematique.price || 0),
-        currency: thematique.currency || 'XAF',
-        features: [
-          'Accès à toute la thématique',
-          'Gestion centralisée des licences',
-          'Rapports d\'activité collaborateurs',
-        ],
-      };
-    } catch (error) {
-      console.error(`[B2bThematiquePurchaseStrategy] Erreur getContext (${id}):`, error.message);
-      // Fallback
-      return {
-        type: this.getType(),
-        itemId: id,
-        title: `Thématique d'Expertise #${id}`,
-        description: "Ensemble de formations thématiques pour vos équipes.",
-        price: 999.00,
-        currency: "XAF",
-        features: [
-            "Accès illimité aux cours de la thématique",
-            "Dashboard d'administration B2B",
-            "Suivi de la progression"
-        ]
-      };
-    }
+    const quote = await this.quoteService.quote(id, 1);
+    return {
+      type: this.getType(),
+      itemId: quote.thematiqueId,
+      title: quote.title,
+      description: `Thématique ${quote.typeName} : accès de vos collaborateurs à l'ensemble des formations de la thématique.`,
+      price: Number(quote.unitPrice),
+      currency: quote.currency,
+      pricing: { unit: 'licence', basePrice: quote.basePrice, volumeDiscounts: true },
+      features: [
+        'Accès à toute la thématique',
+        'Gestion centralisée des licences',
+        "Rapports d'activité collaborateurs",
+        'Remise automatique selon le nombre de licences',
+      ],
+    };
   }
 
-  async validateEligibility(user, id) {
+  async getQuote(id, seats) {
+    return this.quoteService.quote(id, seats);
+  }
+
+  async validateEligibility(_user, id) {
+    await this.quoteService.quote(id, 1);
     return true;
   }
 
   async initiatePayment(data) {
-    console.log('[B2B_THEMATIQUE] Initiating payment with data:', {
-      companyName: data.companyName,
-      adminEmail: data.adminEmail,
-      itemId: data.itemId,
-    });
+    if (!data?.adminEmail) {
+      throw new BadRequestError("L'e-mail de l'administrateur de l'entreprise est requis.");
+    }
+    const quote = await this.quoteService.quote(data.itemId, data.totalLicenses);
 
     const { OrchestratorService } = await import('../../services/orchestrator.service.js');
-
-    const totalAmount = data.amount || 999;
-    const licenseCount = parseInt(data.totalLicenses) || 10;
+    const purchaseEngineUrl = process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005';
 
     const result = await OrchestratorService.initializePayment({
       customerEmail: data.adminEmail,
-      customerName: `${data.adminFirstName || ''} ${data.adminLastName || ''}`.trim(),
-      lmsItemId: String(data.itemId),
+      customerName: `${data.adminFirstName || ''} ${data.adminLastName || ''}`.trim() || data.companyName,
+      lmsItemId: String(quote.thematiqueId),
       lmsItemType: 'thematique',
       paymentMethod: data.paymentMethod || 'card',
-      countryCode: data.countryCode || 'CM',
-      currency: 'XAF',
-      amount: totalAmount,
-      successUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/success`,
-      cancelUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/cancel`,
-      failedUrl: `${process.env.PURCHASE_ENGINE_URL || 'http://localhost:3005'}/failed`,
+      countryCode: data.countryCode || null,
+      idempotencyKey: typeof data.idempotencyKey === 'string' ? data.idempotencyKey : undefined,
+      // Devis serveur : total et devise ne viennent jamais du navigateur.
+      currency: quote.currency,
+      amount: Number(quote.total),
+      successUrl: `${purchaseEngineUrl}/success?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
+      cancelUrl: `${purchaseEngineUrl}/cancel?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
+      failedUrl: `${purchaseEngineUrl}/failed?type=B2B_THEMATIQUE&id=${quote.thematiqueId}`,
       metadata: {
         source: 'purchase_engine',
         purchase_type: 'B2B_THEMATIQUE',
@@ -110,14 +89,18 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
         company_admin_email: data.adminEmail,
         admin_first_name: data.adminFirstName,
         admin_last_name: data.adminLastName,
-        thematique_id: data.itemId,
-        licence_count: licenseCount,
-        total_licenses: licenseCount,
+        thematique_id: quote.thematiqueId,
+        licence_count: quote.seats,
+        total_licenses: quote.seats,
+        unit_price: quote.unitPrice,
+        base_price: quote.basePrice,
+        discount_rate: quote.discountRate,
+        discount_label: quote.discountLabel,
       },
     });
 
     if (!result.success) {
-      throw new Error(result.error || 'Erreur lors de l\'initialisation du paiement B2B Thématique.');
+      throw new AppError(result.error || "Erreur lors de l'initialisation du paiement B2B Thématique.", 502);
     }
 
     return {
@@ -127,7 +110,8 @@ export class B2bThematiquePurchaseStrategy extends PurchaseStrategy {
       redirectUrl: result.redirectUrl,
       widgetParams: result.widgetParams,
       clientSecret: result.clientSecret,
-      message: 'Paiement B2B Thématique initialisé avec succès.',
+      quote,
+      message: 'Paiement des licences de thématique initialisé.',
     };
   }
 }

@@ -50,7 +50,7 @@ export default function WebhooksPage() {
         <div className="max-w-7xl mx-auto space-y-6 animate-slide-up">
             <div>
                 <h1 className="page-title">
-                    Webhook <span className="gradient-text">Monitor</span>
+                    Suivi des <span className="gradient-text">webhooks</span>
                 </h1>
                 <p className="text-sm text-text-light mt-1">
                     Surveillance et rejoue des événements webhook — 24h glissantes

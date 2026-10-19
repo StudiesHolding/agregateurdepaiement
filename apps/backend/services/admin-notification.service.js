@@ -98,6 +98,94 @@ export class AdminNotificationService {
             return false;
         }
     }
+    /**
+     * Notify admins when a commission credit fails definitively (S1-5).
+     * Called after the commission step receives a definitive failure
+     * (HTTP 400/401 from the SL backend). The student enrollment remains intact.
+     */
+    static async notifyCommissionCreditFailure(orderReference, details = {}) {
+        try {
+            const {
+                status,
+                error,
+                channel,
+                grossAmount,
+                currency,
+                formationId,
+                studentId,
+                correlationId,
+            } = details;
+
+            const message = `Le crédit de commission pour l’inscription ${orderReference} a échoué définitivement (HTTP ${status}).`;
+            const emailBody = `${message}\n\n` +
+                `- Erreur: ${error || "inconnue"}\n` +
+                `- Canal: ${channel || "N/A"}\n` +
+                `- Montant: ${grossAmount || "N/A"} ${currency || ""}\n` +
+                `- Formation ID: ${formationId ?? "N/A"}\n` +
+                `- Apprenant ID: ${studentId ?? "N/A"}\n` +
+                `- Corrélation: ${correlationId || "N/A"}\n\n` +
+                `L'inscription de l'apprenant et le paiement restent acquis ; ` +
+                `le crédit doit être rejoué après correction de la configuration.`;
+
+            // Create in-app notification
+            await AdminNotification.create({
+                type: "commission_credit_failed",
+                title: "Échec du crédit de commission",
+                message: emailBody,
+                priority: "high",
+                is_read: false,
+                metadata: {
+                    orderReference,
+                    httpStatus: status,
+                    error,
+                    channel,
+                    grossAmount,
+                    currency,
+                    formationId,
+                    studentId,
+                    correlationId,
+                    action_url: `/orders?ref=${orderReference}`,
+                },
+            });
+
+            // Send email to admin
+            const { MailService } = await import("./mail.service.js");
+            await MailService.sendAdminNotification("Échec du crédit de commission", emailBody);
+
+            console.log(`[AdminNotificationService] Commission credit failure notification sent for order ${orderReference}`);
+            return true;
+        } catch (error) {
+            console.error("[AdminNotificationService] Error sending commission credit failure notification:", error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Notify admins when a paid B2C order could not produce an enrollment (ADR-0012, P5) — e.g. no account matches
+     * the buyer's e-mail. The payment is kept; the enrollment must be done by hand.
+     */
+    static async notifyEnrollmentFailure(orderReference, details = {}) {
+        try {
+            const { code, message: reason, formationId, correlationId } = details;
+            const message = `Paiement reçu (réf. ${orderReference}), mais l'inscription n'a pas pu être créée (${code || "erreur"}).`;
+            const emailBody = `${message}\n\n- Motif : ${reason || "inconnu"}\n- Formation ID : ${formationId ?? "N/A"}\n- Corrélation : ${correlationId || "N/A"}\n\n` +
+                `Le paiement est acquis : inscrivez l'apprenant à la main, puis relancez le traitement de l'achat.`;
+            await AdminNotification.create({
+                type: "enrollment_failed",
+                title: "Paiement reçu, inscription à faire",
+                message: emailBody,
+                priority: "high",
+                is_read: false,
+                metadata: { orderReference, code, formationId, correlationId, action_url: `/orders?ref=${orderReference}` },
+            });
+            const { MailService } = await import("./mail.service.js");
+            await MailService.sendAdminNotification("Paiement reçu, inscription à faire", emailBody);
+            return true;
+        } catch (error) {
+            console.error("[AdminNotificationService] Error sending enrollment failure notification:", error.message);
+            return false;
+        }
+    }
 }
 
 export default AdminNotificationService;

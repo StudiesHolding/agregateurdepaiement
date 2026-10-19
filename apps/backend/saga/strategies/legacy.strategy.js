@@ -8,7 +8,7 @@
  * 1. Vérifier/créer le compte kyd4_users
  * 2. Inscrire dans kyd4_learnpress_user_items
  * 3. Si AUCTION : mettre à jour le statut de l'enchère
- * 4. Marquer la commande comme COMPLETED
+ * 4. Marquer l’inscription comme COMPLETED
  * 5. Envoyer l'email de confirmation
  */
 import { QueryTypes } from 'sequelize';
@@ -58,7 +58,7 @@ export class LegacyStrategy {
         await this.updateAuctionStatus(payload, transaction);
       }
 
-      // 4. Marquer la commande comme COMPLETED
+      // 4. Marquer l’inscription comme COMPLETED
       await Order.update(
         {
           status: OrderStatus.COMPLETED,

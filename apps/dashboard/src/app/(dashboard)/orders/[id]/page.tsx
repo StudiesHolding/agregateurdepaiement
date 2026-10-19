@@ -1,5 +1,7 @@
 "use client";
 
+import { agree, purchaseWords } from "@/lib/purchase";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -119,7 +121,7 @@ function WorkflowTracker({ status }: { status: string }) {
       </div>
       {status.toLowerCase() === 'rejected' && (
         <div className="mt-6 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-center text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2">
-          <XCircle size={14} /> Commande Rejetée
+          <XCircle size={14} /> Refusé par l’équipe
         </div>
       )}
     </div>
@@ -286,7 +288,7 @@ export default function OrderDetailPage() {
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="page-title leading-none">Commande <span className="gradient-text">{order.reference}</span></h1>
+              <h1 className="page-title leading-none">{purchaseWords(order).Noun} <span className="gradient-text">{order.reference}</span></h1>
               <OrderStatusBadge status={order.status} />
             </div>
             <p className="text-xs text-text-light mt-1 font-medium flex items-center gap-1.5">
@@ -325,7 +327,7 @@ export default function OrderDetailPage() {
           <div className="card overflow-hidden">
             <div className="p-5 border-b border-border bg-background/50 flex items-center justify-between">
               <h3 className="text-sm font-bold text-text-main flex items-center gap-2 uppercase tracking-wider">
-                <Package size={16} className="text-primary" /> Détails de l'Inscription
+                <Package size={16} className="text-primary" /> Détails de {purchaseWords(order).the}
               </h3>
             </div>
             <div className="p-6">
@@ -467,7 +469,7 @@ export default function OrderDetailPage() {
       {/* Action Modals */}
       <ActionModal
         isOpen={modals.val} onClose={() => setModals({})}
-        title="Valider la réception" desc="Cette commande sera confirmée et une facture sera automatiquement générée."
+        title="Valider la réception" desc={`${purchaseWords(order).this.charAt(0).toUpperCase()}${purchaseWords(order).this.slice(1)} sera ${agree(purchaseWords(order), "confirmé")} et une facture sera générée automatiquement.`}
         icon={CheckCircle} colorClass="bg-success-light text-success-dark"
         action={{ label: "Valider", bg: "bg-success hover:bg-success-dark", fn: () => mutation.mutate({ type: "val", data: { action: "validate", notes } }) }}
         isPending={mutation.isPending}
@@ -477,7 +479,7 @@ export default function OrderDetailPage() {
 
       <ActionModal
         isOpen={modals.rej} onClose={() => setModals({})}
-        title="Rejeter la commande" desc="Le client sera notifié de l'annulation. Veuillez préciser le motif."
+        title={`Refuser ${purchaseWords(order).the}`} desc="Le client sera prévenu du refus. Précisez le motif."
         icon={XCircle} colorClass="bg-danger-light text-danger-dark"
         action={{ label: "Rejeter", bg: "bg-danger hover:bg-danger-dark font-bold", fn: () => mutation.mutate({ type: "val", data: { action: "reject", notes } }) }}
         isPending={mutation.isPending}

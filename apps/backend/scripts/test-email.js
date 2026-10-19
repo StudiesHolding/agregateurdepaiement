@@ -67,12 +67,12 @@ async function testEmail() {
                         <h2 style="color: #333; margin-top: 0;">Bonjour ${testOrder.customerName},</h2>
                         
                         <p style="color: #666; line-height: 1.6;">
-                            Nous avons reçu votre paiement. Votre commande est en cours de traitement.
+                            Nous avons reçu votre paiement. Votre inscription est en cours de traitement.
                         </p>
                         
                         <!-- Order Details -->
                         <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                            <h3 style="margin: 0 0 15px; color: #333; font-size: 16px;">Détails de la commande</h3>
+                            <h3 style="margin: 0 0 15px; color: #333; font-size: 16px;">Détails de l’inscription</h3>
                             <table style="width: 100%; border-collapse: collapse;">
                                 <tr>
                                     <td style="padding: 8px 0; color: #666;">Référence</td>
@@ -90,11 +90,11 @@ async function testEmail() {
                         </div>
                         
                         <p style="color: #666; line-height: 1.6;">
-                            Vous recevrez un email de confirmation une fois votre commande validée par notre équipe.
+                            Vous recevrez un email de confirmation une fois votre inscription validée par notre équipe.
                         </p>
                         
                         <div style="text-align: center; margin-top: 30px;">
-                            <a href="#" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Suivre ma commande</a>
+                            <a href="#" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block;">Suivre mon inscription</a>
                         </div>
                     </div>
                     

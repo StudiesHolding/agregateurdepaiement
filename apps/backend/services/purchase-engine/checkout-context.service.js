@@ -1,9 +1,11 @@
 import { PurchaseStrategy } from './purchase.strategy.js';
+import { BadRequestError } from '../../utils/errors.js';
 // import { logger } from '../../utils/logger.js';
 import { B2bPackagePurchaseStrategy } from "./b2b-package.strategy.js";
 import { B2bThematiquePurchaseStrategy } from "./b2b-thematique.strategy.js";
 import { AuctionPaymentStrategy } from "./auction-payment.strategy.js";
 import { B2cCoursePurchaseStrategy } from "./b2c-course.strategy.js";
+import { AdmissionPurchaseStrategy } from "./admission.strategy.js";
 
 class CheckoutContextService {
   constructor() {
@@ -14,6 +16,9 @@ class CheckoutContextService {
     this.registerStrategy(new B2bThematiquePurchaseStrategy());
     this.registerStrategy(new AuctionPaymentStrategy());
     this.registerStrategy(new B2cCoursePurchaseStrategy());
+    // Candidatures (ADR-0016, D6 bis) : place d'un admis, frais d'étude de dossier.
+    this.registerStrategy(new AdmissionPurchaseStrategy("offer"));
+    this.registerStrategy(new AdmissionPurchaseStrategy("fee"));
   }
 
   /**
@@ -37,7 +42,7 @@ class CheckoutContextService {
   getStrategy(type) {
     const strategy = this.strategies.get(type);
     if (!strategy) {
-      throw new Error(`Unsupported purchase type: ${type}`);
+      throw new BadRequestError(`Type d'achat non pris en charge : ${type}`);
     }
     return strategy;
   }
@@ -47,9 +52,19 @@ class CheckoutContextService {
    * @param {string} type 
    * @param {string|number} id 
    */
-  async getContext(type, id) {
+  async getContext(type, id, options = {}) {
     const strategy = this.getStrategy(type);
-    return strategy.getContext(id);
+    return strategy.getContext(id, options);
+  }
+
+  /**
+   * Server-side quote for `seats` licences (B2B offers sold per licence).
+   * @param {string} type
+   * @param {string|number} id
+   * @param {string|number} seats
+   */
+  async getQuote(type, id, seats) {
+    return this.getStrategy(type).getQuote(id, seats);
   }
 
   /**

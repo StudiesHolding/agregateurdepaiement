@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
+import { jsonColumn } from "../utils/json-column.js";
 
 export class ProviderRoute extends Model { }
 
@@ -30,6 +31,12 @@ ProviderRoute.init(
             type: DataTypes.DECIMAL(15, 2),
             allowNull: true,
         },
+        // Moyen de paiement couvert par la règle (ADR-0019, D2) : « any » = carte et Mobile Money.
+        paymentMethod: {
+            type: DataTypes.ENUM("any", "card", "mobile_money"),
+            allowNull: false,
+            defaultValue: "any",
+        },
         priority: {
             type: DataTypes.INTEGER,
             defaultValue: 0,
@@ -41,6 +48,7 @@ ProviderRoute.init(
         metadata: {
             type: DataTypes.JSON,
             allowNull: true,
+            ...jsonColumn("metadata"),
         },
     },
     {

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { signOut } from "next-auth/react";
 
 const API_URL = typeof window !== "undefined"
   ? "/api/psp"
@@ -25,37 +26,35 @@ api.interceptors.request.use((config) => {
     config.url = config.url.substring(1);
   }
 
-  // If we're on the server, we need to inject the key for direct calls
-  if (typeof window === "undefined") {
-    const apiKey = process.env.ADMIN_API_KEY;
-    if (apiKey) {
-      config.headers["x-api-key"] = apiKey;
-    }
-  }
+  // Aucune clé injectée : le navigateur passe par le relais /api/psp, qui porte la session (ADR-0018, D5).
 
   return config;
 });
 
 // Response interceptor — normalize errors
+let sessionClosing = false;
+
+/** Message d'erreur lisible renvoyé par le PSP (sans préfixe technique). */
+export class PspApiError extends Error {
+  constructor(message: string, public status?: number, public code?: string) { super(message); }
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status: number | undefined = error.response?.status;
+    const data = error.response?.data ?? {};
+    // Session expirée : retour à la connexion Studies Learning (le cookie chiffré n'est plus valable).
+    // La session du tableau de bord est fermée aussi, sinon la page de connexion renverrait aussitôt à l'accueil.
+    if (status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login") && !sessionClosing) {
+      sessionClosing = true;
+      void signOut({ callbackUrl: "/login?error=SESSION_EXPIRED" });
+    }
     const message =
-      error.response?.data?.message ||
-      error.message ||
-      "Unexpected server error";
-
-    const status = error.response?.status;
-
-    if (status === 401) {
-      console.error("[PSP API] Unauthorized — check admin API key");
-    }
-
-    if (status === 403) {
-      console.error("[PSP API] Forbidden — key lacks admin privileges");
-    }
-
-    return Promise.reject(new Error(`[${status || "NET"}] ${message}`));
+      data.message ||
+      (status === 403 ? "Votre compte n’a pas la permission nécessaire pour cette action." : null) ||
+      (status ? "Le service de paiement a rencontré une erreur. Réessayez." : "Le service de paiement ne répond pas. Vérifiez votre connexion.");
+    return Promise.reject(new PspApiError(message, status, data.code));
   },
 );
 
@@ -117,12 +116,6 @@ export const adminApi = {
     api.get("/audit-logs", { params }),
 
   // Notifications
-  getNotifications: () => api.get("/notifications"),
-  getMyNotifications: () => api.get("/notifications/me"),
-  searchLmsAdmins: (q: string) => api.get(`/notifications/search?q=${q}`),
-  updateNotificationSetting: (data: Record<string, unknown>) =>
-    api.post("/notifications", data),
-  deleteNotificationSetting: (id: number) => api.delete(`/notifications/${id}`),
 
   // Admin In-App Notifications
   getAdminNotifications: () => api.get("/admin-notifications"),
@@ -143,53 +136,6 @@ export const adminApi = {
     api.get(`/orders/${id}/audit`, { params }),
   getOrderProvisioning: (id: number) =>
     api.get(`/orders/${id}/provisioning`),
-
-  // Test API (Formations + Orders)
-  getTestFormations: () => api.get("/test/formations"),
-  getTestFormation: (id: string) => api.get(`/test/formations/${id}`),
-  createTestOrder: (data: {
-    formationId: string;
-    formationName?: string;
-    formationPrice?: number;
-    customerEmail: string;
-    customerName: string;
-    customerSurname?: string;
-    customerPhone?: string;
-    customerCity?: string;
-    purchaseType?: string;
-    amount?: number;
-    beneficiaryEmail?: string;
-    beneficiaryFirstName?: string;
-    beneficiaryLastName?: string;
-  }) => api.post("/test/orders", data),
-  simulateTestPayment: (id: number, status?: string) =>
-    api.post(`/test/orders/${id}/simulate-payment`, { status }),
-  deleteTestOrder: (id: number) => api.delete(`/test/orders/${id}`),
-  simulateWebhook: (data: { orderId: number; provider: string; status: string }) =>
-    api.post("/test/simulate-webhook", data),
-  resetOrder: (id: number) => api.post(`/test/orders/${id}/reset`),
-
-  // Test API (B2B Packages)
-  getTestPackages: () => api.get("/test/packages"),
-  createTestB2BOrder: (data: {
-    packageId?: string;
-    packageName?: string;
-    packagePrice?: number;
-    customerEmail: string;
-    customerName: string;
-    customerPhone?: string;
-    customerCountry?: string;
-    amount?: number;
-    companyName?: string;
-    companyIndustry?: string;
-    companyAdminEmail?: string;
-    licenceCount?: number;
-    unitPrice?: number;
-  }) => api.post("/test/b2b-orders", data),
-  simulateB2BPayment: (id: number, status?: string) =>
-    api.post(`/test/b2b-orders/${id}/simulate-payment`, { status }),
-  provisionB2BOrder: (id: number) =>
-    api.post(`/test/b2b-orders/${id}/provision`),
 
   // Access Requests (B2B)
   getRequests: (params?: Record<string, string | number>) =>

@@ -17,12 +17,15 @@ import { OrderStatus } from '../../enums/index.js';
 import { QueryTypes } from 'sequelize';
 import { MailService } from '../../services/mail.service.js';
 import { FormationMappingService } from '../../services/formation-mapping.service.js';
+import { CommissionCreditStep } from '../steps/commission-credit.step.js';
 import crypto from 'crypto';
 
 export class MoodleHeadlessStrategy {
   constructor() {
     this.m2mClient = new M2MHttpClient();
     this.frontendUrl = process.env.NEWSTUDIES_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:3004';
+    // Étape « crédit de commission » (S1-5) — après inscription réussie
+    this.commissionStep = new CommissionCreditStep();
   }
 
   async execute(event) {
@@ -42,7 +45,7 @@ export class MoodleHeadlessStrategy {
 
     const userCtx = await this.resolveUser(customerEmail, customerName, customerSurname, correlationId);
     
-    // Token idempotent : si un token existe déjà dans la commande (retry BullMQ),
+    // Token idempotent : si un token existe déjà dans l’inscription (retry BullMQ),
     // on le conserve pour que le lien dans l'email déjà envoyé reste valide.
     let magicToken = null;
     if (userCtx.ssoPending) {
@@ -115,6 +118,14 @@ export class MoodleHeadlessStrategy {
           correlationId,
           customerEmail,
         );
+        // Étape « crédit de commission » (S1-5) — après inscription réussie.
+        // Un échec définitif est journalisé + alerté sans impact sur l’inscription ;
+        // un échec réessayable propage une CommissionRetryableError (rejeu idempotent).
+        const commissionCredit = await this.commissionStep.execute({
+          orderReference,
+          studentId: userCtx.userId,
+          correlationId,
+        });
         return {
           success: true,
           orderReference,
@@ -122,6 +133,7 @@ export class MoodleHeadlessStrategy {
           keycloakPending: Boolean(magicToken),
           activationLink,
           details: response.data,
+          commissionCredit,
           status: 'COMPLETED',
         };
 
@@ -136,6 +148,12 @@ export class MoodleHeadlessStrategy {
           customerEmail,
           { idempotent: true },
         );
+        // Crédit de commission également déclenché sur le cas idempotent (S1-5)
+        const commissionCreditIdempotent = await this.commissionStep.execute({
+          orderReference,
+          studentId: userCtx.userId,
+          correlationId,
+        });
         return {
           success: true,
           orderReference,
@@ -143,6 +161,7 @@ export class MoodleHeadlessStrategy {
           keycloakPending: Boolean(magicToken),
           activationLink,
           details: response.data,
+          commissionCredit: commissionCreditIdempotent,
           status: 'COMPLETED_IDEMPOTENT',
         };
 

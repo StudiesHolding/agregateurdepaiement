@@ -1,5 +1,7 @@
 "use client";
 
+import { agree, purchaseWords } from "@/lib/purchase";
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { adminApi } from "@/lib/api";
@@ -96,11 +98,11 @@ function WorkflowActions({ order, onUpdate }: { order: any; onUpdate: () => void
                     action: modal === 'validate' ? 'validate' : 'reject',
                     notes
                 });
-                toast.success(modal === 'validate' ? "Commande validée avec succès !" : "Commande rejetée.");
+                toast.success(modal === 'validate' ? `${purchaseWords(order).Noun} ${agree(purchaseWords(order), "validé")}` : `${purchaseWords(order).Noun} ${agree(purchaseWords(order), "refusé")}`);
             } else if (modal === 'complete') {
                 setIsCompleting(true);
                 await adminApi.completeOrder(order.id, { username, password });
-                toast.success("Commande finalisée et identifiants envoyés !");
+                toast.success(`${purchaseWords(order).Noun} ${agree(purchaseWords(order), "finalisé")} : identifiants envoyés`);
             }
             setModal(null);
             onUpdate();
@@ -121,7 +123,7 @@ function WorkflowActions({ order, onUpdate }: { order: any; onUpdate: () => void
                 </div>
                 <div>
                     <h3 className="font-bold text-success-dark">Workflow Terminé</h3>
-                    <p className="text-xs text-success-dark/70">Cette commande a été finalisée et les accès ont été envoyés.</p>
+                    <p className="text-xs text-success-dark/70">{purchaseWords(order).this.charAt(0).toUpperCase() + purchaseWords(order).this.slice(1)} a été {agree(purchaseWords(order), "finalisé")} et les accès ont été envoyés.</p>
                 </div>
             </div>
         );
@@ -146,7 +148,7 @@ function WorkflowActions({ order, onUpdate }: { order: any; onUpdate: () => void
                             onClick={() => setModal('validate')}
                             className="btn-primary gap-2 py-2 px-4 text-xs"
                         >
-                            <CheckCircle2 size={14} /> Valider l'inscription
+                            <CheckCircle2 size={14} /> Valider {purchaseWords(order).the}
                         </button>
                         <button
                             onClick={() => setModal('reject')}
@@ -173,8 +175,8 @@ function WorkflowActions({ order, onUpdate }: { order: any; onUpdate: () => void
                     <div className="card w-full max-w-md shadow-2xl animate-scale-up">
                         <div className="p-6 space-y-4">
                             <h3 className="text-lg font-bold text-text-main">
-                                {modal === 'validate' && "Valider la commande"}
-                                {modal === 'reject' && "Rejeter la commande"}
+                                {modal === 'validate' && `Valider ${purchaseWords(order).the}`}
+                                {modal === 'reject' && `Refuser ${purchaseWords(order).the}`}
                                 {modal === 'complete' && "Finaliser & Envoyer Accès"}
                             </h3>
 
@@ -348,7 +350,7 @@ export default function TransactionDetailPage() {
                     </DetailSection>
 
                     {/* Metadata */}
-                    <DetailSection title="Métadonnées de la Commande" icon={FileCode}>
+                    <DetailSection title="Métadonnées de l’achat" icon={FileCode}>
                         <div className="bg-background rounded-2xl p-4 border border-border font-mono text-[11px] text-text-light overflow-x-auto">
                             <pre>{JSON.stringify(order.metadata || {}, null, 2)}</pre>
                         </div>
@@ -357,7 +359,7 @@ export default function TransactionDetailPage() {
 
                 <div className="space-y-6">
                     {/* Order Info */}
-                    <DetailSection title="Détails de la Commande" icon={ShoppingBag}>
+                    <DetailSection title={`Détails de ${purchaseWords(order).the}`} icon={ShoppingBag}>
                         <div className="space-y-1">
                             <DetailRow label="Référence Order" value={order.reference} mono />
                             <DetailRow label="Montant Total" value={formatXAF(order.totalAmount)} />

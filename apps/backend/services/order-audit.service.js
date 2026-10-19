@@ -1,9 +1,9 @@
 import { OrderAuditLog, OrderAuditAction, OrderAuditActionLabels } from "../models/order-audit-log.model.js";
 
 /**
- * OrderAuditService - Service de traçabilité pour le cycle de vie des commandes
+ * OrderAuditService - Service de traçabilité pour le cycle de vie des inscriptions
  * 
- * Enregistre TOUTES les actions effectuées sur les commandes avec:
+ * Enregistre TOUTES les actions effectuées sur les inscriptions avec:
  * - Identification complète de l'acteur (admin, system, webhook)
  * - État avant/après pour chaque action
  * - IP et UserAgent pour traçabilité
@@ -112,7 +112,7 @@ export class OrderAuditService {
     }
     
     /**
-     * Récupérer l'historique d'une commande
+     * Récupérer l'historique d'une inscription
      */
     static async getOrderHistory(orderId, options = {}) {
         const { limit = 50, offset = 0 } = options;

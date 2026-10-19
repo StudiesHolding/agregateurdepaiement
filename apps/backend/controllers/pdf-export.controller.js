@@ -83,7 +83,7 @@ export const PdfExportController = {
       // Get order
       const order = await Order.findByPk(id);
       if (!order) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Inscription introuvable.");
       }
 
       // Parse metadata if string
@@ -107,7 +107,7 @@ export const PdfExportController = {
       const isB2BOrder = metadata.is_b2b === true || metadata.b2b_purchase === true;
 
       if (!isB2BOrder || !(matchesCompanyId || matchesEmail || matchesName || matchesMetaName)) {
-        throw new NotFoundError("Commande introuvable.");
+        throw new NotFoundError("Inscription introuvable.");
       }
 
       // Generate PDF

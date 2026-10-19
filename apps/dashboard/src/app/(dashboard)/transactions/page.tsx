@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { adminApi } from "@/lib/api";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { Transaction, PaymentStatus } from "@/lib/types";
@@ -49,7 +50,7 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
                 <Search size={14} className="text-text-light" />
                 <input
                     className="bg-transparent text-sm flex-1 outline-none placeholder:text-text-light"
-                    placeholder="Email, référence commande…"
+                    placeholder="E-mail, référence d’achat…"
                     value={filters.search}
                     onChange={(e) => onChange({ ...filters, search: e.target.value })}
                 />
@@ -110,9 +111,15 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
+    return <Suspense fallback={null}><TransactionsExplorer /></Suspense>;
+}
+
+function TransactionsExplorer() {
+    // Lien direct depuis l'analyse des échecs : ?search=<référence d’achat>
+    const initialSearch = useSearchParams().get("search") ?? "";
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<Filters>({
-        status: "", provider: "", currency: "", search: "", from: "", to: "", lmsItemId: "", lmsItemType: ""
+        status: "", provider: "", currency: "", search: initialSearch, from: "", to: "", lmsItemId: "", lmsItemType: ""
     });
 
     const params = Object.fromEntries(
@@ -132,7 +139,7 @@ export default function TransactionsPage() {
         <div className="max-w-7xl mx-auto space-y-6 animate-slide-up">
             <div>
                 <h1 className="page-title">
-                    Transaction <span className="gradient-text">Explorer</span>
+                    Explorateur de <span className="gradient-text">transactions</span>
                 </h1>
                 <p className="text-sm text-text-light mt-1">
                     {meta ? `${meta.total.toLocaleString()} transactions trouvées` : "Chargement…"}

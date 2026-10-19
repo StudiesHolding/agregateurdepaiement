@@ -180,9 +180,6 @@ export class KkiapayService extends PaymentProviderInterface {
         .update(JSON.stringify(payload))
         .digest("hex");
 
-      console.log(`[KkiapayService] Validating signature...`);
-      console.log(`[KkiapayService] Received: ${signature}`);
-      console.log(`[KkiapayService] Expected: ${expectedSignature}`);
 
       // Use timingSafeEqual to prevent timing attacks
       const isValid = crypto.timingSafeEqual(

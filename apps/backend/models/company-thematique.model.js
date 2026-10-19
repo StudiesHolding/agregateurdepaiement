@@ -36,7 +36,7 @@ CompanyThematique.init(
             type: DataTypes.STRING(100),
             allowNull: false,
             field: 'purchase_order_id',
-            comment: 'Référence commande d\'origine (aggp_orders.reference)',
+            comment: 'Référence de l\'achat de licences d\'origine (aggp_orders.reference)',
         },
         purchase_date: {
             type: DataTypes.DATE,

@@ -160,7 +160,7 @@ const testOrderModel = async () => {
     console.log(`✅ Orders existants: ${count}`);
     
     // Test creating a simple order
-    console.log("\n🧪 Test de création d'une commande B2B...");
+    console.log("\n🧪 Test de création d'un achat de licences B2B...");
     
     try {
       const testOrder = await Order.create({
@@ -178,23 +178,23 @@ const testOrderModel = async () => {
         unitPrice: 50000
       });
       
-      console.log(`✅ Commande test créée: ID ${testOrder.id}`);
+      console.log(`✅ Achat de licences de test créé: ID ${testOrder.id}`);
       
       // Clean up test order
       await testOrder.destroy();
-      console.log("   ✅ Commande test supprimée");
+      console.log("   ✅ Achat de licences de test supprimé");
       
       console.log("\n🎉 SUCCÈS !");
       console.log("✅ Le modèle Order fonctionne correctement");
-      console.log("✅ Les commandes B2B peuvent être créées");
+      console.log("✅ Les achats de licences B2B peuvent être créés");
       
       console.log("\n🎯 INSTRUCTIONS FINALES:");
       console.log("1. Redémarrez le serveur backend (Ctrl+C)");
       console.log("2. Retestez votre page B2B");
-      console.log("3. Les commandes B2B devraient maintenant se créer sans erreur !");
+      console.log("3. Les achats de licences B2B devraient maintenant se créer sans erreur !");
       
     } catch (createError) {
-      console.error("❌ Erreur création commande test:", createError.message);
+      console.error("❌ Erreur de création de l’achat de test:", createError.message);
       console.error("SQL:", createError.sql);
       
       // Try to identify the specific missing field

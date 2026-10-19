@@ -32,7 +32,6 @@ describe("LMS Workflow Integration", () => {
         jest.spyOn(Order, 'findByPk').mockResolvedValue(mockOrder);
         jest.spyOn(MailService, 'sendPaymentConfirmed').mockResolvedValue(true);
         jest.spyOn(MailService, 'sendPaymentSuccessNotification').mockResolvedValue(true);
-        jest.spyOn(MailService, 'notifyLmsAdmins').mockResolvedValue(true);
 
         // Simulate success marked via markAsSucceeded
         await WebhookProcessor.markAsSucceeded(mockAttempt, {}, mockTransaction);

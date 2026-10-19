@@ -6,8 +6,8 @@
  * 1. Créer/trouver l'entreprise (Company)
  * 2. Créer le CompanyAdmin avec token d'activation
  * 3. Créer/mettre à jour le CompanyPackage (pool de licences)
- * 4. Lier la commande à l'entreprise (company_id)
- * 5. Marquer la commande comme COMPLETED
+ * 4. Lier l'achat de licences à l'entreprise (company_id)
+ * 5. Marquer l'achat comme COMPLETED
  * 6. Envoyer l'email d'activation au Manager B2B
  */
 import crypto from 'crypto';
@@ -20,6 +20,13 @@ import {
 } from '../../models/index.js';
 import { OrderStatus } from '../../enums/index.js';
 import { MailService } from '../../services/mail.service.js';
+import {
+  computeB2BAccessExpiryDate,
+  getB2BAccessValidityMonths,
+  isAdminActive,
+  resolvePoolExpiryDate,
+} from './b2b-access.js';
+
 
 export class B2BPackageStrategy {
   /**
@@ -32,6 +39,7 @@ export class B2BPackageStrategy {
     const {
       companyName,
       companyEmail,
+      companyId,
       adminEmail,
       adminFirstName,
       adminLastName,
@@ -45,16 +53,39 @@ export class B2BPackageStrategy {
     const transaction = await sequelize.transaction();
 
     try {
-      // 1. Créer ou trouver l'entreprise (idempotent via email)
-      const company = await this.findOrCreateCompany(companyName, companyEmail, orderReference, transaction);
+      // 0. Idempotence par achat : verrouiller l'achat AVANT tout effet.
+      //    Un rejeu (double notification PSP, job stalled rejoué après un
+      //    plantage entre le commit et le marquage SUCCESS) ne doit pas ajouter
+      //    les licences une seconde fois.
+      const order = await Order.findOne({
+        where: { reference: orderReference },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!order) {
+        // Erreur définitive : jamais de provisionnement sans achat connu.
+        throw new Error(`Order ${orderReference} not found: nothing provisioned`);
+      }
+      if (order.status === OrderStatus.COMPLETED) {
+        await transaction.commit();
+        console.log(`[B2BPackageStrategy:${correlationId}] Order ${orderReference} already provisioned — skipping`);
+        return { success: true, alreadyProvisioned: true, orderReference };
+      }
+
+      // 1. Trouver l'entreprise (par id si fourni par le dashboard, sinon par e-mail)
+      const company = await this.findOrCreateCompany(companyId, companyName, companyEmail, orderReference, transaction);
 
       // 2. Créer le CompanyAdmin avec token d'activation
-      const admin = await this.findOrCreateAdmin(company.id, adminEmail, adminFirstName, adminLastName, transaction);
+      //    (un admin déjà actif ne doit être ni modifié, ni réactivé par e-mail)
+      const { admin, sendActivationEmail } = await this.findOrCreateAdmin(
+        company.id, adminEmail, adminFirstName, adminLastName, transaction
+      );
 
-      // 3. Créer ou mettre à jour le CompanyPackage
+      // 3. Créer ou mettre à jour le CompanyPackage (avec expiration d'accès)
       const companyPackage = await this.provisionPackage(company.id, packageId, licenseCount, transaction);
 
-      // 4. Lier la commande à l'entreprise et marquer COMPLETED
+      // 4. Lier l'achat de licences à l'entreprise et marquer COMPLETED
       await Order.update(
         {
           status: OrderStatus.COMPLETED,
@@ -68,8 +99,12 @@ export class B2BPackageStrategy {
 
       await transaction.commit();
 
-      // 5. Email d'activation (après commit)
-      await this.sendActivationEmail(admin, company, orderReference);
+      // 5. Email d'activation (après commit, uniquement si nécessaire)
+      if (sendActivationEmail) {
+        await this.sendActivationEmail(admin, company, orderReference);
+      } else {
+        console.log(`[B2BPackageStrategy:${correlationId}] Admin ${admin.email} already active — no activation email`);
+      }
 
       console.log(`[B2BPackageStrategy:${correlationId}] ✅ Order ${orderReference} provisioned`);
       console.log(`[B2BPackageStrategy] Company #${company.id}, Admin #${admin.id}, ${licenseCount} licenses`);
@@ -89,9 +124,19 @@ export class B2BPackageStrategy {
   }
 
   /**
-   * Trouve ou crée une entreprise
+   * Trouve l'entreprise : par id (fixé côté serveur par le dashboard B2B
+   * authentifié) si fourni, sinon recherche/création par e-mail.
    */
-  async findOrCreateCompany(name, email, orderReference, transaction) {
+  async findOrCreateCompany(companyId, name, email, orderReference, transaction) {
+    if (companyId) {
+      const company = await Company.findByPk(companyId, { transaction });
+      if (!company) {
+        // Erreur définitive : jamais de création implicite sur un id serveur.
+        throw new Error(`B2B company #${companyId} not found for order ${orderReference}`);
+      }
+      return company;
+    }
+
     let company = await Company.findOne({
       where: { email },
       transaction,
@@ -112,7 +157,12 @@ export class B2BPackageStrategy {
   }
 
   /**
-   * Trouve ou crée un CompanyAdmin avec token d'activation
+   * Trouve ou crée un CompanyAdmin.
+   * - Administrateur existant ET actif : ni jeton, ni is_active, ni e-mail modifiés.
+   * - Administrateur existant inactif : nouveau jeton + e-mail d'activation.
+   * - Nouvel administrateur : création + e-mail d'activation.
+   *
+   * @returns {Promise<{admin: Object, sendActivationEmail: boolean}>}
    */
   async findOrCreateAdmin(companyId, email, firstName, lastName, transaction) {
     const activationToken = crypto.randomBytes(32).toString('hex');
@@ -134,22 +184,35 @@ export class B2BPackageStrategy {
         activation_token: activationToken,
         token_expires_at: tokenExpires,
       }, { transaction });
-    } else {
-      // Mettre à jour le token même si l'admin existe déjà
-      await admin.update({
-        activation_token: activationToken,
-        token_expires_at: tokenExpires,
-        is_active: false,
-      }, { transaction });
+      return { admin, sendActivationEmail: true };
     }
 
-    return admin;
+    if (isAdminActive(admin)) {
+      // Compte déjà actif : ne surtout pas le désactiver ni casser son jeton.
+      return { admin, sendActivationEmail: false };
+    }
+
+    // Administrateur existant inactif : nouveau jeton d'activation
+    await admin.update({
+      activation_token: activationToken,
+      token_expires_at: tokenExpires,
+      is_active: false,
+    }, { transaction });
+
+    return { admin, sendActivationEmail: true };
   }
 
   /**
-   * Crée ou met à jour un CompanyPackage (pool de licences)
+   * Crée ou met à jour un CompanyPackage (pool de licences) avec la date
+   * d'expiration d'accès (accès B2B valable N mois après l'achat) :
+   * - création ⇒ maintenant + durée ;
+   * - pool actif avec expiry_date future ⇒ date inchangée ;
+   * - pool expiré, sans date ou de statut non actif ⇒ maintenant + durée.
    */
   async provisionPackage(companyId, packageId, licenseCount, transaction) {
+    const now = new Date();
+    const months = getB2BAccessValidityMonths();
+
     let companyPackage = await CompanyPackage.findOne({
       where: { company_id: companyId, package_id: Number(packageId) },
       transaction,
@@ -160,7 +223,8 @@ export class B2BPackageStrategy {
       await companyPackage.update({
         total_licenses: currentTotal + Number(licenseCount),
         status: 'active',
-        purchase_date: new Date(),
+        purchase_date: now,
+        expiry_date: resolvePoolExpiryDate(companyPackage, now, months),
       }, { transaction });
     } else {
       companyPackage = await CompanyPackage.create({
@@ -169,7 +233,8 @@ export class B2BPackageStrategy {
         total_licenses: Number(licenseCount),
         used_licenses: 0,
         status: 'active',
-        purchase_date: new Date(),
+        purchase_date: now,
+        expiry_date: computeB2BAccessExpiryDate(now, months),
       }, { transaction });
     }
 
@@ -195,7 +260,7 @@ export class B2BPackageStrategy {
           <div style="padding: 40px;">
             <p>Bonjour,</p>
             <p>Votre achat de package de formations a été validé avec succès.</p>
-            <p>Commande : <strong>${orderReference}</strong></p>
+            <p>Achat de licences : <strong>${orderReference}</strong></p>
             <div style="text-align: center; margin: 40px 0;">
               <a href="${activationLink}"
                  style="background: #e63946; color: white; padding: 16px 32px;

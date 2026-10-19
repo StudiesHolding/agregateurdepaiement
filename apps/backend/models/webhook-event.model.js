@@ -10,9 +10,11 @@ WebhookEvent.init(
             autoIncrement: true,
             primaryKey: true,
         },
+        // Colonne entière portant la clé étrangère (l'ancienne `providerId` était un texte : ADR-0019, D8).
         providerId: {
             type: DataTypes.BIGINT.UNSIGNED,
             allowNull: true,
+            field: "provider_id",
         },
         eventType: {
             type: DataTypes.STRING(100),

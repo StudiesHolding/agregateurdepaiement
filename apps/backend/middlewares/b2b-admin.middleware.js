@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Company, CompanyAdmin } from "../models/index.js";
+import { jwtSecret } from "../utils/jwt-secret.js";
 
 /**
  * Middleware de vérification pour les admins B2B
@@ -22,7 +23,7 @@ export const isCompanyAdmin = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(
       token, 
-      process.env.JWT_SECRET || "fallback_secret_key_for_b2b"
+      jwtSecret()
     );
 
     // Verify it's specifically a B2B admin token

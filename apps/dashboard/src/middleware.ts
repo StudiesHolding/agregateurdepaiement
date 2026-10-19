@@ -9,14 +9,10 @@ const { auth } = NextAuth(authConfig);
  * Ensures only authenticated sessions can access the dashboard routes.
  */
 export default auth((req) => {
-  const isAuth = !!req.auth;
+  // Une session valide a un utilisateur. En cas d'erreur de configuration, Auth.js renvoie un objet d'erreur
+  // ({ message }) : ne jamais le prendre pour une session (fermé par défaut, ADR-0018 D5).
+  const isAuth = !!(req.auth as { user?: unknown } | null)?.user;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
-  const isDocsPage = req.nextUrl.pathname.startsWith("/docs");
-
-  // Allow access to docs pages without authentication
-  if (isDocsPage) {
-    return NextResponse.next();
-  }
 
   if (isLoginPage) {
     if (isAuth) {
@@ -41,5 +37,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Fichiers publics (marque, icônes) servis sans session : la page de connexion les affiche.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|brand/).*)"],
 };

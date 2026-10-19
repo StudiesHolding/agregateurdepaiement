@@ -8,11 +8,12 @@
  * TC-FACTORY-01 : B2B_PACKAGE → B2BPackageStrategy
  * TC-FACTORY-02 : MOODLE_HEADLESS → MoodleHeadlessStrategy
  * TC-FACTORY-03 : RETAIL → LegacyStrategy
- * TC-FACTORY-04 : AUCTION → LegacyStrategy
+ * TC-FACTORY-04 : AUCTION → AuctionSagaStrategy (ADR-0021)
  * TC-FACTORY-05 : Source inconnue → Error
  */
 import { resolveStrategy } from '../strategy-factory.js';
 import { LegacyStrategy } from '../strategies/legacy.strategy.js';
+import { AuctionSagaStrategy } from '../strategies/auction.strategy.js';
 import { B2BPackageStrategy } from '../strategies/b2b-package.strategy.js';
 import { MoodleHeadlessStrategy } from '../strategies/moodle-headless.strategy.js';
 
@@ -51,12 +52,12 @@ describe('StrategyFactory', () => {
   });
 
   // ─────────────────────────────────────────────────────────
-  // TC-FACTORY-04 : AUCTION → LegacyStrategy
+  // TC-FACTORY-04 : AUCTION → AuctionSagaStrategy (ADR-0021, D4)
   // ─────────────────────────────────────────────────────────
   describe('TC-FACTORY-04: AUCTION', () => {
-    it('should return a LegacyStrategy instance for source "AUCTION"', () => {
+    it('should return an AuctionSagaStrategy instance for source "AUCTION"', () => {
       const strategy = resolveStrategy('AUCTION');
-      expect(strategy).toBeInstanceOf(LegacyStrategy);
+      expect(strategy).toBeInstanceOf(AuctionSagaStrategy);
     });
   });
 
