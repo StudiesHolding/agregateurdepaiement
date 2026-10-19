@@ -453,14 +453,15 @@ describe('CommissionCreditStep (intégrée à MoodleHeadlessStrategy)', () => {
     expect(mockCreditCommission).not.toHaveBeenCalled();
   });
 
-  it('TC-COM-10: paidAt absent → date du jour en ISO 8601', async () => {
-    const before = new Date();
-    mockOrderFindOne.mockResolvedValue({ ...baseOrder, paidAt: null });
+  it("TC-COM-10: paidAt absent → date de création de l'achat, stable d'un essai à l'autre (idempotence)", async () => {
+    const createdAt = new Date('2026-10-11T14:45:00Z');
+    mockOrderFindOne.mockResolvedValue({ ...baseOrder, paidAt: null, created_at: createdAt });
 
     await strategy.execute(baseEvent);
+    await strategy.execute(baseEvent);
 
-    const call = mockCreditCommission.mock.calls[0];
-    expect(call[0].paidAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-    expect(new Date(call[0].paidAt).getTime()).toBeGreaterThanOrEqual(before.getTime());
+    const [first, second] = mockCreditCommission.mock.calls.map((c) => c[0].paidAt);
+    expect(first).toBe('2026-10-11T14:45:00.000Z');
+    expect(second).toBe(first);
   });
 });

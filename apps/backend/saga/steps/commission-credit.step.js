@@ -58,11 +58,19 @@ export function toExactDecimalString(value) {
 }
 
 /** paidAt = date de confirmation du paiement, au format ISO 8601 */
-export function toIsoPaidAt(value) {
-  if (!value) return new Date().toISOString();
-  if (value instanceof Date) return value.toISOString();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+/**
+ * Date de paiement envoyée au backend métier. Elle entre dans l'empreinte d'idempotence du crédit : elle doit être
+ * STABLE d'un essai à l'autre. À défaut de date de paiement, on prend la première date stable disponible (création de
+ * l'achat) — jamais « maintenant », qui changerait à chaque nouvel essai et ferait refuser le crédit.
+ */
+export function toIsoPaidAt(...candidates) {
+  for (const value of candidates) {
+    if (!value) continue;
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  // Aucune date fiable : on refuse plutôt que d'inscrire une date fausse dans le portefeuille de l'auteur.
+  throw new Error("Date de paiement introuvable pour le crédit de commission");
 }
 
 export class CommissionCreditStep {
@@ -139,7 +147,8 @@ export class CommissionCreditStep {
       currency: order.currency,
       // Canal vérifié par le backend à l'inscription (ADR-0012, D14), sinon celui des métadonnées d’inscription.
       channel: ALLOWED_CHANNELS.includes(channel) ? channel : this.resolveChannel(metadata),
-      paidAt: toIsoPaidAt(order.paidAt),
+      // Le modèle expose la date de création sous `created_at` (option createdAt renommée).
+      paidAt: toIsoPaidAt(order.paidAt, order.created_at ?? order.createdAt),
       correlationId,
       // Coupon (ADR-0012, D13) : prix avant coupon et financeur de la remise — la part de l'auteur s'en déduit.
       ...(/^\d+(\.\d{1,3})?$/.test(String(metadata.coupon_list_amount ?? '')) && ['author', 'platform'].includes(metadata.coupon_funder)
