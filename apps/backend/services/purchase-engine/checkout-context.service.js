@@ -52,9 +52,9 @@ class CheckoutContextService {
    * @param {string} type 
    * @param {string|number} id 
    */
-  async getContext(type, id) {
+  async getContext(type, id, options = {}) {
     const strategy = this.getStrategy(type);
-    return strategy.getContext(id);
+    return strategy.getContext(id, options);
   }
 
   /**

@@ -26,7 +26,9 @@ router.get("/context", catchAsync(async (req, res) => {
         return res.status(400).json({ success: false, message: "Type and ID are required." });
     }
 
-    const context = await checkoutContextService.getContext(type, id);
+    // Enchère : le jeton d'invitation (lien reçu par e-mail) désigne la personne et le montant (ADR-0021, D4).
+    const claim = typeof req.query.claim === "string" ? req.query.claim : undefined;
+    const context = await checkoutContextService.getContext(type, id, { claim });
     
     res.json({
         success: true,
@@ -154,6 +156,7 @@ router.get("/status", catchAsync(async (req, res) => {
         success: true,
         data: {
             reference: order.reference, state, kind: purchaseKind(order), reason,
+            formationId: Number(parseJson(order.metadata)?.formation_id ?? order.formationId) || null,
             title: order.formationName ?? (parseJson(order.metadata)?.formation_name || parseJson(order.metadata)?.company_name || null),
             amount: Number(order.totalAmount), currency: order.currency,
             paidAt: order.paidAt ?? null,

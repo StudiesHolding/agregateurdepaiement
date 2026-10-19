@@ -57,15 +57,15 @@ describe('Stratégies d\'achat — fermeture sécurisée', () => {
     expect(mockInitializePayment).not.toHaveBeenCalled();
   });
 
-  it('enchère : plus de paiement simulé (501), jamais d\'URL de PSP fictive', async () => {
-    const strategy = new AuctionPaymentStrategy();
-    await expect(strategy.process({ itemId: 9 })).rejects.toMatchObject({ statusCode: 501 });
+  it("enchère : sans jeton d'invitation, aucun paiement (jamais de montant venu du navigateur)", async () => {
+    const strategy = new AuctionPaymentStrategy({ isConfigured: () => true, check: jest.fn() });
+    await expect(strategy.process({ itemId: 9, amount: 1 })).rejects.toMatchObject({ statusCode: 400 });
+    expect(mockInitializePayment).not.toHaveBeenCalled();
   });
 
   it('enchère : service injoignable → 503, jamais de faux contexte à 150 EUR', async () => {
-    mockAxiosGet.mockRejectedValue(new Error('ECONNREFUSED'));
-    const strategy = new AuctionPaymentStrategy();
-    await expect(strategy.getContext(9)).rejects.toMatchObject({ statusCode: 503 });
+    const strategy = new AuctionPaymentStrategy({ isConfigured: () => true, check: jest.fn(async () => ({ status: 503, data: {} })) });
+    await expect(strategy.getContext(9, { claim: 'a'.repeat(43) })).rejects.toMatchObject({ statusCode: 503 });
   });
 
   describe('package : vendu à la licence, prix serveur', () => {
